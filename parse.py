@@ -7,7 +7,7 @@
    parse() is the opposite of format()
 
 The `Format String Syntax`_ is supported with anonymous (fixed-position),
-named and formatted values are supported::
+named and formatted fields are supported::
 
    {[field name]:[format spec]}
 
@@ -17,16 +17,22 @@ element indexes are supported (as they would make no sense.)
 Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
 
-There conversion of values to types other than strings is not yet supported.
+The conversion of fields to types other than strings is not yet supported.
 
 Some simple parse() format string examples:
 
 >>> parse("Bring me a {}", "Bring me a shrubbery")
 <Result ('shrubbery',) {}>
->>> parse("The {} who say {}", "The knights who say Ni!")
+>>> r = parse("The {} who say {}", "The knights who say Ni!")
+>>> print r
 <Result ('knights', 'Ni!') {}>
->>> parse("Bring out the holy {item}", "Bring out the holy hand grenade")
+>>> print r.fixed
+('knights', 'Ni!')
+>>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
+>>> print r
 <Result () {'item': 'hand grenade'}>
+>>> print r.named
+{'item': 'hand grenade'}
 
 Most of the `Format Specification Mini-Language`_ is supported::
 
@@ -88,10 +94,17 @@ examples. Run the tests with "python -m parse".
 
 ----
 
+**Version history (in brief)**:
+
+- 1.1.1 documentation improvements
+- 1.1.0 implemented more of the `Format Specification Mini-Language`_
+  and removed the restriction on mixing fixed-position and named fields
+- 1.0.0 initial release
+
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 import re
 import unittest
