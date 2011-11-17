@@ -4,11 +4,14 @@ from distutils.core import setup
 
 from parse import __version__, __doc__
 
+with open('README.rst', 'w') as f:
+    f.write(__doc__)
+
 # perform the setup action
 setup(
     name = "parse",
     version = __version__,
-    description = "Parse strings using a specification based on the Python format() syntax.",
+    description = "parse() is the opposite of format()",
     long_description = __doc__.decode('utf8'),
     author = "Richard Jones",
     author_email = "rjones@ekit-inc.com",
