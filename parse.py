@@ -43,7 +43,7 @@ examples.
 
 ----
 
-This code is copyright 2009-2011 eKit.com Inc (http://www.ekit.com/)
+This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
 __version__ = '1.0.0'
