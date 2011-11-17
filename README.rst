@@ -17,12 +17,12 @@ There conversion of values to types other than strings is not yet supported.
 
 Some simple parse() format string examples:
 
- >>> parse("Bring me a {}", "Bring me a shrubbery")
- <Result ('shrubbery',) {}>
- >>> parse("The {} who say {}", "The knights who say Ni!")
- <Result ('knights', 'Ni!') {}>
- >>> parse("Bring out the holy {item}", "Bring out the holy hand grenade")
- <Result () {'item': 'hand grenade'}>
+>>> parse("Bring me a {}", "Bring me a shrubbery")
+<Result ('shrubbery',) {}>
+>>> parse("The {} who say {}", "The knights who say Ni!")
+<Result ('knights', 'Ni!') {}>
+>>> parse("Bring out the holy {item}", "Bring out the holy hand grenade")
+<Result () {'item': 'hand grenade'}>
 
 Most of the `Format Specification Mini-Language`_ is supported::
 
@@ -61,17 +61,17 @@ where a more complex type specification might have been used.
 So, for example, some typed parsing, and None resulting if the typing
 does not match:
 
- >>> parse('Hello {:d} {:w}', 'Hello 12 people')
- <Result ('12', 'people') {}>
- >>> print parse('Hello {:d} {:w}', 'Hello twelve people')
- None
+>>> parse('Hello {:d} {:w}', 'Hello 12 people')
+<Result ('12', 'people') {}>
+>>> print parse('Hello {:d} {:w}', 'Hello twelve people')
+None
 
 And messing about with alignment:
 
- >>> parse('hello {:<} world', 'hello there     world')
- <Result ('there',) {}>
- >>> parse('hello {:^} world', 'hello    there     world')
- <Result ('there',) {}>
+>>> parse('hello {:<} world', 'hello there     world')
+<Result ('there',) {}>
+>>> parse('hello {:^} world', 'hello    there     world')
+<Result ('there',) {}>
 
 Note that the "center" alignment does not test to make sure the value is
 actually centered. It just strips leading and trailing whitespace.
