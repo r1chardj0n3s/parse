@@ -33,13 +33,14 @@ And some named parsing:
  >>> r.fixed
  ('there', )
 
-A ValueError will be raised if there is no match:
+None will be returned if there is no match:
 
  >>> r = parse('hello {name:w}', 'hello 12')
- ValueError: ...
+ >>> print r
+ None
 
 See also the unit tests at the end of the module for some more
-examples.
+examples. Run those with "python -m parse".
 
 ----
 
