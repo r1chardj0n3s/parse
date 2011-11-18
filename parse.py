@@ -6,8 +6,23 @@
 
    parse() is the opposite of format()
 
-The `Format String Syntax`_ is supported with anonymous (fixed-position),
-named and formatted fields::
+Basic usage:
+
+>>> from parse import *            # only exports parse() and compile()
+>>> parse("It's {}, I love it!", "It's spam, I love it!")
+<Result ('spam',) {}>
+>>> p = compile("It's {}, I love it!")
+>>> print p
+<Parser "It's {}, I love it!">
+>>> p.parse("It's spam, I love it!")
+<Result ('spam',) {}>
+
+
+Format Syntax
+-------------
+
+Most of the `Format String Syntax`_ is supported with anonymous
+(fixed-position), named and formatted fields::
 
    {[field name]:[format spec]}
 
@@ -33,6 +48,9 @@ Some simple parse() format string examples:
 <Result () {'item': 'hand grenade'}>
 >>> print r.named
 {'item': 'hand grenade'}
+
+Format Specification
+--------------------
 
 Most of the `Format Specification Mini-Language`_ is supported::
 
@@ -96,6 +114,7 @@ examples. Run the tests with "python -m parse".
 
 **Version history (in brief)**:
 
+- 1.1.2 refactored, added compile() and limited "from parse import *"
 - 1.1.1 documentation improvements
 - 1.1.0 implemented more of the `Format Specification Mini-Language`_
   and removed the restriction on mixing fixed-position and named fields
@@ -104,11 +123,13 @@ examples. Run the tests with "python -m parse".
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 
 import re
 import unittest
-import collections
+
+
+__all__ = 'parse compile'.split()
 
 
 # yes, I now have two problems
@@ -135,31 +156,25 @@ FORMAT_RE = re.compile('''
 ''', re.VERBOSE)
 
 
-class Result(object):
-    def __init__(self):
+class Parser(object):
+    def __init__(self, format):
         self._fixed_args = []
         self._groups = 0
-        self.fixed = ()
-        self.named = {}
+        self._format = format
+        self._expression = re.compile('^%s$' % PARSE_RE.sub(self.replace, format))
 
     def __repr__(self):
-        return '<Result %r %r>' % (self.fixed, self.named)
+        if len(self._format) > 20:
+            return '<%s %r>' % (self.__class__.__name__, self._format[:17] + '...')
+        return '<%s %r>' % (self.__class__.__name__, self._format)
 
-    @classmethod
-    def parse(cls, format, string):
-        o = cls()
-        # first, turn the format into a regular expression
-        r = PARSE_RE.sub(o.replace, format)
-        m = re.match('^' + r + '$', string)
+    def parse(self, string):
+        m = self._expression.match(string)
         if m is None:
             return None
-
         l = m.groups()
-
-        o.named = m.groupdict()
-        o.fixed = tuple(l[n] for n in o._fixed_args)
-
-        return o
+        fixed = tuple(l[n] for n in self._fixed_args)
+        return Result(fixed, m.groupdict())
 
     def replace(self, match):
         d = match.groupdict()
@@ -282,6 +297,16 @@ class Result(object):
         return s
 
 
+class Result(object):
+    def __init__(self, fixed, named):
+        self.fixed = fixed
+        self.named = named
+
+    def __repr__(self):
+        return '<%s %r %r>' % (self.__class__.__name__, self.fixed,
+            self.named)
+
+
 def parse(format, string):
     '''Using "format" attempt to pull values from "string".
 
@@ -294,62 +319,77 @@ def parse(format, string):
 
     In the case there is no match parse() will return None.
     '''
-    return Result().parse(format, string)
+    return Parser(format).parse(string)
+
+
+def compile(format):
+    '''Create a Parser instance to parse "format".
+
+    The resultant Parser has a method .parse(string) which
+    behaves in the same manner as parse(format, string).
+
+    Use this function if you intend to parse many strings
+    with the same format.
+    '''
+    return Parser(format)
 
 
 # yes, I now unit test both of the problems
 class TestPattern(unittest.TestCase):
+    def setUp(self):
+        self.p = Parser('')
+
     def test_braces(self):
         'pull a simple string out of another string'
-        s = PARSE_RE.sub(Result().replace, '{{ }}')
+        s = PARSE_RE.sub(self.p.replace, '{{ }}')
         self.assertEquals(s, '{ }')
 
     def test_fixed(self):
         'pull a simple string out of another string'
-        s = PARSE_RE.sub(Result().replace, '{}')
+        s = PARSE_RE.sub(self.p.replace, '{}')
         self.assertEquals(s, '(.+?)')
-        s = PARSE_RE.sub(Result().replace, '{} {}')
+        s = PARSE_RE.sub(self.p.replace, '{} {}')
         self.assertEquals(s, '(.+?) (.+?)')
 
     def test_typed(self):
         'pull a named string out of another string'
-        s = PARSE_RE.sub(Result().replace, '{:d}')
+        s = PARSE_RE.sub(self.p.replace, '{:d}')
         self.assertEquals(s, '(-?\d+?)')
-        s = PARSE_RE.sub(Result().replace, '{:d} {:w}')
+        s = PARSE_RE.sub(self.p.replace, '{:d} {:w}')
         self.assertEquals(s, '(-?\d+?) (\w+?)')
 
     def test_named(self):
         'pull a named string out of another string'
-        s = PARSE_RE.sub(Result().replace, '{name}')
+        s = PARSE_RE.sub(self.p.replace, '{name}')
         self.assertEquals(s, '(?P<name>.+?)')
-        s = PARSE_RE.sub(Result().replace, '{name} {other}')
+        s = PARSE_RE.sub(self.p.replace, '{name} {other}')
         self.assertEquals(s, '(?P<name>.+?) (?P<other>.+?)')
 
     def test_named_typed(self):
         'pull a named string out of another string'
-        s = PARSE_RE.sub(Result().replace, '{name:d}')
+        s = PARSE_RE.sub(self.p.replace, '{name:d}')
         self.assertEquals(s, '(?P<name>-?\d+?)')
-        s = PARSE_RE.sub(Result().replace, '{name:d} {other:w}')
+        s = PARSE_RE.sub(self.p.replace, '{name:d} {other:w}')
         self.assertEquals(s, '(?P<name>-?\d+?) (?P<other>\w+?)')
 
     def test_beaker(self):
         'skip some trailing whitespace'
-        s = PARSE_RE.sub(Result().replace, '{:<}')
+        s = PARSE_RE.sub(self.p.replace, '{:<}')
         self.assertEquals(s, '(.+?) +')
 
     def test_left_fill(self):
         'skip some trailing periods'
-        s = PARSE_RE.sub(Result().replace, '{:.<}')
+        s = PARSE_RE.sub(self.p.replace, '{:.<}')
         self.assertEquals(s, '(.+?)\.+')
 
     def test_bird(self):
         'skip some trailing whitespace'
-        s = PARSE_RE.sub(Result().replace, '{:>}')
+        s = PARSE_RE.sub(self.p.replace, '{:>}')
         self.assertEquals(s, ' +(.+?)')
 
     def test_center(self):
         'skip some surrounding whitespace'
-        s = PARSE_RE.sub(Result().replace, '{:^}')
+        s = PARSE_RE.sub(self.p.replace, '{:^}')
         self.assertEquals(s, ' +(.+?) +')
 
     def test_format(self):
@@ -382,6 +422,7 @@ class TestPattern(unittest.TestCase):
             sign='+', zero='0'))
 
         #(\.(?P<precision>\d+))?
+
 
 class TestParse(unittest.TestCase):
     def test_no_match(self):
@@ -486,6 +527,7 @@ class TestParse(unittest.TestCase):
 
         # TODO this should pass
         # y('a {:05d} b', 'a 0000001 b', None)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,7 +3,7 @@ Parse strings using a specification based on the Python format() syntax.
    parse() is the opposite of format()
 
 The `Format String Syntax`_ is supported with anonymous (fixed-position),
-named and formatted fields are supported::
+named and formatted fields::
 
    {[field name]:[format spec]}
 
@@ -67,17 +67,17 @@ where a more complex type specification might have been used.
 So, for example, some typed parsing, and None resulting if the typing
 does not match:
 
->>> parse('Hello {:d} {:w}', 'Hello 12 people')
-<Result ('12', 'people') {}>
->>> print parse('Hello {:d} {:w}', 'Hello twelve people')
+>>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
+<Result ('3', 'weapons') {}>
+>>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
 None
 
 And messing about with alignment:
 
->>> parse('hello {:<} world', 'hello there     world')
-<Result ('there',) {}>
->>> parse('hello {:^} world', 'hello    there     world')
-<Result ('there',) {}>
+>>> parse('with {:>} herring', 'with     a herring')
+<Result ('a',) {}>
+>>> parse('spam {:^} spam', 'spam    lovely     spam')
+<Result ('lovely',) {}>
 
 Note that the "center" alignment does not test to make sure the value is
 actually centered. It just strips leading and trailing whitespace.
