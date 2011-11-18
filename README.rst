@@ -17,7 +17,7 @@ Basic usage:
 Format Syntax
 -------------
 
-Most of the `Format String Syntax`_ is supported with anonymous
+A basic version of the `Format String Syntax`_ is supported with anonymous
 (fixed-position), named and formatted fields::
 
    {[field name]:[format spec]}
@@ -28,7 +28,9 @@ element indexes are supported (as they would make no sense.)
 Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
 
-The conversion of fields to types other than strings is not yet supported.
+The conversion of fields to types other than strings is done based on the
+type in the format specification, which mirrors the format() behaviour.
+There are no "!" field conversions like format() has.
 
 Some simple parse() format string examples:
 
@@ -58,26 +60,30 @@ supported.
 
 The comma "," separator is not yet supported.
 
-The types supported are the not the format() types but rather some of
-those types b, o, h, x, X and also regular expression character group types
-d, D, w, W, s, S and not the string format types. The format() types n, f,
-F, e, E, g and G are not yet supported.
+The types supported are a slightly different mix to the format() types.
+Some format() types come directly over: d, n, f, b, o, h, x and X.
+In addition some regular expression character group types
+D, w, W, s and S are also available.
 
-===== ==========================================
-Type  Characters Matched
-===== ==========================================
- w    Letters and underscore
- W    Non-letter and underscore
- s    Whitespace
- S    Non-whitespace
- d    Digits (effectively integer numbers)
- D    Non-digit
- b    Binary numbers
- o    Octal numbers
- h    Hexadecimal numbers (lower and upper case)
- x    Lower-case hexadecimal numbers
- X    Upper-case hexadecimal numbers
-===== ==========================================
+The format() types %, F, e, E, g and G are not yet supported.
+
+===== ========================================== =======
+Type  Characters Matched                         Output
+===== ========================================== =======
+ w    Letters and underscore                     str
+ W    Non-letter and underscore                  str
+ s    Whitespace                                 str
+ S    Non-whitespace                             str
+ d    Digits (effectively integer numbers)       int
+ D    Non-digit                                  str
+ n    Numbers with thousands separators (, or .) int
+ f    Fixed-point numbers                        float
+ b    Binary numbers                             int
+ o    Octal numbers                              int
+ h    Hexadecimal numbers (lower and upper case) int
+ x    Lower-case hexadecimal numbers             int
+ X    Upper-case hexadecimal numbers             int
+===== ========================================== =======
 
 Do remember though that most often a straight type-less {} will suffice
 where a more complex type specification might have been used.
@@ -86,7 +92,7 @@ So, for example, some typed parsing, and None resulting if the typing
 does not match:
 
 >>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
-<Result ('3', 'weapons') {}>
+<Result (3, 'weapons') {}>
 >>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
 None
 
@@ -110,6 +116,8 @@ examples. Run the tests with "python -m parse".
 
 **Version history (in brief)**:
 
+- 1.1.3 type conversion is automatic based on specified field types. Also added
+  "f" and "n" types.
 - 1.1.2 refactored, added compile() and limited ``from parse import *``
 - 1.1.1 documentation improvements
 - 1.1.0 implemented more of the `Format Specification Mini-Language`_

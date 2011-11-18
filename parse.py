@@ -21,7 +21,7 @@ Basic usage:
 Format Syntax
 -------------
 
-Most of the `Format String Syntax`_ is supported with anonymous
+A basic version of the `Format String Syntax`_ is supported with anonymous
 (fixed-position), named and formatted fields::
 
    {[field name]:[format spec]}
@@ -32,7 +32,9 @@ element indexes are supported (as they would make no sense.)
 Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
 
-The conversion of fields to types other than strings is not yet supported.
+The conversion of fields to types other than strings is done based on the
+type in the format specification, which mirrors the format() behaviour.
+There are no "!" field conversions like format() has.
 
 Some simple parse() format string examples:
 
@@ -62,26 +64,30 @@ supported.
 
 The comma "," separator is not yet supported.
 
-The types supported are the not the format() types but rather some of
-those types b, o, h, x, X and also regular expression character group types
-d, D, w, W, s, S and not the string format types. The format() types n, f,
-F, e, E, g and G are not yet supported.
+The types supported are a slightly different mix to the format() types.
+Some format() types come directly over: d, n, f, b, o, h, x and X.
+In addition some regular expression character group types
+D, w, W, s and S are also available.
 
-===== ==========================================
-Type  Characters Matched
-===== ==========================================
- w    Letters and underscore
- W    Non-letter and underscore
- s    Whitespace
- S    Non-whitespace
- d    Digits (effectively integer numbers)
- D    Non-digit
- b    Binary numbers
- o    Octal numbers
- h    Hexadecimal numbers (lower and upper case)
- x    Lower-case hexadecimal numbers
- X    Upper-case hexadecimal numbers
-===== ==========================================
+The format() types %, F, e, E, g and G are not yet supported.
+
+===== ========================================== =======
+Type  Characters Matched                         Output
+===== ========================================== =======
+ w    Letters and underscore                     str
+ W    Non-letter and underscore                  str
+ s    Whitespace                                 str
+ S    Non-whitespace                             str
+ d    Digits (effectively integer numbers)       int
+ D    Non-digit                                  str
+ n    Numbers with thousands separators (, or .) int
+ f    Fixed-point numbers                        float
+ b    Binary numbers                             int
+ o    Octal numbers                              int
+ h    Hexadecimal numbers (lower and upper case) int
+ x    Lower-case hexadecimal numbers             int
+ X    Upper-case hexadecimal numbers             int
+===== ========================================== =======
 
 Do remember though that most often a straight type-less {} will suffice
 where a more complex type specification might have been used.
@@ -90,7 +96,7 @@ So, for example, some typed parsing, and None resulting if the typing
 does not match:
 
 >>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
-<Result ('3', 'weapons') {}>
+<Result (3, 'weapons') {}>
 >>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
 None
 
@@ -114,6 +120,8 @@ examples. Run the tests with "python -m parse".
 
 **Version history (in brief)**:
 
+- 1.1.3 type conversion is automatic based on specified field types. Also added
+  "f" and "n" types.
 - 1.1.2 refactored, added compile() and limited ``from parse import *``
 - 1.1.1 documentation improvements
 - 1.1.0 implemented more of the `Format Specification Mini-Language`_
@@ -123,7 +131,7 @@ examples. Run the tests with "python -m parse".
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 
 import re
 import unittest
@@ -152,7 +160,7 @@ FORMAT_RE = re.compile('''
     (?P<prefix>\#)?
     (?P<width>(?P<zero>0)?[1-9]\d*)?
     (\.(?P<precision>\d+))?
-    (?P<type>[bohxXwWdDsS])?
+    (?P<type>[nbohxXfwWdDsS])?
 ''', re.VERBOSE)
 
 
@@ -161,6 +169,8 @@ class Parser(object):
         self._fixed_args = []
         self._groups = 0
         self._format = format
+        self._type_conversions = {}
+        self._group_checks = {}
         self._expression = re.compile('^%s$' % PARSE_RE.sub(self.replace, format))
 
     def __repr__(self):
@@ -172,9 +182,16 @@ class Parser(object):
         m = self._expression.match(string)
         if m is None:
             return None
-        l = m.groups()
+        l = list(m.groups())
+        for n in self._fixed_args:
+            if n in self._type_conversions:
+                l[n] = self._type_conversions[n](l[n])
+        named = m.groupdict()
+        for k in named:
+            if k in self._type_conversions:
+                named[k] = self._type_conversions[k](named[k])
         fixed = tuple(l[n] for n in self._fixed_args)
-        return Result(fixed, m.groupdict())
+        return Result(fixed, named)
 
     def replace(self, match):
         d = match.groupdict()
@@ -190,11 +207,13 @@ class Parser(object):
             wrap = '(%s)'
             if ':' in d['fixed']:
                 format = d['fixed'][2:-1]
+            group = self._groups
         elif d['named']:
             if ':' in d['named']:
                 name, format = d['named'].split(':')
             else:
                 name = d['named']
+            group = name
             wrap = '(?P<%s>%%s)' % name
         else:
             raise ValueError('format not recognised')
@@ -211,30 +230,42 @@ class Parser(object):
         d = m.groupdict()
         #print 'FORMAT', d
 
-        if d['type'] == 'o':
+        if d['type'] == 'n':
+            s = '\d{1,3}([,.]\d{3})*'
+            self._type_conversions[group] = lambda x: int(x.replace(',', '').replace('.', ''))
+        elif d['type'] == 'o':
             s = '[0-7]'
+            self._type_conversions[group] = lambda x: int(x, 8)
         elif d['type'] == 'b':
             s = '[01]'
+            self._type_conversions[group] = lambda x: int(x, 2)
         elif d['type'] == 'h':
             s = '[0-9a-fA-F]'
+            self._type_conversions[group] = lambda x: int(x, 16)
         elif d['type'] == 'x':
             s = '[0-9a-f]'
+            self._type_conversions[group] = lambda x: int(x, 16)
         elif d['type'] == 'X':
             s = '[0-9A-F]'
+            self._type_conversions[group] = lambda x: int(x, 16)
+        elif d['type'] == 'f':
+            s = r'\d+\.\d+'
+            self._type_conversions[group] = float
+        elif d['type'] == 'd':
+            s = r'\d'
+            self._type_conversions[group] = int
         elif d['type']:
             s = r'\%s' % d['type']
         else:
             s = '.'
 
         # TODO: number types still to support:
-        # n    Number (with number separator characters)
-        # f    Floating-point numbers
         # e    Exponent notation
         # E    Exponent notation with upper-case E
         # g    General number format with added nan, inf and -inf
         # G    General number format with upper-case E, NAN, INF and -INF
 
-        if d['type'] and d['type'] in 'dobhxX':
+        if d['type'] and d['type'] in 'nfdobhxX':
             if d['prefix']:
                 if d['type'] == 'b':
                     s = '0b' + s
@@ -262,20 +293,25 @@ class Parser(object):
             if d['sign']:
                 raise ValueError('sign in format must accompany "d" type')
 
-        if d['width']:
-            if d['zero']:
-                s = s + '{%s}' % d['width'][1:]
-            else:
-                s = s + '{%s}' % d['width']
-        else:
+        if not d['type'] or d['type'] not in 'fn':
+            # all other types need some form of character set repetition now
             s = s + '+?'
 
+        # place into a group now
         s = wrap % s
 
+        # prefix with zeros or spaces?
         if d['zero']:
             s = '0*' + s
+        elif d['width']:
+            # all we really care about is that if the format originally
+            # specified a width then there will probably be padding - without an
+            # explicit alignment that'll mean right alignment with spaces
+            # padding
+            if not d['align']:
+                d['align'] = '>'
 
-        # TODO handle precision
+        # we're just going to ignore precision...
         #(\.(?P<precision>\d+))?
 
         # TODO support '='
@@ -289,11 +325,11 @@ class Parser(object):
         if fill in '.\+?*[](){}^$':
             fill = '\\' + fill
         if align == '<':
-            s = '%s%s+' % (s, fill)
+            s = '%s%s*' % (s, fill)
         elif align == '>':
-            s = '%s+%s' % (fill, s)
+            s = '%s*%s' % (fill, s)
         elif align == '^':
-            s = '%s+%s%s+' % (fill, s, fill)
+            s = '%s*%s%s*' % (fill, s, fill)
         return s
 
 
@@ -375,22 +411,34 @@ class TestPattern(unittest.TestCase):
     def test_beaker(self):
         'skip some trailing whitespace'
         s = PARSE_RE.sub(self.p.replace, '{:<}')
-        self.assertEquals(s, '(.+?) +')
+        self.assertEquals(s, '(.+?) *')
 
     def test_left_fill(self):
         'skip some trailing periods'
         s = PARSE_RE.sub(self.p.replace, '{:.<}')
-        self.assertEquals(s, '(.+?)\.+')
+        self.assertEquals(s, '(.+?)\.*')
 
     def test_bird(self):
         'skip some trailing whitespace'
         s = PARSE_RE.sub(self.p.replace, '{:>}')
-        self.assertEquals(s, ' +(.+?)')
+        self.assertEquals(s, ' *(.+?)')
 
     def test_center(self):
         'skip some surrounding whitespace'
         s = PARSE_RE.sub(self.p.replace, '{:^}')
-        self.assertEquals(s, ' +(.+?) +')
+        self.assertEquals(s, ' *(.+?) *')
+
+    def test_float(self):
+        'skip test float expression generation'
+        _ = lambda s: PARSE_RE.sub(self.p.replace, s)
+        self.assertEquals(_('{:f}'), '(-?\d+\.\d+)')
+        self.assertEquals(_('{:+f}'), '([-+]?\d+\.\d+)')
+
+    def test_number_commas(self):
+        'skip number with commas generation'
+        _ = lambda s: PARSE_RE.sub(self.p.replace, s)
+        self.assertEquals(_('{:n}'), '(-?\\d{1,3}([,.]\\d{3})*)')
+        self.assertEquals(_('{:+n}'), '([-+]?\\d{1,3}([,.]\\d{3})*)')
 
     def test_format(self):
         def _(fmt, matches):
@@ -402,7 +450,7 @@ class TestPattern(unittest.TestCase):
                 self.assertEquals(d.get(k), matches[k],
                     'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]))
 
-        for t in 'obhdDwWsS':
+        for t in 'obhfdDwWsS':
             _(t, dict(type=t))
             _('10'+t, dict(type=t, width='10'))
         _('05d', dict(type='d', width='05', zero='0'))
@@ -458,6 +506,8 @@ class TestParse(unittest.TestCase):
     def test_typed(self):
         'pull a named, typed values out of string'
         r = parse('hello {:d} {:w}', 'hello 12 people')
+        self.assertEquals(r.fixed, (12, 'people'))
+        r = parse('hello {:w} {:w}', 'hello 12 people')
         self.assertEquals(r.fixed, ('12', 'people'))
 
     def test_typed_fail(self):
@@ -478,16 +528,18 @@ class TestParse(unittest.TestCase):
     def test_named_typed(self):
         'pull a named, typed values out of string'
         r = parse('hello {number:d} {things}', 'hello 12 people')
+        self.assertEquals(r.named, dict(number=12, things='people'))
+        r = parse('hello {number:w} {things}', 'hello 12 people')
         self.assertEquals(r.named, dict(number='12', things='people'))
 
     def test_named_aligned_typed(self):
         'pull a named, typed values out of string'
         r = parse('hello {number:<d} {things}', 'hello 12      people')
-        self.assertEquals(r.named, dict(number='12', things='people'))
+        self.assertEquals(r.named, dict(number=12, things='people'))
         r = parse('hello {number:>d} {things}', 'hello      12 people')
-        self.assertEquals(r.named, dict(number='12', things='people'))
+        self.assertEquals(r.named, dict(number=12, things='people'))
         r = parse('hello {number:^d} {things}', 'hello      12      people')
-        self.assertEquals(r.named, dict(number='12', things='people'))
+        self.assertEquals(r.named, dict(number=12, things='people'))
 
     def test_numbers(self):
         'pull a numbers out of a string'
@@ -499,31 +551,48 @@ class TestParse(unittest.TestCase):
         def n(fmt, s, e):
             if parse(fmt, s) is not None:
                 self.fail('%r matched %r' % (fmt, s))
-        y('a {:d} b', 'a 12 b', '12')
-        y('a {:d} b', 'a -12 b', '-12')
+        y('a {:d} b', 'a 12 b', 12)
+        y('a {:5d} b', 'a    12 b', 12)
+        y('a {:d} b', 'a -12 b', -12)
         n('a {:d} b', 'a +12 b', None)
-        y('a {:-d} b', 'a -12 b', '-12')
+        y('a {:-d} b', 'a -12 b', -12)
         n('a {:-d} b', 'a +12 b', None)
-        y('a {:+d} b', 'a -12 b', '-12')
-        y('a {:+d} b', 'a +12 b', '+12')
-        y('a {: d} b', 'a -12 b', '-12')
-        y('a {: d} b', 'a  12 b', ' 12')
+        y('a {:+d} b', 'a -12 b', -12)
+        y('a {:+d} b', 'a +12 b', 12)
+        y('a {: d} b', 'a -12 b', -12)
+        y('a {: d} b', 'a  12 b', 12)
         n('a {: d} b', 'a +12 b', None)
 
-        y('a {:b} b', 'a 101101 b', '101101')
-        y('a {:#b} b', 'a 0b101101 b', '0b101101')
-        y('a {:o} b', 'a 12345670 b', '12345670')
-        y('a {:#o} b', 'a 0o12345670 b', '0o12345670')
-        y('a {:h} b', 'a 1234567890abcdef b', '1234567890abcdef')
-        y('a {:h} b', 'a 1234567890ABCDEF b', '1234567890ABCDEF')
-        y('a {:#h} b', 'a 0x1234567890abcdef b', '0x1234567890abcdef')
-        y('a {:#h} b', 'a 0x1234567890ABCDEF b', '0x1234567890ABCDEF')
-        y('a {:x} b', 'a 1234567890abcdef b', '1234567890abcdef')
-        y('a {:X} b', 'a 1234567890ABCDEF b', '1234567890ABCDEF')
-        y('a {:#x} b', 'a 0x1234567890abcdef b', '0x1234567890abcdef')
-        y('a {:#X} b', 'a 0x1234567890ABCDEF b', '0x1234567890ABCDEF')
+        y('a {:n} b', 'a 100 b', 100)
+        y('a {:n} b', 'a 1,000 b', 1000)
+        y('a {:n} b', 'a 1.000 b', 1000)
+        y('a {:n} b', 'a -1,000 b', -1000)
+        y('a {:+n} b', 'a +1,000 b', 1000)
+        y('a {:n} b', 'a 10,000 b', 10000)
+        y('a {:n} b', 'a 100,000 b', 100000)
+        n('a {:n} b', 'a 100,00 b', None)
 
-        y('a {:05d} b', 'a 00001 b', '00001')
+        y('a {:f} b', 'a 12.0 b', 12.0)
+        y('a {:f} b', 'a -12.1 b', -12.1)
+        y('a {:-f} b', 'a -12.1 b', -12.1)
+        y('a {:+f} b', 'a +12.1 b', 12.1)
+        y('a {: f} b', 'a  12.1 b', 12.1)
+        n('a {:f} b', 'a 12 b', None)
+
+        y('a {:b} b', 'a 101101 b', 0b101101)
+        y('a {:#b} b', 'a 0b101101 b', 0b101101)
+        y('a {:o} b', 'a 12345670 b', 0o12345670)
+        y('a {:#o} b', 'a 0o12345670 b', 0o12345670)
+        y('a {:h} b', 'a 1234567890abcdef b', 0x1234567890abcdef)
+        y('a {:h} b', 'a 1234567890ABCDEF b', 0x1234567890ABCDEF)
+        y('a {:#h} b', 'a 0x1234567890abcdef b', 0x1234567890abcdef)
+        y('a {:#h} b', 'a 0x1234567890ABCDEF b', 0x1234567890ABCDEF)
+        y('a {:x} b', 'a 1234567890abcdef b', 0x1234567890abcdef)
+        y('a {:X} b', 'a 1234567890ABCDEF b', 0x1234567890ABCDEF)
+        y('a {:#x} b', 'a 0x1234567890abcdef b', 0x1234567890abcdef)
+        y('a {:#X} b', 'a 0x1234567890ABCDEF b', 0x1234567890ABCDEF)
+
+        y('a {:05d} b', 'a 00001 b', 1)
 
         # TODO this should pass
         # y('a {:05d} b', 'a 0000001 b', None)
