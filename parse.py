@@ -114,7 +114,7 @@ examples. Run the tests with "python -m parse".
 
 **Version history (in brief)**:
 
-- 1.1.2 refactored, added compile() and limited "from parse import *"
+- 1.1.2 refactored, added compile() and limited ``from parse import *``
 - 1.1.1 documentation improvements
 - 1.1.0 implemented more of the `Format Specification Mini-Language`_
   and removed the restriction on mixing fixed-position and named fields

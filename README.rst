@@ -2,8 +2,23 @@ Parse strings using a specification based on the Python format() syntax.
 
    parse() is the opposite of format()
 
-The `Format String Syntax`_ is supported with anonymous (fixed-position),
-named and formatted fields::
+Basic usage:
+
+>>> from parse import *            # only exports parse() and compile()
+>>> parse("It's {}, I love it!", "It's spam, I love it!")
+<Result ('spam',) {}>
+>>> p = compile("It's {}, I love it!")
+>>> print p
+<Parser "It's {}, I love it!">
+>>> p.parse("It's spam, I love it!")
+<Result ('spam',) {}>
+
+
+Format Syntax
+-------------
+
+Most of the `Format String Syntax`_ is supported with anonymous
+(fixed-position), named and formatted fields::
 
    {[field name]:[format spec]}
 
@@ -29,6 +44,9 @@ Some simple parse() format string examples:
 <Result () {'item': 'hand grenade'}>
 >>> print r.named
 {'item': 'hand grenade'}
+
+Format Specification
+--------------------
 
 Most of the `Format Specification Mini-Language`_ is supported::
 
@@ -92,6 +110,7 @@ examples. Run the tests with "python -m parse".
 
 **Version history (in brief)**:
 
+- 1.1.2 refactored, added compile() and limited ``from parse import *``
 - 1.1.1 documentation improvements
 - 1.1.0 implemented more of the `Format Specification Mini-Language`_
   and removed the restriction on mixing fixed-position and named fields
