@@ -149,7 +149,7 @@ Some notes for the date and time types:
   than 12 (for consistency.)
 - except in ISO 8601 and e-mail format the timezone is optional
 - when a seconds amount is present in the input fractions will be parsed
-- named timezones are not yet supported
+- named timezones are not handled yet
 
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
@@ -342,7 +342,7 @@ def date_convert(string, match, time_only=False):
     elif tz:
         tz = tz.strip()
         if tz.isupper():
-            # TODO use that awesome python TZ module
+            # TODO use the awesome python TZ module?
             TODO
         else:
             sign = tz[0]
@@ -924,6 +924,16 @@ class TestParse(unittest.TestCase):
         y('a {:te} b', 'a Mon, 21 Nov 2011 10:21:36 +1000 b', aest_d)
         y('a {:te} b', 'a 21 Nov 2011 10:21:36 +1000 b', aest_d)
 
+        # tg   global (day/month) format datetime
+        y('a {:tg} b', 'a 21/11/2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:tg} b', 'a 21-11-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:tg} b', 'a 21/11/2011 10:21:36 +1000 b', aest_d)
+        y('a {:tg} b', 'a 21/11/2011 10:21:36 b', dt)
+        y('a {:tg} b', 'a 21/11/2011 10:21 b', dt00)
+        y('a {:tg} b', 'a 21-11-2011 b', d)
+        y('a {:tg} b', 'a 21-Nov-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:tg} b', 'a 21-November-2011 10:21:36 AM +1000 b', aest_d)
+
         # ta   US (month/day) format     datetime
         y('a {:ta} b', 'a 11/21/2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a 11-21-2011 10:21:36 AM +1000 b', aest_d)
@@ -934,12 +944,6 @@ class TestParse(unittest.TestCase):
         y('a {:ta} b', 'a Nov-21-2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a November-21-2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a November-21-2011 b', d)
-
-        # tg   global (day/month) format datetime
-        y('a {:tg} b', 'a 21/11/2011 10:21:36 AM +1000 b', aest_d)
-        y('a {:tg} b', 'a 21-11-2011 10:21:36 AM +1000 b', aest_d)
-        y('a {:tg} b', 'a 21-Nov-2011 10:21:36 AM +1000 b', aest_d)
-        y('a {:tg} b', 'a 21-November-2011 10:21:36 AM +1000 b', aest_d)
 
         # th   HTTP log format date/time                   datetime
         y('a {:th} b', 'a 21/Nov/2011:10:21:36 +1000 b', aest_d)
