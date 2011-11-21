@@ -127,6 +127,8 @@ Some notes for the date and time types:
   will be set to 00:00:00.
 - except in ISO 8601 the day and month digits may be 0-padded
 - the separator for the ta and tg formats may be "-" or "/"
+- named months (abbreviations or full names) may be used in the ta and tg
+  formats
 - as per RFC 2822 the e-mail format may omit the day (and comma), and the
   seconds but nothing else
 - hours greater than 12 will be happily accepted
@@ -140,10 +142,30 @@ Some notes for the date and time types:
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
+
+Result Objects
+--------------
+
+The result of a ``parse()`` operation is either ``None`` (no match) or a
+``Result`` instance.
+
+The ``Result`` instance has three attributes:
+
+fixed
+   A tuple of the fixed-position, anonymous fields extracted from the input.
+named
+   A dictionary of the named fields extracted from the input.
+spans
+   A dictionary mapping the names and fixed position indices matched to a
+   2-tuple slice range of where the match occurred in the input.
+
+
 ----
 
 **Version history (in brief)**:
 
+- 1.1.5 accept textual dates in more places; Result now holds match span
+  positions.
 - 1.1.4 fixes to some int type conversion; implemented "=" alignment; added
   date/time parsing with a variety of formats handled.
 - 1.1.3 type conversion is automatic based on specified field types. Also added

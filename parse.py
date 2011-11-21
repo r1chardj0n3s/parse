@@ -349,6 +349,7 @@ def date_convert(string, match, time_only=False):
 
     return d
 
+
 class Parser(object):
     def __init__(self, format):
         self._fixed_args = []
@@ -899,16 +900,23 @@ class TestParse(unittest.TestCase):
             datetime(1997, 07, 16, 19, 20, 30, 500000, tzinfo=FixedTzOffset(60, '+01:00')))
 
         aest_d = datetime(2011, 11, 21, 10, 21, 36, tzinfo=aest)
+        dt = datetime(2011, 11, 21, 10, 21, 36)
+        d = datetime(2011, 11, 21)
 
         # te   RFC2822 e-mail format        datetime
         y('a {:te} b', 'a Mon, 21 Nov 2011 10:21:36 +1000 b', aest_d)
         y('a {:te} b', 'a 21 Nov 2011 10:21:36 +1000 b', aest_d)
+        y('a {:te} b', 'a 21 Nov 2011 b', d)
 
         # ta   US (month/day) format     datetime
         y('a {:ta} b', 'a 11/21/2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a 11-21-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:ta} b', 'a 11/21/2011 10:21:36 +1000 b', aest_d)
+        y('a {:ta} b', 'a 11/21/2011 10:21:36 b', dt)
+        y('a {:ta} b', 'a 11-21-2011 b', d)
         y('a {:ta} b', 'a Nov-21-2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a November-21-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:ta} b', 'a November-21-2011 b', d)
 
         # tg   global (day/month) format datetime
         y('a {:tg} b', 'a 21/11/2011 10:21:36 AM +1000 b', aest_d)
