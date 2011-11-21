@@ -54,15 +54,15 @@ Some simple parse() format string examples:
 Format Specification
 --------------------
 
+Do remember that most often a straight format-less {} will suffice
+where a more complex format specification might have been used.
+
 Most of the `Format Specification Mini-Language`_ is supported::
 
    [[fill]align][sign][#][0][width][,][.precision][type]
 
 The align operators will cause spaces (or specified fill character)
-to be stripped from the value. The alignment character "=" is not yet
-supported.
-
-The comma "," separator is not yet supported.
+to be stripped from the value.
 
 The types supported are a slightly different mix to the format() types.
 Some format() types come directly over: d, n, f, b, o, h, x and X.
@@ -71,26 +71,37 @@ D, w, W, s and S are also available.
 
 The format() types %, F, e, E, g and G are not yet supported.
 
-===== ========================================== =======
-Type  Characters Matched                         Output
-===== ========================================== =======
- w    Letters and underscore                     str
- W    Non-letter and underscore                  str
- s    Whitespace                                 str
- S    Non-whitespace                             str
- d    Digits (effectively integer numbers)       int
- D    Non-digit                                  str
- n    Numbers with thousands separators (, or .) int
- f    Fixed-point numbers                        float
- b    Binary numbers                             int
- o    Octal numbers                              int
- h    Hexadecimal numbers (lower and upper case) int
- x    Lower-case hexadecimal numbers             int
- X    Upper-case hexadecimal numbers             int
-===== ========================================== =======
-
-Do remember though that most often a straight type-less {} will suffice
-where a more complex type specification might have been used.
+===== =========================================== ========
+Type  Characters Matched                          Output
+===== =========================================== ========
+ w    Letters and underscore                      str
+ W    Non-letter and underscore                   str
+ s    Whitespace                                  str
+ S    Non-whitespace                              str
+ d    Digits (effectively integer numbers)        int
+ D    Non-digit                                   str
+ n    Numbers with thousands separators (, or .)  int
+ f    Fixed-point numbers                         float
+ b    Binary numbers                              int
+ o    Octal numbers                               int
+ h    Hexadecimal numbers (lower and upper case)  int
+ x    Lower-case hexadecimal numbers              int
+ X    Upper-case hexadecimal numbers              int
+ ti   ISO 8601 format date/time                   datetime
+      e.g. 1972-01-20T10:21:36Z
+ te   RFC2822 e-mail format date/time             datetime
+      e.g. Mon, 20 Jan 1972 10:21:36 +1000
+ tg   Global (day/month) format date/time         datetime
+      e.g. 20/1/1972 10:21:36 AM +1:00
+ ta   US (month/day) format date/time             datetime
+      e.g. 1/20/1972 10:21:36 PM +10:30
+ tc   ctime() format date/time                    datetime
+      e.g. Sun Sep 16 01:03:52 1973
+ th   HTTP log format date/time                   datetime
+      e.g. 21/Nov/2011:00:07:11 +0000
+ tt   Time                                        time
+      e.g. 10:21:36 PM -5:30
+===== =========================================== ========
 
 So, for example, some typed parsing, and None resulting if the typing
 does not match:
@@ -113,6 +124,23 @@ actually centered. It just strips leading and trailing whitespace.
 See also the unit tests at the end of the module for some more
 examples. Run the tests with "python -m parse".
 
+Some notes for the date and time types:
+
+- the presence of the time part is optional (including ISO 8601, starting
+  at the "T"). A full datetime object will always be returned; the time
+  will be set to 00:00:00.
+- except in ISO 8601 the day and month digits may be 0-padded
+- the separator for the ta and tg formats may be "-" or "/"
+- as per RFC 2822 the e-mail format may omit the day (and comma), and the
+  seconds but nothing else
+- hours greater than 12 will be happily accepted
+- the AM/PM are optional, and if PM is found then 12 hours will be added
+  to the datetime object's hours amount - even if the hour is greater
+  than 12 (for consistency.)
+- except in ISO 8601 and e-mail format the timezone is optional
+- when a seconds amount is present in the input fractions will be parsed
+- named timezones are not yet supported
+
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
@@ -120,6 +148,8 @@ examples. Run the tests with "python -m parse".
 
 **Version history (in brief)**:
 
+- 1.1.4 fixes to some int type conversion; implemented "=" alignment; added
+  date/time parsing with a variety of formats handled.
 - 1.1.3 type conversion is automatic based on specified field types. Also added
   "f" and "n" types.
 - 1.1.2 refactored, added compile() and limited ``from parse import *``
@@ -131,11 +161,11 @@ examples. Run the tests with "python -m parse".
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.3'
+__version__ = '1.1.4'
 
 import re
 import unittest
-
+from datetime import datetime, time, tzinfo, timedelta
 
 __all__ = 'parse compile'.split()
 
@@ -155,14 +185,146 @@ PARSE_RE = re.compile('''
 
 # three problems?
 FORMAT_RE = re.compile('''
-    (?P<align>(?P<fill>[^}])?[<>^])?
+    (?P<align>(?P<fill>[^}])?[<>^=])?
     (?P<sign>[-+ ])?
     (?P<prefix>\#)?
     (?P<width>(?P<zero>0)?[1-9]\d*)?
     (\.(?P<precision>\d+))?
-    (?P<type>[nbohxXfwWdDsS])?
+    (?P<type>([nbohxXfwWdDsS]|t[ieahgct]))?
 ''', re.VERBOSE)
 
+def int_convert(base):
+    '''Convert a string to an integer.
+
+    The string may start with a sign.
+
+    It may be of a base other than 10.
+
+    It may also have other non-numeric characters that we can ignore.
+    '''
+    CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
+    def f(string, match, base=base):
+        if string[0] == '-':
+            sign = -1
+        else:
+            sign = 1
+
+        chars = CHARS[:base]
+        string = re.sub('[^%s]' % chars, '', string.lower())
+        return sign * int(string, base)
+    return f
+
+
+class FixedTzOffset(tzinfo):
+    """Fixed offset in minutes east from UTC.
+    """
+    def __init__(self, offset, name):
+        self._offset = timedelta(minutes = offset)
+        self._name = name
+
+    def __repr__(self):
+        return '<%s %s %s>' % (self.__class__.__name__, self._name, self._offset)
+
+    def utcoffset(self, dt):
+        return self._offset
+
+    def tzname(self, dt):
+        return self._name
+
+    def dst(self, dt):
+        return ZERO
+
+    def __eq__(self, other):
+        return self._name == other._name and self._offset == other._offset
+
+MONTHS_MAP = dict(
+    Jan=1, January=1,
+    Feb=2, February=2,
+    Mar=3, March=3,
+    Apr=4, April=4,
+    May=5,
+    Jun=6, June=6,
+    Jul=7, July=7,
+    Aug=8, August=8,
+    Sep=9, September=9,
+    Oct=10, October=10,
+    Nov=11, November=11,
+    Dec=12, December=12
+)
+DAYS_PAT = '(Mon|Tue|Wed|Thu|Fri|Sat|Sun)'
+MONTHS_PAT = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
+TIME_PAT = r'(?P<hms>\d{1,2}:\d{1,2}(:\d{1,2}(\.\d+)?)?)'
+AM_PAT = r'(?P<am>\s+[AP]M)'
+TZ_PAT = r'(?P<tz>\s+[-+]\d\d:?\d\d)'
+
+def time_convert(string, match):
+    return date_convert(string, match, True)
+
+def date_convert(string, match, time_only=False):
+    '''Convert the incoming string containing some date / time info into a
+    datetime instance.
+    '''
+    gd = match.groupdict()
+    if not time_only:
+        if gd.get('ymd'):
+            y, m, d = re.split('[-/\s]', gd['ymd'])
+        elif gd.get('mdy'):
+            m, d, y = re.split('[-/\s]', gd['mdy'])
+        elif gd.get('dmy'):
+            d, m, y = re.split('[-/\s]', gd['dmy'])
+        elif gd.get('d'):
+            d = gd['d']
+            m = gd['m']
+            y = gd['y']
+        else:
+            raise ValueError('oops, got no date format in %r' % (gd, ))
+        y = int(y)
+        if m.isdigit():
+            m = int(m)
+        else:
+            m = MONTHS_MAP[m]
+        d = int(d)
+
+    H = M = S = u = 0
+    if gd['hms']:
+        t = gd['hms'].split(':')
+        if len(t) == 2:
+            H, M = t
+        else:
+            H, M, S = t
+            if '.' in S:
+                S, u = S.split('.')
+                u = int(float('.' + u) * 1000000)
+            S = int(S)
+        H = int(H)
+        M = int(M)
+
+    am = gd.get('am')
+    if am and am.strip() == 'PM':
+        H += 12
+
+    tz = gd.get('tz')
+    if tz == 'Z':
+        tz = FixedTzOffset(0, 'UTC')
+    elif tz:
+        tz = tz.strip()
+        if tz.isupper():
+            # TODO use that awesome python TZ module
+            TODO
+        else:
+            sign = tz[0]
+            if ':' in tz:
+                tzh, tzm = tz[1:].split(':')
+            else:
+                tzh, tzm = tz[1:3], tz[3:5]
+            tz = FixedTzOffset(int(tzm) + int(tzh) * 60, tz)
+
+    if time_only:
+        d = time(H, M, S, u, tzinfo=tz)
+    else:
+        d = datetime(y, m, d, H, M, S, u, tzinfo=tz)
+
+    return d
 
 class Parser(object):
     def __init__(self, format):
@@ -171,7 +333,8 @@ class Parser(object):
         self._format = format
         self._type_conversions = {}
         self._group_checks = {}
-        self._expression = re.compile('^%s$' % PARSE_RE.sub(self.replace, format))
+        self._expression = '^%s$' % PARSE_RE.sub(self.replace, format)
+        self._re = re.compile(self._expression)
 
     def __repr__(self):
         if len(self._format) > 20:
@@ -179,17 +342,17 @@ class Parser(object):
         return '<%s %r>' % (self.__class__.__name__, self._format)
 
     def parse(self, string):
-        m = self._expression.match(string)
+        m = self._re.match(string)
         if m is None:
             return None
         l = list(m.groups())
         for n in self._fixed_args:
             if n in self._type_conversions:
-                l[n] = self._type_conversions[n](l[n])
+                l[n] = self._type_conversions[n](l[n], m)
         named = m.groupdict()
         for k in named:
             if k in self._type_conversions:
-                named[k] = self._type_conversions[k](named[k])
+                named[k] = self._type_conversions[k](named[k], m)
         fixed = tuple(l[n] for n in self._fixed_args)
         return Result(fixed, named)
 
@@ -199,8 +362,6 @@ class Parser(object):
         if d['closebrace']: return '}'
 
         format = ''
-
-        #print 'PARSE', d
 
         if d['fixed']:
             self._fixed_args.append(self._groups)
@@ -220,44 +381,78 @@ class Parser(object):
 
         self._groups += 1
 
+        # simplest case: a bare {}
         if not format:
             return wrap % '.+?'
 
+        # now figure out the format
         m = FORMAT_RE.match(format)
         if m is None:
             raise ValueError('format %r not recognised' % format)
 
         d = m.groupdict()
-        #print 'FORMAT', d
 
+        # figure type conversions, if any
         if d['type'] == 'n':
             s = '\d{1,3}([,.]\d{3})*'
-            self._type_conversions[group] = lambda x: int(x.replace(',', '').replace('.', ''))
+            self._type_conversions[group] = int_convert(10)
         elif d['type'] == 'o':
-            s = '[0-7]'
-            self._type_conversions[group] = lambda x: int(x, 8)
+            s = '[0-7]+'
+            self._type_conversions[group] = int_convert(8)
         elif d['type'] == 'b':
-            s = '[01]'
-            self._type_conversions[group] = lambda x: int(x, 2)
+            s = '[01]+'
+            self._type_conversions[group] = int_convert(2)
         elif d['type'] == 'h':
-            s = '[0-9a-fA-F]'
-            self._type_conversions[group] = lambda x: int(x, 16)
+            s = '[0-9a-fA-F]+'
+            self._type_conversions[group] = int_convert(16)
         elif d['type'] == 'x':
-            s = '[0-9a-f]'
-            self._type_conversions[group] = lambda x: int(x, 16)
+            s = '[0-9a-f]+'
+            self._type_conversions[group] = int_convert(16)
         elif d['type'] == 'X':
-            s = '[0-9A-F]'
-            self._type_conversions[group] = lambda x: int(x, 16)
+            s = '[0-9A-F]+'
+            self._type_conversions[group] = int_convert(16)
         elif d['type'] == 'f':
+            repeat_handled = True
             s = r'\d+\.\d+'
-            self._type_conversions[group] = float
+            self._type_conversions[group] = lambda s, m: float(s)
         elif d['type'] == 'd':
-            s = r'\d'
-            self._type_conversions[group] = int
+            s = r'\d+'
+            self._type_conversions[group] = int_convert(10)
+        elif d['type'] == 'ti':
+            s = r'(?P<ymd>\d{4}-\d\d-\d\d)((\s+|T)%s)?(?P<tz>Z|[-+]\d\d:\d\d)?' % (TIME_PAT,)
+            self._type_conversions[group] = date_convert
+        elif d['type'] == 'ta':
+            s = r'(?P<mdy>\d{1,2}[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
+            self._type_conversions[group] = date_convert
+        elif d['type'] == 'tg':
+            s = r'(?P<dmy>\d{1,2}[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
+            self._type_conversions[group] = date_convert
+        elif d['type'] == 'te':
+            # this will allow microseconds through if they're present, but meh
+            s = r'(%s,\s+)?(?P<dmy>\d{1,2}\s+%s\s+\d{4})\s+%s%s' % (DAYS_PAT, MONTHS_PAT, TIME_PAT, TZ_PAT)
+            self._type_conversions[group] = date_convert
+        elif d['type'] == 'th':
+            # slight flexibility here from the stock Apache format
+            s = r'(?P<dmy>\d{1,2}[-/]%s[-/]\d{4}):%s%s' % (MONTHS_PAT, TIME_PAT, TZ_PAT)
+            self._type_conversions[group] = date_convert
+        elif d['type'] == 'tc':
+            s = r'(%s)\s+(?P<m>%s)\s+(?P<d>\d{1,2})\s+%s\s+(?P<y>\d{4})' % (DAYS_PAT, MONTHS_PAT, TIME_PAT)
+            self._type_conversions[group] = date_convert
+        elif d['type'] == 'tt':
+            s = r'%s?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
+            self._type_conversions[group] = time_convert
         elif d['type']:
-            s = r'\%s' % d['type']
+            s = r'\%s+' % d['type']
         else:
-            s = '.'
+            s = '.+?'
+
+        # figure the alignment and fill parameters
+        align = d['align']
+        fill = d['fill']
+        if fill:
+            align = align[1]
+        else:
+            fill = ' '
 
         # TODO: number types still to support:
         # e    Exponent notation
@@ -265,7 +460,10 @@ class Parser(object):
         # g    General number format with added nan, inf and -inf
         # G    General number format with upper-case E, NAN, INF and -INF
 
-        if d['type'] and d['type'] in 'nfdobhxX':
+        is_numeric = d['type'] and d['type'] in 'nfdobhxX'
+
+        # handle some numeric-specific things like prefix and sign
+        if is_numeric:
             if d['prefix']:
                 if d['type'] == 'b':
                     s = '0b' + s
@@ -276,6 +474,17 @@ class Parser(object):
                 else:
                     raise ValueError('prefix # not compatible with type %s' %
                         d['type'])
+
+            # prefix with something (align "=" trumps zero)
+            if align == '=':
+                # special case - align "=" acts like the zero above but with
+                # configurable fill defaulting to "0"
+                if not d['fill']:
+                    fill = '0'
+                s = '%s*' % fill + s
+            elif d['zero']:
+                s = '0*' + s
+
             if not d['sign']:
                 # default sign handling
                 s = r'-?' + s
@@ -293,37 +502,25 @@ class Parser(object):
             if d['sign']:
                 raise ValueError('sign in format must accompany "d" type')
 
-        if not d['type'] or d['type'] not in 'fn':
-            # all other types need some form of character set repetition now
-            s = s + '+?'
-
-        # place into a group now
+        # Place into a group now - this captures the value we want to keep.
+        # Everything else from now is just padding to be stripped off
         s = wrap % s
 
-        # prefix with zeros or spaces?
-        if d['zero']:
-            s = '0*' + s
-        elif d['width']:
+        if d['width']:
             # all we really care about is that if the format originally
             # specified a width then there will probably be padding - without an
             # explicit alignment that'll mean right alignment with spaces
             # padding
-            if not d['align']:
-                d['align'] = '>'
+            if not align:
+                align = '>'
 
         # we're just going to ignore precision...
         #(\.(?P<precision>\d+))?
 
-        # TODO support '='
-        align = d['align']
-        fill = d['fill']
-        if fill:
-            align = align[1]
-        else:
-            fill = ' '
-
         if fill in '.\+?*[](){}^$':
             fill = '\\' + fill
+
+        # align "=" has been handled
         if align == '<':
             s = '%s%s*' % (s, fill)
         elif align == '>':
@@ -390,9 +587,9 @@ class TestPattern(unittest.TestCase):
     def test_typed(self):
         'pull a named string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{:d}')
-        self.assertEquals(s, '(-?\d+?)')
+        self.assertEquals(s, '(-?\d+)')
         s = PARSE_RE.sub(self.p.replace, '{:d} {:w}')
-        self.assertEquals(s, '(-?\d+?) (\w+?)')
+        self.assertEquals(s, '(-?\d+) (\w+)')
 
     def test_named(self):
         'pull a named string out of another string'
@@ -404,9 +601,9 @@ class TestPattern(unittest.TestCase):
     def test_named_typed(self):
         'pull a named string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{name:d}')
-        self.assertEquals(s, '(?P<name>-?\d+?)')
+        self.assertEquals(s, '(?P<name>-?\d+)')
         s = PARSE_RE.sub(self.p.replace, '{name:d} {other:w}')
-        self.assertEquals(s, '(?P<name>-?\d+?) (?P<other>\w+?)')
+        self.assertEquals(s, '(?P<name>-?\d+) (?P<other>\w+)')
 
     def test_beaker(self):
         'skip some trailing whitespace'
@@ -461,10 +658,12 @@ class TestPattern(unittest.TestCase):
         _('.>', dict(align='.>', fill='.'))
         _('^', dict(align='^'))
         _('.^', dict(align='.^', fill='.'))
+        _('x=d', dict(type='d', align='x=', fill='x'))
         _('d', dict(type='d'))
         _('-d', dict(type='d', sign='-'))
         _('+d', dict(type='d', sign='+'))
         _(' d', dict(type='d', sign=' '))
+        _('ti', dict(type='ti'))
 
         _('.^+#010d', dict(type='d', width='010', align='.^', fill='.', prefix='#',
             sign='+', zero='0'))
@@ -553,6 +752,7 @@ class TestParse(unittest.TestCase):
                 self.fail('%r matched %r' % (fmt, s))
         y('a {:d} b', 'a 12 b', 12)
         y('a {:5d} b', 'a    12 b', 12)
+        y('a {:5d} b', 'a   -12 b', -12)
         y('a {:d} b', 'a -12 b', -12)
         n('a {:d} b', 'a +12 b', None)
         y('a {:-d} b', 'a -12 b', -12)
@@ -593,9 +793,84 @@ class TestParse(unittest.TestCase):
         y('a {:#X} b', 'a 0x1234567890ABCDEF b', 0x1234567890ABCDEF)
 
         y('a {:05d} b', 'a 00001 b', 1)
+        y('a {:05d} b', 'a -00001 b', -1)
+        y('a {:+05d} b', 'a +00001 b', 1)
+
+        y('a {:=d} b', 'a 000012 b', 12)
+        y('a {:x=5d} b', 'a xxx12 b', 12)
+        y('a {:x=5d} b', 'a -xxx12 b', -12)
 
         # TODO this should pass
         # y('a {:05d} b', 'a 0000001 b', None)
+
+    def test_datetimes(self):
+        def y(fmt, s, e, tz=None):
+            p = compile(fmt)
+            r = p.parse(s)
+            if r is None:
+                self.fail('%r (%r) did not match %r' % (fmt, p._expression, s))
+            r = r.fixed[0]
+            self.assertEquals(r, e,
+                '%r found %r in %r, not %r' % (fmt, r, s, e))
+            if tz is not None:
+                self.assertEquals(r.tzinfo, tz,
+                    '%r found TZ %r in %r, not %r' % (fmt, r.tzinfo, s, e))
+        def n(fmt, s, e):
+            if parse(fmt, s) is not None:
+                self.fail('%r matched %r' % (fmt, s))
+
+        utc = FixedTzOffset(0, 'UTC')
+        aest = FixedTzOffset(10*60, '+1000')
+
+        # ISO 8660 variants
+        # YYYY-MM-DD (eg 1997-07-16)
+        y('a {:ti} b', 'a 1997-07-16 b', datetime(1997, 07, 16))
+
+        # YYYY-MM-DDThh:mmTZD (eg 1997-07-16T19:20+01:00)
+        y('a {:ti} b', 'a 1997-07-16T19:20 b', datetime(1997, 07, 16, 19, 20, 0))
+        y('a {:ti} b', 'a 1997-07-16T19:20Z b',
+            datetime(1997, 07, 16, 19, 20, tzinfo=utc))
+        y('a {:ti} b', 'a 1997-07-16T19:20+01:00 b',
+            datetime(1997, 07, 16, 19, 20, tzinfo=FixedTzOffset(60, '+01:00')))
+
+        # YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00)
+        y('a {:ti} b', 'a 1997-07-16T19:20:30 b', datetime(1997, 07, 16, 19, 20, 30))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30Z b',
+            datetime(1997, 07, 16, 19, 20, 30, tzinfo=utc))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30+01:00 b',
+            datetime(1997, 07, 16, 19, 20, 30, tzinfo= FixedTzOffset(60, '+01:00')))
+
+        # YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00)
+        y('a {:ti} b', 'a 1997-07-16T19:20:30.500000 b', datetime(1997, 07, 16, 19, 20, 30, 500000))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30.5Z b',
+            datetime(1997, 07, 16, 19, 20, 30, 500000, tzinfo=utc))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30.5+01:00 b',
+            datetime(1997, 07, 16, 19, 20, 30, 500000, tzinfo=FixedTzOffset(60, '+01:00')))
+
+        aest_d = datetime(2011, 11, 21, 10, 21, 36, tzinfo=aest)
+
+        # te   RFC2822 e-mail format        datetime
+        y('a {:te} b', 'a Mon, 21 Nov 2011 10:21:36 +1000 b', aest_d)
+        y('a {:te} b', 'a 21 Nov 2011 10:21:36 +1000 b', aest_d)
+
+        # ta   US (month/day) format     datetime
+        y('a {:ta} b', 'a 11/21/2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:ta} b', 'a 11-21-2011 10:21:36 AM +1000 b', aest_d)
+
+        # tg   global (day/month) format datetime
+        y('a {:tg} b', 'a 21/11/2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:tg} b', 'a 21-11-2011 10:21:36 AM +1000 b', aest_d)
+
+        # th   HTTP log format date/time                   datetime
+        y('a {:th} b', 'a 21/Nov/2011:10:21:36 +1000 b', aest_d)
+
+        d = datetime(2011, 11, 21, 10, 21, 36)
+
+        # tc   ctime() format           datetime
+        y('a {:tc} b', 'a Mon Nov 21 10:21:36 2011 b', d)
+
+        # tt   Time                                        time
+        y('a {:tt} b', 'a 10:21:36 AM +1000 b', time(10, 21, 36, tzinfo=aest))
 
 
 if __name__ == '__main__':
