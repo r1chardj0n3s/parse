@@ -63,7 +63,7 @@ Most of the `Format Specification Mini-Language`_ is supported::
 
 The align operators will cause spaces (or specified fill character)
 to be stripped from the value. Similarly width is not enforced; it
-just indicates there may be whitespace to strip.
+just indicates there may be whitespace or "0"s to strip.
 
 The "#" format character is handled automatically by b, o and x - that
 is: if there is a "0b", "0o" or "0x" prefix respectively, it's ignored.
@@ -170,7 +170,7 @@ named
 spans
    A dictionary mapping the names and fixed position indices matched to a
    2-tuple slice range of where the match occurred in the input.
-
+   The span does not include any stripped padding (alignment or width).
 
 ----
 
@@ -366,7 +366,6 @@ class Parser(object):
         self._groups = 0
         self._format = format
         self._type_conversions = {}
-        self._group_checks = {}
         self._expression = '^%s$' % PARSE_RE.sub(self.replace, format)
         self._re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
 
@@ -493,7 +492,6 @@ class Parser(object):
             align = align[1]
         else:
             fill = ' '
-
 
         is_numeric = d['type'] and d['type'] in 'nfdobhxX'
 
@@ -872,9 +870,6 @@ class TestParse(unittest.TestCase):
         y('a {:=d} b', 'a 000012 b', 12)
         y('a {:x=5d} b', 'a xxx12 b', 12)
         y('a {:x=5d} b', 'a -xxx12 b', -12)
-
-        # TODO this should pass
-        # y('a {:05d} b', 'a 0000001 b', None)
 
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
