@@ -901,18 +901,19 @@ class TestParse(unittest.TestCase):
 
         aest_d = datetime(2011, 11, 21, 10, 21, 36, tzinfo=aest)
         dt = datetime(2011, 11, 21, 10, 21, 36)
+        dt00 = datetime(2011, 11, 21, 10, 21)
         d = datetime(2011, 11, 21)
 
         # te   RFC2822 e-mail format        datetime
         y('a {:te} b', 'a Mon, 21 Nov 2011 10:21:36 +1000 b', aest_d)
         y('a {:te} b', 'a 21 Nov 2011 10:21:36 +1000 b', aest_d)
-        y('a {:te} b', 'a 21 Nov 2011 b', d)
 
         # ta   US (month/day) format     datetime
         y('a {:ta} b', 'a 11/21/2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a 11-21-2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a 11/21/2011 10:21:36 +1000 b', aest_d)
         y('a {:ta} b', 'a 11/21/2011 10:21:36 b', dt)
+        y('a {:ta} b', 'a 11/21/2011 10:21 b', dt00)
         y('a {:ta} b', 'a 11-21-2011 b', d)
         y('a {:ta} b', 'a Nov-21-2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a November-21-2011 10:21:36 AM +1000 b', aest_d)
