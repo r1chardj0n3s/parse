@@ -65,8 +65,10 @@ The align operators will cause spaces (or specified fill character)
 to be stripped from the value. Similarly width is not enforced; it
 just indicates there may be whitespace or "0"s to strip.
 
-The "#" format character is handled automatically by b, o and x - that
-is: if there is a "0b", "0o" or "0x" prefix respectively, it's ignored.
+The "#" format character is handled automatically by d, b, o and x -
+that is: if there is a "0b", "0o" or "0x" prefix respectively, it's
+handled. For "d" any will be accepted, but for the others the correct
+prefix must be present if at all.
 
 The types supported are a slightly different mix to the format() types.
 Some format() types come directly over: d, n, f, e, b, o and x.
@@ -176,6 +178,7 @@ spans
 
 **Version history (in brief)**:
 
+- 1.1.8 allow "d" fields to have number base "0x" etc. prefixes.
 - 1.1.7 Python 3 compatibility tweaks (2.5 to 2.7 and 3.2 are supported).
 - 1.1.6 add "e" and "g" field types; removed redundant "h" and "X";
   removed need for explicit "#".
@@ -225,6 +228,7 @@ FORMAT_RE = re.compile('''
     (?P<type>([nboxfegwWdDsS]|t[ieahgct]))?
 ''', re.VERBOSE)
 
+
 def int_convert(base):
     '''Convert a string to an integer.
 
@@ -240,6 +244,18 @@ def int_convert(base):
             sign = -1
         else:
             sign = 1
+
+        prefix = match.groupdict().get('prefix')
+        if prefix is None:
+            pass
+        elif prefix[1] in 'bB':
+            base = 2
+        elif prefix[1] in 'oO':
+            base = 8
+        elif prefix[1] in 'xX':
+            base = 16
+        else:
+            raise ValueError('unhandled prefix %r' % prefix)
 
         chars = CHARS[:base]
         string = re.sub('[^%s]' % chars, '', string.lower())
@@ -362,8 +378,9 @@ def date_convert(string, match, time_only=False):
 
 class Parser(object):
     def __init__(self, format):
-        self._fixed_args = []
-        self._groups = 0
+        self._fixed_fields = []
+        self._named_fields = []
+        self._group_index = 0
         self._format = format
         self._type_conversions = {}
         self._expression = '^%s$' % PARSE_RE.sub(self.replace, format)
@@ -378,18 +395,29 @@ class Parser(object):
         m = self._re.match(string)
         if m is None:
             return None
-        l = list(m.groups())
-        for n in self._fixed_args:
+
+        # ok, figure the fixed fields we've pulled out and type convert them
+        fixed_fields = list(m.groups())
+        for n in self._fixed_fields:
             if n in self._type_conversions:
-                l[n] = self._type_conversions[n](l[n], m)
-        named = m.groupdict()
-        spans = dict((n, m.span(n)) for n in named)
-        for k in named:
+                fixed_fields[n] = self._type_conversions[n](fixed_fields[n], m)
+        fixed_fields = tuple(fixed_fields[n] for n in self._fixed_fields)
+
+        # grab the named fields, converting where requested
+        groupdict = m.groupdict()
+        named_fields = {}
+        for k in self._named_fields:
             if k in self._type_conversions:
-                named[k] = self._type_conversions[k](named[k], m)
-        fixed = tuple(l[n] for n in self._fixed_args)
-        spans.update((i, m.span(n+1)) for i, n in enumerate(self._fixed_args))
-        return Result(fixed, named, spans)
+                named_fields[k] = self._type_conversions[k](groupdict[k], m)
+            else:
+                named_fields[k] = groupdict[k]
+
+        # now figure the match spans
+        spans = dict((n, m.span(n)) for n in named_fields)
+        spans.update((i, m.span(n+1)) for i, n in enumerate(self._fixed_fields))
+
+        # and that's our result
+        return Result(fixed_fields, named_fields, spans)
 
     def replace(self, match):
         d = match.groupdict()
@@ -399,22 +427,23 @@ class Parser(object):
         format = ''
 
         if d['fixed']:
-            self._fixed_args.append(self._groups)
+            self._fixed_fields.append(self._group_index)
             wrap = '(%s)'
             if ':' in d['fixed']:
                 format = d['fixed'][2:-1]
-            group = self._groups
+            group = self._group_index
         elif d['named']:
             if ':' in d['named']:
                 name, format = d['named'].split(':')
             else:
                 name = d['named']
+            self._named_fields.append(name)
             group = name
             wrap = '(?P<%s>%%s)' % name
         else:
             raise ValueError('format not recognised')
 
-        self._groups += 1
+        self._group_index += 1
 
         # simplest case: a bare {}
         if not format:
@@ -433,18 +462,21 @@ class Parser(object):
         if d['type'] == 'n':
             s = '\d{1,3}([,.]\d{3})*'
             self._type_conversions[group] = int_convert(10)
-        elif d['type'] == 'o':
-            prefix = True
-            s = '[0-7]+'
-            self._type_conversions[group] = int_convert(8)
         elif d['type'] == 'b':
             prefix = True
-            s = '[01]+'
+            s = '(0[bB])?[01]+'
             self._type_conversions[group] = int_convert(2)
+            self._group_index += 1
+        elif d['type'] == 'o':
+            prefix = True
+            s = '(0[oO])?[0-7]+'
+            self._type_conversions[group] = int_convert(8)
+            self._group_index += 1
         elif d['type'] == 'x':
             prefix = True
-            s = '[0-9a-fA-F]+'
+            s = '(0[xX])?[0-9a-fA-F]+'
             self._type_conversions[group] = int_convert(16)
+            self._group_index += 1
         elif d['type'] == 'f':
             s = r'\d+\.\d+'
             self._type_conversions[group] = lambda s, m: float(s)
@@ -453,9 +485,11 @@ class Parser(object):
             self._type_conversions[group] = lambda s, m: float(s)
         elif d['type'] == 'g':
             s = r'\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF'
+            self._group_index += 2
             self._type_conversions[group] = lambda s, m: float(s)
         elif d['type'] == 'd':
-            s = r'\d+'
+            s = r'(?P<prefix>0[obxOBX])?\d+'
+            self._group_index += 1
             self._type_conversions[group] = int_convert(10)
         elif d['type'] == 'ti':
             s = r'(?P<ymd>\d{4}-\d\d-\d\d)((\s+|T)%s)?(?P<tz>Z|[-+]\d\d:\d\d)?' % (TIME_PAT,)
@@ -493,17 +527,10 @@ class Parser(object):
         else:
             fill = ' '
 
-        is_numeric = d['type'] and d['type'] in 'nfdobhxX'
+        is_numeric = d['type'] and d['type'] in 'nfegdobh'
 
         # handle some numeric-specific things like prefix and sign
         if is_numeric:
-            if prefix:
-                if d['type'] == 'b':
-                    s = '(0b)?' + s
-                elif d['type'] == 'o':
-                    s = '(0o)?' + s
-                elif d['type'] in 'hxX':
-                    s = '(0x)?' + s
 
             # prefix with something (align "=" trumps zero)
             if align == '=':
@@ -613,9 +640,9 @@ class TestPattern(unittest.TestCase):
     def test_typed(self):
         'pull a named string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{:d}')
-        self.assertEqual(s, '(-?\d+)')
+        self.assertEqual(s, '(-?(?P<prefix>0[obxOBX])?\d+)')
         s = PARSE_RE.sub(self.p.replace, '{:d} {:w}')
-        self.assertEqual(s, '(-?\d+) (\w+)')
+        self.assertEqual(s, '(-?(?P<prefix>0[obxOBX])?\d+) (\w+)')
 
     def test_named(self):
         'pull a named string out of another string'
@@ -627,9 +654,9 @@ class TestPattern(unittest.TestCase):
     def test_named_typed(self):
         'pull a named string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{name:d}')
-        self.assertEqual(s, '(?P<name>-?\d+)')
+        self.assertEqual(s, '(?P<name>-?(?P<prefix>0[obxOBX])?\d+)')
         s = PARSE_RE.sub(self.p.replace, '{name:d} {other:w}')
-        self.assertEqual(s, '(?P<name>-?\d+) (?P<other>\w+)')
+        self.assertEqual(s, '(?P<name>-?(?P<prefix>0[obxOBX])?\d+) (?P<other>\w+)')
 
     def test_beaker(self):
         'skip some trailing whitespace'
@@ -817,6 +844,9 @@ class TestParse(unittest.TestCase):
         y('a {: d} b', 'a -12 b', -12)
         y('a {: d} b', 'a  12 b', 12)
         n('a {: d} b', 'a +12 b', None)
+        y('a {:d} b', 'a 0b1000 b', 8)
+        y('a {:d} b', 'a 0o1000 b', 512)
+        y('a {:d} b', 'a 0x1000 b', 4096)
 
         y('a {:n} b', 'a 100 b', 100)
         y('a {:n} b', 'a 1,000 b', 1000)
@@ -955,6 +985,58 @@ class TestParse(unittest.TestCase):
 
         # tt   Time                                        time
         y('a {:tt} b', 'a 10:21:36 AM +1000 b', time(10, 21, 36, tzinfo=aest))
+
+    def test_mixed_types(self):
+        'stress-test: pull one of everything out of a string :-)'
+        r = parse('''
+            letters: {:w}
+            non-letters: {:W}
+            whitespace: "{:s}"
+            non-whitespace: \t{:S}\n
+            digits: {:d} {:d} {:d}
+            non-digits: {:D}
+            numbers with thousands: {:n} {:n}
+            fixed-point: {:f} {:f}
+            floating-point: {:e} {:e}
+            general numbers: {:g} {:g} {:g} {:g}
+            binary: {:b} {:b}
+            octal: {:o} {:o}
+            hex: {:x} {:x}
+            ISO 8601: {:ti}
+            RFC2822: {:te}
+            Global: {:tg}
+            US: {:ta}
+            ctime(): {:tc}
+            HTTP log: {:th}
+            time: {:tt}
+            final value: {}
+        ''',
+        '''
+            letters: abcdef_GHIJLK
+            non-letters: !@#%$ *^%
+            whitespace: "   \t\n"
+            non-whitespace: \tabc\n
+            digits: 12345 0b1011011 0xabcdef
+            non-digits: abcdef
+            numbers with thousands: 1,000 1.000.000
+            fixed-point: 100.2345 0.00001
+            floating-point: 1.1e-10 NAN
+            general numbers: 1 1.1 1.1e10 nan
+            binary: 0b1000 0B1000
+            octal: 0o1000 0O1000
+            hex: 0x1000 0X1000
+            ISO 8601: 1972-01-20T10:21:36Z
+            RFC2822: Mon, 20 Jan 1972 10:21:36 +1000
+            Global: 20/1/1972 10:21:36 AM +1:00
+            US: 1/20/1972 10:21:36 PM +10:30
+            ctime(): Sun Sep 16 01:03:52 1973
+            HTTP log: 21/Nov/2011:00:07:11 +0000
+            time: 10:21:36 PM -5:30
+            final value: spam
+        ''')
+        self.assertEqual(r.fixed[33], 'spam')
+
+
 
 
 if __name__ == '__main__':

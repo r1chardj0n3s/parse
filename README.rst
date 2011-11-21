@@ -59,7 +59,7 @@ Most of the `Format Specification Mini-Language`_ is supported::
 
 The align operators will cause spaces (or specified fill character)
 to be stripped from the value. Similarly width is not enforced; it
-just indicates there may be whitespace to strip.
+just indicates there may be whitespace or "0"s to strip.
 
 The "#" format character is handled automatically by b, o and x - that
 is: if there is a "0b", "0o" or "0x" prefix respectively, it's ignored.
@@ -145,7 +145,7 @@ Some notes for the date and time types:
   than 12 (for consistency.)
 - except in ISO 8601 and e-mail format the timezone is optional
 - when a seconds amount is present in the input fractions will be parsed
-- named timezones are not yet supported
+- named timezones are not handled yet
 
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
@@ -166,12 +166,13 @@ named
 spans
    A dictionary mapping the names and fixed position indices matched to a
    2-tuple slice range of where the match occurred in the input.
-
+   The span does not include any stripped padding (alignment or width).
 
 ----
 
 **Version history (in brief)**:
 
+- 1.1.7 Python 3 compatibility tweaks (2.5 to 2.7 and 3.2 are supported).
 - 1.1.6 add "e" and "g" field types; removed redundant "h" and "X";
   removed need for explicit "#".
 - 1.1.5 accept textual dates in more places; Result now holds match span
