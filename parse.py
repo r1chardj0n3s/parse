@@ -59,17 +59,24 @@ where a more complex format specification might have been used.
 
 Most of the `Format Specification Mini-Language`_ is supported::
 
-   [[fill]align][sign][#][0][width][,][.precision][type]
+   [[fill]align][sign][0][width][type]
 
 The align operators will cause spaces (or specified fill character)
-to be stripped from the value.
+to be stripped from the value. Similarly width is not enforced; it
+just indicates there may be whitespace to strip.
+
+The "#" format character is handled automatically by b, o and x - that
+is: if there is a "0b", "0o" or "0x" prefix respectively, it's ignored.
 
 The types supported are a slightly different mix to the format() types.
-Some format() types come directly over: d, n, f, b, o, h, x and X.
+Some format() types come directly over: d, n, f, e, b, o and x.
 In addition some regular expression character group types
 D, w, W, s and S are also available.
 
-The format() types %, F, e, E, g and G are not yet supported.
+The "e" and "g" types are case-insensitive so there is not need for
+the "E" or "G" types.
+
+The format() type % is not yet supported.
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
@@ -84,11 +91,10 @@ Type  Characters Matched                          Output
  f    Fixed-point numbers                         float
  e    Floating-point numbers with exponent        float
       e.g. 1.1e-10, NAN (all case insensitive)
+ g    General number format (either d, f or e)    float
  b    Binary numbers                              int
  o    Octal numbers                               int
- h    Hexadecimal numbers (lower and upper case)  int
- x    Lower-case hexadecimal numbers              int
- X    Upper-case hexadecimal numbers              int
+ x    Hexadecimal numbers (lower and upper case)  int
  ti   ISO 8601 format date/time                   datetime
       e.g. 1972-01-20T10:21:36Z
  te   RFC2822 e-mail format date/time             datetime
@@ -170,7 +176,8 @@ spans
 
 **Version history (in brief)**:
 
-- 1.1.6 add "e" field type.
+- 1.1.6 add "e" and "g" field types; removed redundant "h" and "X";
+  removed need for explicit "#".
 - 1.1.5 accept textual dates in more places; Result now holds match span
   positions.
 - 1.1.4 fixes to some int type conversion; implemented "=" alignment; added
@@ -215,7 +222,7 @@ FORMAT_RE = re.compile('''
     (?P<prefix>\#)?
     (?P<width>(?P<zero>0)?[1-9]\d*)?
     (\.(?P<precision>\d+))?
-    (?P<type>([nbohxXfewWdDsS]|t[ieahgct]))?
+    (?P<type>([nboxfegwWdDsS]|t[ieahgct]))?
 ''', re.VERBOSE)
 
 def int_convert(base):
@@ -421,30 +428,32 @@ class Parser(object):
 
         d = m.groupdict()
 
+        prefix = False
+
         # figure type conversions, if any
         if d['type'] == 'n':
             s = '\d{1,3}([,.]\d{3})*'
             self._type_conversions[group] = int_convert(10)
         elif d['type'] == 'o':
+            prefix = True
             s = '[0-7]+'
             self._type_conversions[group] = int_convert(8)
         elif d['type'] == 'b':
+            prefix = True
             s = '[01]+'
             self._type_conversions[group] = int_convert(2)
-        elif d['type'] == 'h':
-            s = '[0-9a-fA-F]+'
-            self._type_conversions[group] = int_convert(16)
         elif d['type'] == 'x':
-            s = '[0-9a-f]+'
-            self._type_conversions[group] = int_convert(16)
-        elif d['type'] == 'X':
-            s = '[0-9A-F]+'
+            prefix = True
+            s = '[0-9a-fA-F]+'
             self._type_conversions[group] = int_convert(16)
         elif d['type'] == 'f':
             s = r'\d+\.\d+'
             self._type_conversions[group] = lambda s, m: float(s)
         elif d['type'] == 'e':
             s = r'\d+\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
+            self._type_conversions[group] = lambda s, m: float(s)
+        elif d['type'] == 'g':
+            s = r'\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF'
             self._type_conversions[group] = lambda s, m: float(s)
         elif d['type'] == 'd':
             s = r'\d+'
@@ -485,24 +494,18 @@ class Parser(object):
         else:
             fill = ' '
 
-        # TODO: number types still to support:
-        # g    General number format with added nan, inf and -inf
-        # G    General number format with upper-case E, NAN, INF and -INF
 
         is_numeric = d['type'] and d['type'] in 'nfdobhxX'
 
         # handle some numeric-specific things like prefix and sign
         if is_numeric:
-            if d['prefix']:
+            if prefix:
                 if d['type'] == 'b':
-                    s = '0b' + s
+                    s = '(0b)?' + s
                 elif d['type'] == 'o':
-                    s = '0o' + s
+                    s = '(0o)?' + s
                 elif d['type'] in 'hxX':
-                    s = '0x' + s
-                else:
-                    raise ValueError('prefix # not compatible with type %s' %
-                        d['type'])
+                    s = '(0x)?' + s
 
             # prefix with something (align "=" trumps zero)
             if align == '=':
@@ -542,9 +545,6 @@ class Parser(object):
             # padding
             if not align:
                 align = '>'
-
-        # we're just going to ignore precision...
-        #(\.(?P<precision>\d+))?
 
         if fill in '.\+?*[](){}^$':
             fill = '\\' + fill
@@ -677,7 +677,7 @@ class TestPattern(unittest.TestCase):
                 self.assertEquals(d.get(k), matches[k],
                     'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]))
 
-        for t in 'obhfdDwWsS':
+        for t in 'obxegfdDwWsS':
             _(t, dict(type=t))
             _('10'+t, dict(type=t, width='10'))
         _('05d', dict(type='d', width='05', zero='0'))
@@ -785,7 +785,7 @@ class TestParse(unittest.TestCase):
         self.assertEquals(string[start:end], r.fixed[0])
 
         string = 'hello 0x12 world'
-        r = parse('hello {val:#h} world', string)
+        r = parse('hello {val:#x} world', string)
         self.assertEquals(r.spans, {'val': (6,10)})
         start, end = r.spans['val']
         self.assertEquals(string[start:end], '0x%x' % r.named['val'])
@@ -856,18 +856,19 @@ class TestParse(unittest.TestCase):
         y('a {:e} b', 'a +INF b', float('inf'))
         y('a {:e} b', 'a -INF b', float('-inf'))
 
+        y('a {:g} b', 'a 1 b', 1)
+        y('a {:g} b', 'a 1e10 b', 1e10)
+        y('a {:g} b', 'a 1.0e10 b', 1.0e10)
+        y('a {:g} b', 'a 1.0E10 b', 1.0e10)
+
         y('a {:b} b', 'a 101101 b', 0b101101)
         y('a {:#b} b', 'a 0b101101 b', 0b101101)
         y('a {:o} b', 'a 12345670 b', 0o12345670)
         y('a {:#o} b', 'a 0o12345670 b', 0o12345670)
-        y('a {:h} b', 'a 1234567890abcdef b', 0x1234567890abcdef)
-        y('a {:h} b', 'a 1234567890ABCDEF b', 0x1234567890ABCDEF)
-        y('a {:#h} b', 'a 0x1234567890abcdef b', 0x1234567890abcdef)
-        y('a {:#h} b', 'a 0x1234567890ABCDEF b', 0x1234567890ABCDEF)
         y('a {:x} b', 'a 1234567890abcdef b', 0x1234567890abcdef)
-        y('a {:X} b', 'a 1234567890ABCDEF b', 0x1234567890ABCDEF)
-        y('a {:#x} b', 'a 0x1234567890abcdef b', 0x1234567890abcdef)
-        y('a {:#X} b', 'a 0x1234567890ABCDEF b', 0x1234567890ABCDEF)
+        y('a {:x} b', 'a 1234567890ABCDEF b', 0x1234567890ABCDEF)
+        y('a {:x} b', 'a 0x1234567890abcdef b', 0x1234567890abcdef)
+        y('a {:x} b', 'a 0x1234567890ABCDEF b', 0x1234567890ABCDEF)
 
         y('a {:05d} b', 'a 00001 b', 1)
         y('a {:05d} b', 'a -00001 b', -1)
