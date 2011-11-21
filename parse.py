@@ -82,6 +82,8 @@ Type  Characters Matched                          Output
  D    Non-digit                                   str
  n    Numbers with thousands separators (, or .)  int
  f    Fixed-point numbers                         float
+ e    Floating-point numbers with exponent        float
+      e.g. 1.1e-10, NAN (all case insensitive)
  b    Binary numbers                              int
  o    Octal numbers                               int
  h    Hexadecimal numbers (lower and upper case)  int
@@ -168,6 +170,7 @@ spans
 
 **Version history (in brief)**:
 
+- 1.1.6 add "e" field type.
 - 1.1.5 accept textual dates in more places; Result now holds match span
   positions.
 - 1.1.4 fixes to some int type conversion; implemented "=" alignment; added
@@ -183,7 +186,7 @@ spans
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.5'
+__version__ = '1.1.6'
 
 import re
 import unittest
@@ -212,7 +215,7 @@ FORMAT_RE = re.compile('''
     (?P<prefix>\#)?
     (?P<width>(?P<zero>0)?[1-9]\d*)?
     (\.(?P<precision>\d+))?
-    (?P<type>([nbohxXfwWdDsS]|t[ieahgct]))?
+    (?P<type>([nbohxXfewWdDsS]|t[ieahgct]))?
 ''', re.VERBOSE)
 
 def int_convert(base):
@@ -358,7 +361,7 @@ class Parser(object):
         self._type_conversions = {}
         self._group_checks = {}
         self._expression = '^%s$' % PARSE_RE.sub(self.replace, format)
-        self._re = re.compile(self._expression)
+        self._re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
 
     def __repr__(self):
         if len(self._format) > 20:
@@ -438,8 +441,10 @@ class Parser(object):
             s = '[0-9A-F]+'
             self._type_conversions[group] = int_convert(16)
         elif d['type'] == 'f':
-            repeat_handled = True
             s = r'\d+\.\d+'
+            self._type_conversions[group] = lambda s, m: float(s)
+        elif d['type'] == 'e':
+            s = r'\d+\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
             self._type_conversions[group] = lambda s, m: float(s)
         elif d['type'] == 'd':
             s = r'\d+'
@@ -481,8 +486,6 @@ class Parser(object):
             fill = ' '
 
         # TODO: number types still to support:
-        # e    Exponent notation
-        # E    Exponent notation with upper-case E
         # g    General number format with added nan, inf and -inf
         # G    General number format with upper-case E, NAN, INF and -INF
 
@@ -794,11 +797,18 @@ class TestParse(unittest.TestCase):
 
     def test_numbers(self):
         'pull a numbers out of a string'
-        def y(fmt, s, e):
-            r = parse(fmt, s)
-            if r is None: self.fail('%r did not match %r' % (fmt, s))
-            self.assertEquals(r.fixed[0], e,
-                '%r found %r in %r, not %r' % (fmt, r.fixed[0], s, e))
+        def y(fmt, s, e, str_equals=False):
+            p = compile(fmt)
+            r = p.parse(s)
+            if r is None:
+                self.fail('%r (%r) did not match %r' % (fmt, p._expression, s))
+            r = r.fixed[0]
+            if str_equals:
+                self.assertEquals(str(r), str(e),
+                    '%r found %r in %r, not %r' % (fmt, r, s, e))
+            else:
+                self.assertEquals(r, e,
+                    '%r found %r in %r, not %r' % (fmt, r, s, e))
         def n(fmt, s, e):
             if parse(fmt, s) is not None:
                 self.fail('%r matched %r' % (fmt, s))
@@ -830,6 +840,21 @@ class TestParse(unittest.TestCase):
         y('a {:+f} b', 'a +12.1 b', 12.1)
         y('a {: f} b', 'a  12.1 b', 12.1)
         n('a {:f} b', 'a 12 b', None)
+
+        y('a {:e} b', 'a 1.0e10 b', 1.0e10)
+        y('a {:e} b', 'a 1.0E10 b', 1.0e10)
+        y('a {:e} b', 'a 1.10000e10 b', 1.1e10)
+        y('a {:e} b', 'a 1.0e-10 b', 1.0e-10)
+        y('a {:e} b', 'a 1.0e+10 b', 1.0e10)
+        # can't actually test this one on values 'cos nan != nan
+        y('a {:e} b', 'a nan b', float('nan'), str_equals=True)
+        y('a {:e} b', 'a NAN b', float('nan'), str_equals=True)
+        y('a {:e} b', 'a inf b', float('inf'))
+        y('a {:e} b', 'a +inf b', float('inf'))
+        y('a {:e} b', 'a -inf b', float('-inf'))
+        y('a {:e} b', 'a INF b', float('inf'))
+        y('a {:e} b', 'a +INF b', float('inf'))
+        y('a {:e} b', 'a -INF b', float('-inf'))
 
         y('a {:b} b', 'a 101101 b', 0b101101)
         y('a {:#b} b', 'a 0b101101 b', 0b101101)
