@@ -55,17 +55,24 @@ where a more complex format specification might have been used.
 
 Most of the `Format Specification Mini-Language`_ is supported::
 
-   [[fill]align][sign][#][0][width][,][.precision][type]
+   [[fill]align][sign][0][width][type]
 
 The align operators will cause spaces (or specified fill character)
-to be stripped from the value.
+to be stripped from the value. Similarly width is not enforced; it
+just indicates there may be whitespace to strip.
+
+The "#" format character is handled automatically by b, o and x - that
+is: if there is a "0b", "0o" or "0x" prefix respectively, it's ignored.
 
 The types supported are a slightly different mix to the format() types.
-Some format() types come directly over: d, n, f, b, o, h, x and X.
+Some format() types come directly over: d, n, f, e, b, o and x.
 In addition some regular expression character group types
 D, w, W, s and S are also available.
 
-The format() types %, F, e, E, g and G are not yet supported.
+The "e" and "g" types are case-insensitive so there is not need for
+the "E" or "G" types.
+
+The format() type % is not yet supported.
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
@@ -78,11 +85,12 @@ Type  Characters Matched                          Output
  D    Non-digit                                   str
  n    Numbers with thousands separators (, or .)  int
  f    Fixed-point numbers                         float
+ e    Floating-point numbers with exponent        float
+      e.g. 1.1e-10, NAN (all case insensitive)
+ g    General number format (either d, f or e)    float
  b    Binary numbers                              int
  o    Octal numbers                               int
- h    Hexadecimal numbers (lower and upper case)  int
- x    Lower-case hexadecimal numbers              int
- X    Upper-case hexadecimal numbers              int
+ x    Hexadecimal numbers (lower and upper case)  int
  ti   ISO 8601 format date/time                   datetime
       e.g. 1972-01-20T10:21:36Z
  te   RFC2822 e-mail format date/time             datetime
@@ -164,6 +172,8 @@ spans
 
 **Version history (in brief)**:
 
+- 1.1.6 add "e" and "g" field types; removed redundant "h" and "X";
+  removed need for explicit "#".
 - 1.1.5 accept textual dates in more places; Result now holds match span
   positions.
 - 1.1.4 fixes to some int type conversion; implemented "=" alignment; added

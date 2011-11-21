@@ -176,6 +176,7 @@ spans
 
 **Version history (in brief)**:
 
+- 1.1.7 Python 3 compatibility tweaks (2.5 to 2.7 and 3.2 are supported).
 - 1.1.6 add "e" and "g" field types; removed redundant "h" and "X";
   removed need for explicit "#".
 - 1.1.5 accept textual dates in more places; Result now holds match span
@@ -193,7 +194,7 @@ spans
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.6'
+__version__ = '1.1.7'
 
 import re
 import unittest
@@ -219,7 +220,6 @@ PARSE_RE = re.compile('''
 FORMAT_RE = re.compile('''
     (?P<align>(?P<fill>[^}])?[<>^=])?
     (?P<sign>[-+ ])?
-    (?P<prefix>\#)?
     (?P<width>(?P<zero>0)?[1-9]\d*)?
     (\.(?P<precision>\d+))?
     (?P<type>([nboxfegwWdDsS]|t[ieahgct]))?
@@ -529,8 +529,6 @@ class Parser(object):
             else:
                 raise ValueError('sign in format "%s" unrecognised' % d['sign'])
         else:
-            if d['prefix']:
-                raise ValueError('prefix # in format must accompany numeric type')
             if d['sign']:
                 raise ValueError('sign in format must accompany "d" type')
 
@@ -605,83 +603,82 @@ class TestPattern(unittest.TestCase):
     def test_braces(self):
         'pull a simple string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{{ }}')
-        self.assertEquals(s, '{ }')
+        self.assertEqual(s, '{ }')
 
     def test_fixed(self):
         'pull a simple string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{}')
-        self.assertEquals(s, '(.+?)')
+        self.assertEqual(s, '(.+?)')
         s = PARSE_RE.sub(self.p.replace, '{} {}')
-        self.assertEquals(s, '(.+?) (.+?)')
+        self.assertEqual(s, '(.+?) (.+?)')
 
     def test_typed(self):
         'pull a named string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{:d}')
-        self.assertEquals(s, '(-?\d+)')
+        self.assertEqual(s, '(-?\d+)')
         s = PARSE_RE.sub(self.p.replace, '{:d} {:w}')
-        self.assertEquals(s, '(-?\d+) (\w+)')
+        self.assertEqual(s, '(-?\d+) (\w+)')
 
     def test_named(self):
         'pull a named string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{name}')
-        self.assertEquals(s, '(?P<name>.+?)')
+        self.assertEqual(s, '(?P<name>.+?)')
         s = PARSE_RE.sub(self.p.replace, '{name} {other}')
-        self.assertEquals(s, '(?P<name>.+?) (?P<other>.+?)')
+        self.assertEqual(s, '(?P<name>.+?) (?P<other>.+?)')
 
     def test_named_typed(self):
         'pull a named string out of another string'
         s = PARSE_RE.sub(self.p.replace, '{name:d}')
-        self.assertEquals(s, '(?P<name>-?\d+)')
+        self.assertEqual(s, '(?P<name>-?\d+)')
         s = PARSE_RE.sub(self.p.replace, '{name:d} {other:w}')
-        self.assertEquals(s, '(?P<name>-?\d+) (?P<other>\w+)')
+        self.assertEqual(s, '(?P<name>-?\d+) (?P<other>\w+)')
 
     def test_beaker(self):
         'skip some trailing whitespace'
         s = PARSE_RE.sub(self.p.replace, '{:<}')
-        self.assertEquals(s, '(.+?) *')
+        self.assertEqual(s, '(.+?) *')
 
     def test_left_fill(self):
         'skip some trailing periods'
         s = PARSE_RE.sub(self.p.replace, '{:.<}')
-        self.assertEquals(s, '(.+?)\.*')
+        self.assertEqual(s, '(.+?)\.*')
 
     def test_bird(self):
         'skip some trailing whitespace'
         s = PARSE_RE.sub(self.p.replace, '{:>}')
-        self.assertEquals(s, ' *(.+?)')
+        self.assertEqual(s, ' *(.+?)')
 
     def test_center(self):
         'skip some surrounding whitespace'
         s = PARSE_RE.sub(self.p.replace, '{:^}')
-        self.assertEquals(s, ' *(.+?) *')
+        self.assertEqual(s, ' *(.+?) *')
 
     def test_float(self):
         'skip test float expression generation'
         _ = lambda s: PARSE_RE.sub(self.p.replace, s)
-        self.assertEquals(_('{:f}'), '(-?\d+\.\d+)')
-        self.assertEquals(_('{:+f}'), '([-+]?\d+\.\d+)')
+        self.assertEqual(_('{:f}'), '(-?\d+\.\d+)')
+        self.assertEqual(_('{:+f}'), '([-+]?\d+\.\d+)')
 
     def test_number_commas(self):
         'skip number with commas generation'
         _ = lambda s: PARSE_RE.sub(self.p.replace, s)
-        self.assertEquals(_('{:n}'), '(-?\\d{1,3}([,.]\\d{3})*)')
-        self.assertEquals(_('{:+n}'), '([-+]?\\d{1,3}([,.]\\d{3})*)')
+        self.assertEqual(_('{:n}'), '(-?\\d{1,3}([,.]\\d{3})*)')
+        self.assertEqual(_('{:+n}'), '([-+]?\\d{1,3}([,.]\\d{3})*)')
 
     def test_format(self):
         def _(fmt, matches):
             m = FORMAT_RE.match(fmt)
-            self.assertNotEquals(m, None,
+            self.assertNotEqual(m, None,
                 'FORMAT_RE failed to parse %r' % fmt)
             d = m.groupdict()
             for k in matches:
-                self.assertEquals(d.get(k), matches[k],
+                self.assertEqual(d.get(k), matches[k],
                     'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]))
 
         for t in 'obxegfdDwWsS':
             _(t, dict(type=t))
             _('10'+t, dict(type=t, width='10'))
         _('05d', dict(type='d', width='05', zero='0'))
-        _('#d', dict(type='d', prefix='#'))
         _('<', dict(align='<'))
         _('.<', dict(align='.<', fill='.'))
         _('>', dict(align='>'))
@@ -695,104 +692,102 @@ class TestPattern(unittest.TestCase):
         _(' d', dict(type='d', sign=' '))
         _('ti', dict(type='ti'))
 
-        _('.^+#010d', dict(type='d', width='010', align='.^', fill='.', prefix='#',
+        _('.^+010d', dict(type='d', width='010', align='.^', fill='.',
             sign='+', zero='0'))
-
-        #(\.(?P<precision>\d+))?
 
 
 class TestParse(unittest.TestCase):
     def test_no_match(self):
         'string does not match format'
-        self.assertEquals(parse('{{hello}}', 'hello'), None)
+        self.assertEqual(parse('{{hello}}', 'hello'), None)
 
     def test_nothing(self):
         'do no actual parsing'
         r = parse('{{hello}}', '{hello}')
-        self.assertEquals(r.fixed, ())
-        self.assertEquals(r.named, {})
+        self.assertEqual(r.fixed, ())
+        self.assertEqual(r.named, {})
 
     def test_fixed(self):
         'pull a fixed value out of string'
         r = parse('hello {}', 'hello world')
-        self.assertEquals(r.fixed, ('world', ))
+        self.assertEqual(r.fixed, ('world', ))
 
     def test_left(self):
         'pull left-aligned text out of string'
         r = parse('{:<} world', 'hello       world')
-        self.assertEquals(r.fixed, ('hello', ))
+        self.assertEqual(r.fixed, ('hello', ))
 
     def test_right(self):
         'pull right-aligned text out of string'
         r = parse('hello {:>}', 'hello       world')
-        self.assertEquals(r.fixed, ('world', ))
+        self.assertEqual(r.fixed, ('world', ))
 
     def test_center(self):
         'pull right-aligned text out of string'
         r = parse('hello {:^} world', 'hello  there     world')
-        self.assertEquals(r.fixed, ('there', ))
+        self.assertEqual(r.fixed, ('there', ))
 
     def test_typed(self):
         'pull a named, typed values out of string'
         r = parse('hello {:d} {:w}', 'hello 12 people')
-        self.assertEquals(r.fixed, (12, 'people'))
+        self.assertEqual(r.fixed, (12, 'people'))
         r = parse('hello {:w} {:w}', 'hello 12 people')
-        self.assertEquals(r.fixed, ('12', 'people'))
+        self.assertEqual(r.fixed, ('12', 'people'))
 
     def test_typed_fail(self):
         'pull a named, typed values out of string'
-        self.assertEquals(parse('hello {:d} {:w}', 'hello people 12'), None)
+        self.assertEqual(parse('hello {:d} {:w}', 'hello people 12'), None)
 
     def test_named(self):
         'pull a named value out of string'
         r = parse('hello {name}', 'hello world')
-        self.assertEquals(r.named, {'name': 'world'})
+        self.assertEqual(r.named, {'name': 'world'})
 
     def test_mixed(self):
         'pull a fixed and named values out of string'
         r = parse('hello {} {name} {} {spam}', 'hello world and other beings')
-        self.assertEquals(r.fixed, ('world', 'other'))
-        self.assertEquals(r.named, dict(name='and', spam='beings'))
+        self.assertEqual(r.fixed, ('world', 'other'))
+        self.assertEqual(r.named, dict(name='and', spam='beings'))
 
     def test_named_typed(self):
         'pull a named, typed values out of string'
         r = parse('hello {number:d} {things}', 'hello 12 people')
-        self.assertEquals(r.named, dict(number=12, things='people'))
+        self.assertEqual(r.named, dict(number=12, things='people'))
         r = parse('hello {number:w} {things}', 'hello 12 people')
-        self.assertEquals(r.named, dict(number='12', things='people'))
+        self.assertEqual(r.named, dict(number='12', things='people'))
 
     def test_named_aligned_typed(self):
         'pull a named, typed values out of string'
         r = parse('hello {number:<d} {things}', 'hello 12      people')
-        self.assertEquals(r.named, dict(number=12, things='people'))
+        self.assertEqual(r.named, dict(number=12, things='people'))
         r = parse('hello {number:>d} {things}', 'hello      12 people')
-        self.assertEquals(r.named, dict(number=12, things='people'))
+        self.assertEqual(r.named, dict(number=12, things='people'))
         r = parse('hello {number:^d} {things}', 'hello      12      people')
-        self.assertEquals(r.named, dict(number=12, things='people'))
+        self.assertEqual(r.named, dict(number=12, things='people'))
 
     def test_spans(self):
         'test the string sections our fields come from'
         string = 'hello world'
         r = parse('hello {}', string)
-        self.assertEquals(r.spans, {0: (6,11)})
+        self.assertEqual(r.spans, {0: (6,11)})
         start, end = r.spans[0]
-        self.assertEquals(string[start:end], r.fixed[0])
+        self.assertEqual(string[start:end], r.fixed[0])
 
         string = 'hello     world'
         r = parse('hello {:>}', string)
-        self.assertEquals(r.spans, {0: (10,15)})
+        self.assertEqual(r.spans, {0: (10,15)})
         start, end = r.spans[0]
-        self.assertEquals(string[start:end], r.fixed[0])
+        self.assertEqual(string[start:end], r.fixed[0])
 
         string = 'hello 0x12 world'
-        r = parse('hello {val:#x} world', string)
-        self.assertEquals(r.spans, {'val': (6,10)})
+        r = parse('hello {val:x} world', string)
+        self.assertEqual(r.spans, {'val': (6,10)})
         start, end = r.spans['val']
-        self.assertEquals(string[start:end], '0x%x' % r.named['val'])
+        self.assertEqual(string[start:end], '0x%x' % r.named['val'])
 
         string = 'hello world and other beings'
         r = parse('hello {} {name} {} {spam}', string)
-        self.assertEquals(r.spans, {0: (6, 11), 'name': (12, 15),
+        self.assertEqual(r.spans, {0: (6, 11), 'name': (12, 15),
             1: (16, 21), 'spam': (22, 28)})
 
     def test_numbers(self):
@@ -804,10 +799,10 @@ class TestParse(unittest.TestCase):
                 self.fail('%r (%r) did not match %r' % (fmt, p._expression, s))
             r = r.fixed[0]
             if str_equals:
-                self.assertEquals(str(r), str(e),
+                self.assertEqual(str(r), str(e),
                     '%r found %r in %r, not %r' % (fmt, r, s, e))
             else:
-                self.assertEquals(r, e,
+                self.assertEqual(r, e,
                     '%r found %r in %r, not %r' % (fmt, r, s, e))
         def n(fmt, s, e):
             if parse(fmt, s) is not None:
@@ -861,10 +856,10 @@ class TestParse(unittest.TestCase):
         y('a {:g} b', 'a 1.0e10 b', 1.0e10)
         y('a {:g} b', 'a 1.0E10 b', 1.0e10)
 
-        y('a {:b} b', 'a 101101 b', 0b101101)
-        y('a {:#b} b', 'a 0b101101 b', 0b101101)
-        y('a {:o} b', 'a 12345670 b', 0o12345670)
-        y('a {:#o} b', 'a 0o12345670 b', 0o12345670)
+        y('a {:b} b', 'a 1000 b', 8)
+        y('a {:b} b', 'a 0b1000 b', 8)
+        y('a {:o} b', 'a 12345670 b', int('12345670', 8))
+        y('a {:o} b', 'a 0o12345670 b', int('12345670', 8))
         y('a {:x} b', 'a 1234567890abcdef b', 0x1234567890abcdef)
         y('a {:x} b', 'a 1234567890ABCDEF b', 0x1234567890ABCDEF)
         y('a {:x} b', 'a 0x1234567890abcdef b', 0x1234567890abcdef)
@@ -888,10 +883,10 @@ class TestParse(unittest.TestCase):
             if r is None:
                 self.fail('%r (%r) did not match %r' % (fmt, p._expression, s))
             r = r.fixed[0]
-            self.assertEquals(r, e,
+            self.assertEqual(r, e,
                 '%r found %r in %r, not %r' % (fmt, r, s, e))
             if tz is not None:
-                self.assertEquals(r.tzinfo, tz,
+                self.assertEqual(r.tzinfo, tz,
                     '%r found TZ %r in %r, not %r' % (fmt, r.tzinfo, s, e))
         def n(fmt, s, e):
             if parse(fmt, s) is not None:
@@ -902,28 +897,28 @@ class TestParse(unittest.TestCase):
 
         # ISO 8660 variants
         # YYYY-MM-DD (eg 1997-07-16)
-        y('a {:ti} b', 'a 1997-07-16 b', datetime(1997, 07, 16))
+        y('a {:ti} b', 'a 1997-07-16 b', datetime(1997, 7, 16))
 
         # YYYY-MM-DDThh:mmTZD (eg 1997-07-16T19:20+01:00)
-        y('a {:ti} b', 'a 1997-07-16T19:20 b', datetime(1997, 07, 16, 19, 20, 0))
+        y('a {:ti} b', 'a 1997-07-16T19:20 b', datetime(1997, 7, 16, 19, 20, 0))
         y('a {:ti} b', 'a 1997-07-16T19:20Z b',
-            datetime(1997, 07, 16, 19, 20, tzinfo=utc))
+            datetime(1997, 7, 16, 19, 20, tzinfo=utc))
         y('a {:ti} b', 'a 1997-07-16T19:20+01:00 b',
-            datetime(1997, 07, 16, 19, 20, tzinfo=FixedTzOffset(60, '+01:00')))
+            datetime(1997, 7, 16, 19, 20, tzinfo=FixedTzOffset(60, '+01:00')))
 
         # YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00)
-        y('a {:ti} b', 'a 1997-07-16T19:20:30 b', datetime(1997, 07, 16, 19, 20, 30))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30 b', datetime(1997, 7, 16, 19, 20, 30))
         y('a {:ti} b', 'a 1997-07-16T19:20:30Z b',
-            datetime(1997, 07, 16, 19, 20, 30, tzinfo=utc))
+            datetime(1997, 7, 16, 19, 20, 30, tzinfo=utc))
         y('a {:ti} b', 'a 1997-07-16T19:20:30+01:00 b',
-            datetime(1997, 07, 16, 19, 20, 30, tzinfo= FixedTzOffset(60, '+01:00')))
+            datetime(1997, 7, 16, 19, 20, 30, tzinfo= FixedTzOffset(60, '+01:00')))
 
         # YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00)
-        y('a {:ti} b', 'a 1997-07-16T19:20:30.500000 b', datetime(1997, 07, 16, 19, 20, 30, 500000))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30.500000 b', datetime(1997, 7, 16, 19, 20, 30, 500000))
         y('a {:ti} b', 'a 1997-07-16T19:20:30.5Z b',
-            datetime(1997, 07, 16, 19, 20, 30, 500000, tzinfo=utc))
+            datetime(1997, 7, 16, 19, 20, 30, 500000, tzinfo=utc))
         y('a {:ti} b', 'a 1997-07-16T19:20:30.5+01:00 b',
-            datetime(1997, 07, 16, 19, 20, 30, 500000, tzinfo=FixedTzOffset(60, '+01:00')))
+            datetime(1997, 7, 16, 19, 20, 30, 500000, tzinfo=FixedTzOffset(60, '+01:00')))
 
         aest_d = datetime(2011, 11, 21, 10, 21, 36, tzinfo=aest)
         dt = datetime(2011, 11, 21, 10, 21, 36)
