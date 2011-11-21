@@ -50,15 +50,15 @@ Some simple parse() format string examples:
 Format Specification
 --------------------
 
+Do remember that most often a straight format-less {} will suffice
+where a more complex format specification might have been used.
+
 Most of the `Format Specification Mini-Language`_ is supported::
 
    [[fill]align][sign][#][0][width][,][.precision][type]
 
 The align operators will cause spaces (or specified fill character)
-to be stripped from the value. The alignment character "=" is not yet
-supported.
-
-The comma "," separator is not yet supported.
+to be stripped from the value.
 
 The types supported are a slightly different mix to the format() types.
 Some format() types come directly over: d, n, f, b, o, h, x and X.
@@ -67,26 +67,37 @@ D, w, W, s and S are also available.
 
 The format() types %, F, e, E, g and G are not yet supported.
 
-===== ========================================== =======
-Type  Characters Matched                         Output
-===== ========================================== =======
- w    Letters and underscore                     str
- W    Non-letter and underscore                  str
- s    Whitespace                                 str
- S    Non-whitespace                             str
- d    Digits (effectively integer numbers)       int
- D    Non-digit                                  str
- n    Numbers with thousands separators (, or .) int
- f    Fixed-point numbers                        float
- b    Binary numbers                             int
- o    Octal numbers                              int
- h    Hexadecimal numbers (lower and upper case) int
- x    Lower-case hexadecimal numbers             int
- X    Upper-case hexadecimal numbers             int
-===== ========================================== =======
-
-Do remember though that most often a straight type-less {} will suffice
-where a more complex type specification might have been used.
+===== =========================================== ========
+Type  Characters Matched                          Output
+===== =========================================== ========
+ w    Letters and underscore                      str
+ W    Non-letter and underscore                   str
+ s    Whitespace                                  str
+ S    Non-whitespace                              str
+ d    Digits (effectively integer numbers)        int
+ D    Non-digit                                   str
+ n    Numbers with thousands separators (, or .)  int
+ f    Fixed-point numbers                         float
+ b    Binary numbers                              int
+ o    Octal numbers                               int
+ h    Hexadecimal numbers (lower and upper case)  int
+ x    Lower-case hexadecimal numbers              int
+ X    Upper-case hexadecimal numbers              int
+ ti   ISO 8601 format date/time                   datetime
+      e.g. 1972-01-20T10:21:36Z
+ te   RFC2822 e-mail format date/time             datetime
+      e.g. Mon, 20 Jan 1972 10:21:36 +1000
+ tg   Global (day/month) format date/time         datetime
+      e.g. 20/1/1972 10:21:36 AM +1:00
+ ta   US (month/day) format date/time             datetime
+      e.g. 1/20/1972 10:21:36 PM +10:30
+ tc   ctime() format date/time                    datetime
+      e.g. Sun Sep 16 01:03:52 1973
+ th   HTTP log format date/time                   datetime
+      e.g. 21/Nov/2011:00:07:11 +0000
+ tt   Time                                        time
+      e.g. 10:21:36 PM -5:30
+===== =========================================== ========
 
 So, for example, some typed parsing, and None resulting if the typing
 does not match:
@@ -109,6 +120,23 @@ actually centered. It just strips leading and trailing whitespace.
 See also the unit tests at the end of the module for some more
 examples. Run the tests with "python -m parse".
 
+Some notes for the date and time types:
+
+- the presence of the time part is optional (including ISO 8601, starting
+  at the "T"). A full datetime object will always be returned; the time
+  will be set to 00:00:00.
+- except in ISO 8601 the day and month digits may be 0-padded
+- the separator for the ta and tg formats may be "-" or "/"
+- as per RFC 2822 the e-mail format may omit the day (and comma), and the
+  seconds but nothing else
+- hours greater than 12 will be happily accepted
+- the AM/PM are optional, and if PM is found then 12 hours will be added
+  to the datetime object's hours amount - even if the hour is greater
+  than 12 (for consistency.)
+- except in ISO 8601 and e-mail format the timezone is optional
+- when a seconds amount is present in the input fractions will be parsed
+- named timezones are not yet supported
+
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
@@ -116,6 +144,8 @@ examples. Run the tests with "python -m parse".
 
 **Version history (in brief)**:
 
+- 1.1.4 fixes to some int type conversion; implemented "=" alignment; added
+  date/time parsing with a variety of formats handled.
 - 1.1.3 type conversion is automatic based on specified field types. Also added
   "f" and "n" types.
 - 1.1.2 refactored, added compile() and limited ``from parse import *``

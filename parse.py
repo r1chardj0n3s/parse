@@ -131,6 +131,8 @@ Some notes for the date and time types:
   will be set to 00:00:00.
 - except in ISO 8601 the day and month digits may be 0-padded
 - the separator for the ta and tg formats may be "-" or "/"
+- named months (abbreviations or full names) may be used in the ta and tg
+  formats
 - as per RFC 2822 the e-mail format may omit the day (and comma), and the
   seconds but nothing else
 - hours greater than 12 will be happily accepted
@@ -144,10 +146,30 @@ Some notes for the date and time types:
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
+
+Result Objects
+--------------
+
+The result of a ``parse()`` operation is either ``None`` (no match) or a
+``Result`` instance.
+
+The ``Result`` instance has three attributes:
+
+fixed
+   A tuple of the fixed-position, anonymous fields extracted from the input.
+named
+   A dictionary of the named fields extracted from the input.
+spans
+   A dictionary mapping the names and fixed position indices matched to a
+   2-tuple slice range of where the match occurred in the input.
+
+
 ----
 
 **Version history (in brief)**:
 
+- 1.1.5 accept textual dates in more places; Result now holds match span
+  positions.
 - 1.1.4 fixes to some int type conversion; implemented "=" alignment; added
   date/time parsing with a variety of formats handled.
 - 1.1.3 type conversion is automatic based on specified field types. Also added
@@ -161,7 +183,7 @@ Some notes for the date and time types:
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.4'
+__version__ = '1.1.5'
 
 import re
 import unittest
@@ -253,6 +275,7 @@ MONTHS_MAP = dict(
 )
 DAYS_PAT = '(Mon|Tue|Wed|Thu|Fri|Sat|Sun)'
 MONTHS_PAT = '(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
+ALL_MONTHS_PAT = '(%s)' % '|'.join(MONTHS_MAP)
 TIME_PAT = r'(?P<hms>\d{1,2}:\d{1,2}(:\d{1,2}(\.\d+)?)?)'
 AM_PAT = r'(?P<am>\s+[AP]M)'
 TZ_PAT = r'(?P<tz>\s+[-+]\d\d:?\d\d)'
@@ -350,11 +373,13 @@ class Parser(object):
             if n in self._type_conversions:
                 l[n] = self._type_conversions[n](l[n], m)
         named = m.groupdict()
+        spans = dict((n, m.span(n)) for n in named)
         for k in named:
             if k in self._type_conversions:
                 named[k] = self._type_conversions[k](named[k], m)
         fixed = tuple(l[n] for n in self._fixed_args)
-        return Result(fixed, named)
+        spans.update((i, m.span(n+1)) for i, n in enumerate(self._fixed_args))
+        return Result(fixed, named, spans)
 
     def replace(self, match):
         d = match.groupdict()
@@ -422,10 +447,10 @@ class Parser(object):
             s = r'(?P<ymd>\d{4}-\d\d-\d\d)((\s+|T)%s)?(?P<tz>Z|[-+]\d\d:\d\d)?' % (TIME_PAT,)
             self._type_conversions[group] = date_convert
         elif d['type'] == 'ta':
-            s = r'(?P<mdy>\d{1,2}[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
+            s = r'(?P<mdy>(\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             self._type_conversions[group] = date_convert
         elif d['type'] == 'tg':
-            s = r'(?P<dmy>\d{1,2}[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
+            s = r'(?P<dmy>\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?' % (ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             self._type_conversions[group] = date_convert
         elif d['type'] == 'te':
             # this will allow microseconds through if they're present, but meh
@@ -531,9 +556,10 @@ class Parser(object):
 
 
 class Result(object):
-    def __init__(self, fixed, named):
+    def __init__(self, fixed, named, spans):
         self.fixed = fixed
         self.named = named
+        self.spans = spans
 
     def __repr__(self):
         return '<%s %r %r>' % (self.__class__.__name__, self.fixed,
@@ -740,6 +766,31 @@ class TestParse(unittest.TestCase):
         r = parse('hello {number:^d} {things}', 'hello      12      people')
         self.assertEquals(r.named, dict(number=12, things='people'))
 
+    def test_spans(self):
+        'test the string sections our fields come from'
+        string = 'hello world'
+        r = parse('hello {}', string)
+        self.assertEquals(r.spans, {0: (6,11)})
+        start, end = r.spans[0]
+        self.assertEquals(string[start:end], r.fixed[0])
+
+        string = 'hello     world'
+        r = parse('hello {:>}', string)
+        self.assertEquals(r.spans, {0: (10,15)})
+        start, end = r.spans[0]
+        self.assertEquals(string[start:end], r.fixed[0])
+
+        string = 'hello 0x12 world'
+        r = parse('hello {val:#h} world', string)
+        self.assertEquals(r.spans, {'val': (6,10)})
+        start, end = r.spans['val']
+        self.assertEquals(string[start:end], '0x%x' % r.named['val'])
+
+        string = 'hello world and other beings'
+        r = parse('hello {} {name} {} {spam}', string)
+        self.assertEquals(r.spans, {0: (6, 11), 'name': (12, 15),
+            1: (16, 21), 'spam': (22, 28)})
+
     def test_numbers(self):
         'pull a numbers out of a string'
         def y(fmt, s, e):
@@ -856,10 +907,14 @@ class TestParse(unittest.TestCase):
         # ta   US (month/day) format     datetime
         y('a {:ta} b', 'a 11/21/2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a 11-21-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:ta} b', 'a Nov-21-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:ta} b', 'a November-21-2011 10:21:36 AM +1000 b', aest_d)
 
         # tg   global (day/month) format datetime
         y('a {:tg} b', 'a 21/11/2011 10:21:36 AM +1000 b', aest_d)
         y('a {:tg} b', 'a 21-11-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:tg} b', 'a 21-Nov-2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:tg} b', 'a 21-November-2011 10:21:36 AM +1000 b', aest_d)
 
         # th   HTTP log format date/time                   datetime
         y('a {:th} b', 'a 21/Nov/2011:10:21:36 +1000 b', aest_d)
