@@ -68,7 +68,8 @@ just indicates there may be whitespace or "0"s to strip.
 The "#" format character is handled automatically by d, b, o and x -
 that is: if there is a "0b", "0o" or "0x" prefix respectively, it's
 handled. For "d" any will be accepted, but for the others the correct
-prefix must be present if at all.
+prefix must be present if at all. Similarly number sign is handled
+automatically.
 
 The types supported are a slightly different mix to the format() types.
 Some format() types come directly over: d, n, %, f, e, b, o and x.
@@ -181,7 +182,7 @@ spans
 **Version history (in brief)**:
 
 - 1.1.9 to keep things simpler number sign is handled automatically;
-  more parsing edge-cases handled.
+  significant robustification in the face of edge-case input.
 - 1.1.8 allow "d" fields to have number base "0x" etc. prefixes;
   fix up some field type interactions after stress-testing the parser;
   implement "%" type.
@@ -1119,9 +1120,9 @@ class TestParse(unittest.TestCase):
         self.assertRaises(TooManyFields, compile, '{:ti}' * 20)
 
 
-
 if __name__ == '__main__':
     unittest.main()
+
 
 # Copyright (c) 2011 eKit.com Inc (http://www.ekit.com/)
 #
