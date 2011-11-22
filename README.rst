@@ -1,6 +1,6 @@
 Parse strings using a specification based on the Python format() syntax.
 
-   parse() is the opposite of format()
+   ``parse()`` is the opposite of ``format()``
 
 Basic usage:
 
@@ -29,8 +29,8 @@ Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
 
 The conversion of fields to types other than strings is done based on the
-type in the format specification, which mirrors the format() behaviour.
-There are no "!" field conversions like format() has.
+type in the format specification, which mirrors the ``format()`` behaviour.
+There are no "!" field conversions like ``format()`` has.
 
 Some simple parse() format string examples:
 
@@ -50,7 +50,7 @@ Some simple parse() format string examples:
 Format Specification
 --------------------
 
-Do remember that most often a straight format-less {} will suffice
+Do remember that most often a straight format-less "{}" will suffice
 where a more complex format specification might have been used.
 
 Most of the `Format Specification Mini-Language`_ is supported::
@@ -67,10 +67,10 @@ handled. For "d" any will be accepted, but for the others the correct
 prefix must be present if at all. Similarly number sign is handled
 automatically.
 
-The types supported are a slightly different mix to the format() types.
-Some format() types come directly over: d, n, %, f, e, b, o and x.
-In addition some regular expression character group types
-D, w, W, s and S are also available.
+The types supported are a slightly different mix to the format() types.  Some
+format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
+In addition some regular expression character group types "D", "w", "W", "s" and
+"S" are also available.
 
 The "e" and "g" types are case-insensitive so there is not need for
 the "E" or "G" types.
@@ -109,13 +109,15 @@ Type  Characters Matched                          Output
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
-So, for example, some typed parsing, and None resulting if the typing
+So, for example, some typed parsing, and ``None`` resulting if the typing
 does not match:
 
 >>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
 <Result (3, 'weapons') {}>
 >>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
 None
+>>> parse('Meet at {:tg}', 'Meet at 11/11/2011 11:11')
+<Result (datetime.datetime(2011, 11, 11, 11, 11),) {}>
 
 And messing about with alignment:
 
@@ -127,30 +129,32 @@ And messing about with alignment:
 Note that the "center" alignment does not test to make sure the value is
 actually centered. It just strips leading and trailing whitespace.
 
-See also the unit tests at the end of the module for some more
-examples. Run the tests with "python -m parse".
-
 Some notes for the date and time types:
 
 - the presence of the time part is optional (including ISO 8601, starting
   at the "T"). A full datetime object will always be returned; the time
-  will be set to 00:00:00.
-- except in ISO 8601 the day and month digits may be 0-padded
-- the separator for the ta and tg formats may be "-" or "/"
+  will be set to 00:00:00. You may also specify a time without seconds.
+- when a seconds amount is present in the input fractions will be parsed
+  to give microseconds.
+- except in ISO 8601 the day and month digits may be 0-padded.
+- the date separator for the tg and ta formats may be "-" or "/".
 - named months (abbreviations or full names) may be used in the ta and tg
-  formats
+  formats in place of numeric months.
 - as per RFC 2822 the e-mail format may omit the day (and comma), and the
-  seconds but nothing else
-- hours greater than 12 will be happily accepted
+  seconds but nothing else.
+- hours greater than 12 will be happily accepted.
 - the AM/PM are optional, and if PM is found then 12 hours will be added
   to the datetime object's hours amount - even if the hour is greater
   than 12 (for consistency.)
-- except in ISO 8601 and e-mail format the timezone is optional
-- when a seconds amount is present in the input fractions will be parsed
-- named timezones are not handled yet
+- except in ISO 8601 and e-mail format the timezone is optional.
+- named timezones are not handled yet.
 
 Note: attempting to match too many datetime fields in a single parse() will
-currently result in a resource allocation issue.
+currently result in a resource allocation issue. A TooManyFields exception
+will be raised in this instance. The current limit is about 15.
+
+See also the unit tests at the end of the module for some more
+examples. Run the tests with "python -m parse".
 
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
@@ -173,10 +177,32 @@ spans
    2-tuple slice range of where the match occurred in the input.
    The span does not include any stripped padding (alignment or width).
 
+
+Custom Type Conversions
+-----------------------
+
+If you wish to have matched fields automatically converted to your own type you
+may pass in a dictionary of type conversion information to ``parse()`` and
+``compile()``.
+
+The converter will be passed the field string matched. Whatever it returns
+will be substituted in the ``Result`` instance for that field.
+
+Your custom type conversions may override the builtin types if you supply one
+with the same identifier.
+
+>>> def converter(string):
+...    return string.upper()
+...
+>>> r = parse('{:shouty} world', 'hello world', dict(shouty=shouty))
+<Result ('HELLO',) {}>
+
 ----
 
 **Version history (in brief)**:
 
+- 1.2 added ability for custom and override type conversions to be
+  provided; some cleanup
 - 1.1.9 to keep things simpler number sign is handled automatically;
   significant robustification in the face of edge-case input.
 - 1.1.8 allow "d" fields to have number base "0x" etc. prefixes;

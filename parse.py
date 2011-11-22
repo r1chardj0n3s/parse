@@ -205,7 +205,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
-- 1.1.10 added ability for custom and override type conversions to be
+- 1.2 added ability for custom and override type conversions to be
   provided; some cleanup
 - 1.1.9 to keep things simpler number sign is handled automatically;
   significant robustification in the face of edge-case input.
@@ -230,7 +230,7 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.9'
+__version__ = '1.2'
 
 import re
 import unittest
