@@ -59,7 +59,7 @@ where a more complex format specification might have been used.
 
 Most of the `Format Specification Mini-Language`_ is supported::
 
-   [[fill]align][sign][0][width][type]
+   [[fill]align][0][width][type]
 
 The align operators will cause spaces (or specified fill character)
 to be stripped from the value. Similarly width is not enforced; it
@@ -180,6 +180,8 @@ spans
 
 **Version history (in brief)**:
 
+- 1.1.9 to keep things simpler number sign is handled automatically;
+  more parsing edge-cases handled.
 - 1.1.8 allow "d" fields to have number base "0x" etc. prefixes;
   fix up some field type interactions after stress-testing the parser;
   implement "%" type.
@@ -201,7 +203,7 @@ spans
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.1.8'
+__version__ = '1.1.9'
 
 import re
 import unittest
@@ -209,29 +211,6 @@ from datetime import datetime, time, tzinfo, timedelta
 from functools import partial
 
 __all__ = 'parse compile'.split()
-
-
-# yes, I now have two problems
-PARSE_RE = re.compile('''
-(
-  (?P<openbrace>{{)
-|
-  (?P<closebrace>}})
-|
-  (?P<fixed>{(:[^}]+?)?})
-|
-  {(?P<named>\w+(:[^}]+?)?)}
-)''', re.VERBOSE)
-
-
-# three problems?
-FORMAT_RE = re.compile('''
-    (?P<align>(?P<fill>[^}])?[<>^=])?
-    (?P<sign>[-+ ])?
-    (?P<width>(?P<zero>0)?[1-9]\d*)?
-    (\.(?P<precision>\d+))?
-    (?P<type>([nbox%fegwWdDsS]|t[ieahgct]))?
-''', re.VERBOSE)
 
 
 def int_convert(base):
@@ -391,6 +370,50 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
 class TooManyFields(ValueError):
     pass
 
+# note: {} are handled separately
+REGEX_SAFETY = re.compile(r'([\\.[\]()*+\^$!])')
+
+# allowed field types
+ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
+   ['t'+c for c in 'ieahgct'])
+
+
+def extract_format(format):
+    '''Pull apart the format [[fill]align][0][width][type]
+    '''
+    fill = align = None
+    if format[0] in '<>=^':
+        align = format[0]
+        format = format[1:]
+    elif len(format) > 1 and format[1] in '<>=^':
+        fill = format[0]
+        align = format[1]
+        format = format[2:]
+
+    zero = False
+    if format and format[0] == '0':
+        zero = True
+        format = format[1:]
+
+    width = ''
+    while format:
+        if not format[0].isdigit():
+            break
+        width += format[0]
+        format = format[1:]
+
+    # the rest is the type
+    type = format
+
+    if type and type not in ALLOWED_TYPES:
+        raise ValueError('type %r not recognised' % type)
+
+    # TODO yeah, I should make this "better" and not so "yuck"
+    return locals()
+
+
+PARSE_RE = re.compile('({{|}}|{}|{:[^}]+?}|{\w+?}|{\w+?:[^}]+?})')
+
 
 class Parser(object):
     def __init__(self, format):
@@ -399,8 +422,9 @@ class Parser(object):
         self._group_index = 0
         self._format = format
         self._type_conversions = {}
-        self._expression = '^%s$' % PARSE_RE.sub(self.replace, format)
+        self._expression = self.generate_expression()
         try:
+            # yes, I now have two problems
             self._re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
         except AssertionError, e:
             if str(e).endswith('this version only supports 100 named groups'):
@@ -417,20 +441,12 @@ class Parser(object):
         if m is None:
             return None
 
-        #print self._format
-        #print self._expression
-        #print `string`
-        #print 'MATCH GROUPS', m.groups()
-        #print 'MATCH DICT', m.groupdict()
-
         # ok, figure the fixed fields we've pulled out and type convert them
         fixed_fields = list(m.groups())
-        #print 'WANT', self._fixed_fields
         for n in self._fixed_fields:
             if n in self._type_conversions:
                 fixed_fields[n] = self._type_conversions[n](fixed_fields[n], m)
         fixed_fields = tuple(fixed_fields[n] for n in self._fixed_fields)
-        #print 'FIXED', fixed_fields
 
         # grab the named fields, converting where requested
         groupdict = m.groupdict()
@@ -448,89 +464,99 @@ class Parser(object):
         # and that's our result
         return Result(fixed_fields, named_fields, spans)
 
-    def replace(self, match):
-        d = match.groupdict()
-        if d['openbrace']: return '{'
-        if d['closebrace']: return '}'
+    def re_replace(self, match):
+        return '\\' + match.group(1)
 
-        format = ''
-
-        if d['fixed']:
-            self._fixed_fields.append(self._group_index)
-            wrap = '(%s)'
-            if ':' in d['fixed']:
-                format = d['fixed'][2:-1]
-            group = self._group_index
-        elif d['named']:
-            if ':' in d['named']:
-                name, format = d['named'].split(':')
+    def generate_expression(self):
+        e = []
+        for part in PARSE_RE.split(self._format):
+            if not part:
+                continue
+            elif part == '{{':
+                e.append(r'\{')
+            elif part == '}}':
+                e.append(r'\}')
+            elif part[0] == '{':
+                e.append(self.handle_field(part))
             else:
-                name = d['named']
+                e.append(REGEX_SAFETY.sub(self.re_replace, part))
+        return '^%s$' % ''.join(e)
+
+    def handle_field(self, field):
+        # lose the braces
+        field = field[1:-1]
+        format = ''
+        if field and field[0].isalpha():
+            if ':' in field:
+                name, format = field.split(':')
+            else:
+                name = field
             self._named_fields.append(name)
             group = name
             wrap = '(?P<%s>%%s)' % name
         else:
-            raise ValueError('format not recognised')
+            self._fixed_fields.append(self._group_index)
+            wrap = '(%s)'
+            if ':' in field:
+                format = field[1:]
+            group = self._group_index
 
         # simplest case: a bare {}
         if not format:
             self._group_index += 1
             return wrap % '.+?'
 
-        # now figure out the format
-        m = FORMAT_RE.match(format)
-        if m is None:
-            raise ValueError('format %r not recognised' % format)
+        d = extract_format(format)
+        type = d['type']
+        align = d['align']
+        fill = d['fill']
+        zero = d['zero']
+        width = d['width']
 
-        d = m.groupdict()
-
-        prefix = False
+        is_numeric = type and type in 'n%fegdobh'
 
         # figure type conversions, if any
-        if d['type'] == 'n':
+        if type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
             self._group_index += 1
             self._type_conversions[group] = int_convert(10)
-        elif d['type'] == 'b':
-            prefix = True
+        elif type == 'b':
             s = '(0[bB])?[01]+'
             self._type_conversions[group] = int_convert(2)
             self._group_index += 1
-        elif d['type'] == 'o':
-            prefix = True
+        elif type == 'o':
             s = '(0[oO])?[0-7]+'
             self._type_conversions[group] = int_convert(8)
             self._group_index += 1
-        elif d['type'] == 'x':
-            prefix = True
+        elif type == 'x':
             s = '(0[xX])?[0-9a-fA-F]+'
             self._type_conversions[group] = int_convert(16)
             self._group_index += 1
-        elif d['type'] == '%':
+        elif type == '%':
             s = r'\d+(\.\d+)?%'
             self._group_index += 1
             self._type_conversions[group] = percentage
-        elif d['type'] == 'f':
+        elif type == 'f':
             s = r'\d+\.\d+'
             self._type_conversions[group] = lambda s, m: float(s)
-        elif d['type'] == 'e':
+        elif type == 'e':
             s = r'\d+\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
             self._type_conversions[group] = lambda s, m: float(s)
-        elif d['type'] == 'g':
+        elif type == 'g':
             s = r'\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF'
             self._group_index += 2
             self._type_conversions[group] = lambda s, m: float(s)
-        elif d['type'] == 'd':
+        elif type == 'd':
             s = r'\d+|0[xX][0-9a-fA-F]+|[0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
             self._type_conversions[group] = int_convert(10)
-        elif d['type'] == 'ti':
+        elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|[-+]\d\d:\d\d)?' % TIME_PAT
             n = self._group_index
             self._type_conversions[group] = partial(date_convert, ymd=n,
                 hms=n+3, tz=n+6)
             self._group_index += 7
             wrap = ''
-        elif d['type'] == 'tg':
+        elif type == 'tg':
             s = r'(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
@@ -538,7 +564,7 @@ class Parser(object):
                 hms=n+4, am=n+7, tz=n+8)
             self._group_index += 9
             wrap = ''
-        elif d['type'] == 'ta':
+        elif type == 'ta':
             s = r'((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
@@ -546,7 +572,7 @@ class Parser(object):
                 hms=n+4, am=n+7, tz=n+8)
             self._group_index += 9
             wrap = ''
-        elif d['type'] == 'te':
+        elif type == 'te':
             # this will allow microseconds through if they're present, but meh
             s = r'(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s' % (DAYS_PAT,
                 MONTHS_PAT, TIME_PAT, TZ_PAT)
@@ -555,7 +581,7 @@ class Parser(object):
                 hms=n+4, tz=n+7)
             self._group_index += 8
             wrap = ''
-        elif d['type'] == 'th':
+        elif type == 'th':
             # slight flexibility here from the stock Apache format
             s = r'(\d{1,2}[-/]%s[-/]\d{4}):%s%s' % (MONTHS_PAT, TIME_PAT,
                 TZ_PAT)
@@ -564,7 +590,7 @@ class Parser(object):
                 hms=n+2, tz=n+5)
             self._group_index += 6
             wrap = ''
-        elif d['type'] == 'tc':
+        elif type == 'tc':
             s = r'(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})' % (
                 DAYS_PAT, MONTHS_PAT, TIME_PAT)
             n = self._group_index
@@ -572,54 +598,35 @@ class Parser(object):
                 d_m_y=(n+3,n+2,n+7), hms=n+4)
             self._group_index += 8
             wrap = ''
-        elif d['type'] == 'tt':
+        elif type == 'tt':
             s = r'%s?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
             self._type_conversions[group] = partial(date_convert, hms=n,
                 am=n+3, tz=n+4)
             self._group_index += 5
             wrap = ''
-        elif d['type']:
-            s = r'\%s+' % d['type']
+        elif type:
+            s = r'\%s+' % type
         else:
             s = '.+?'
 
-        # figure the alignment and fill parameters
-        align = d['align']
-        fill = d['fill']
-        if fill:
-            align = align[1]
-        else:
-            fill = ' '
-
-        is_numeric = d['type'] and d['type'] in 'n%fegdobh'
-
-        # handle some numeric-specific things like prefix and sign
+        # handle some numeric-specific things like fill and sign
         if is_numeric:
             # prefix with something (align "=" trumps zero)
             if align == '=':
                 # special case - align "=" acts like the zero above but with
                 # configurable fill defaulting to "0"
-                if not d['fill']:
+                if not fill:
                     fill = '0'
                 s = '%s*' % fill + s
-            elif d['zero']:
+            elif zero:
                 s = '0*' + s
 
-            if not d['sign']:
-                # default sign handling
-                s = r'-?' + s
-            elif d['sign'] == '+':
-                s = r'[-+]?' + s
-            elif d['sign'] == '-':
-                s = r'-?' + s
-            elif d['sign'] == ' ':
-                s = r'[- ]?' + s
-            else:
-                raise ValueError('sign in format "%s" unrecognised' % d['sign'])
-        else:
-            if d['sign']:
-                raise ValueError('sign in format must accompany "d" type')
+            # allow numbers to be prefixed with a sign
+            s = r'[-+ ]?' + s
+
+        if not fill:
+            fill = ' '
 
         # Place into a group now - this captures the value we want to keep.
         # Everything else from now is just padding to be stripped off
@@ -627,7 +634,7 @@ class Parser(object):
             s = wrap % s
             self._group_index += 1
 
-        if d['width']:
+        if width:
             # all we really care about is that if the format originally
             # specified a width then there will probably be padding - without an
             # explicit alignment that'll mean right alignment with spaces
@@ -689,73 +696,55 @@ def compile(format):
 
 # yes, I now unit test both of the problems
 class TestPattern(unittest.TestCase):
-    def setUp(self):
-        self.p = Parser('')
-
     def test_braces(self):
         'pull a simple string out of another string'
-        s = PARSE_RE.sub(self.p.replace, '{{ }}')
-        self.assertEqual(s, '{ }')
+        s = Parser('{{ }}')._expression
+        self.assertEqual(s, r'^\{ \}$')
 
     def test_fixed(self):
         'pull a simple string out of another string'
-        s = PARSE_RE.sub(self.p.replace, '{}')
-        self.assertEqual(s, '(.+?)')
-        s = PARSE_RE.sub(self.p.replace, '{} {}')
-        self.assertEqual(s, '(.+?) (.+?)')
+        s = Parser('{}')._expression
+        self.assertEqual(s, '^(.+?)$')
+        s = Parser('{} {}')._expression
+        self.assertEqual(s, '^(.+?) (.+?)$')
 
     def test_named(self):
         'pull a named string out of another string'
-        s = PARSE_RE.sub(self.p.replace, '{name}')
-        self.assertEqual(s, '(?P<name>.+?)')
-        s = PARSE_RE.sub(self.p.replace, '{name} {other}')
-        self.assertEqual(s, '(?P<name>.+?) (?P<other>.+?)')
+        s = Parser('{name}')._expression
+        self.assertEqual(s, '^(?P<name>.+?)$')
+        s = Parser('{name} {other}')._expression
+        self.assertEqual(s, '^(?P<name>.+?) (?P<other>.+?)$')
 
     def test_named_typed(self):
         'pull a named string out of another string'
-        s = PARSE_RE.sub(self.p.replace, '{name:w}')
-        self.assertEqual(s, '(?P<name>\w+)')
-        s = PARSE_RE.sub(self.p.replace, '{name:w} {other:w}')
-        self.assertEqual(s, '(?P<name>\w+) (?P<other>\w+)')
+        s = Parser('{name:w}')._expression
+        self.assertEqual(s, '^(?P<name>\w+)$')
+        s = Parser('{name:w} {other:w}')._expression
+        self.assertEqual(s, '^(?P<name>\w+) (?P<other>\w+)$')
 
     def test_beaker(self):
         'skip some trailing whitespace'
-        s = PARSE_RE.sub(self.p.replace, '{:<}')
-        self.assertEqual(s, '(.+?) *')
+        s = Parser('{:<}')._expression
+        self.assertEqual(s, '^(.+?) *$')
 
     def test_left_fill(self):
         'skip some trailing periods'
-        s = PARSE_RE.sub(self.p.replace, '{:.<}')
-        self.assertEqual(s, '(.+?)\.*')
+        s = Parser('{:.<}')._expression
+        self.assertEqual(s, '^(.+?)\.*$')
 
     def test_bird(self):
         'skip some trailing whitespace'
-        s = PARSE_RE.sub(self.p.replace, '{:>}')
-        self.assertEqual(s, ' *(.+?)')
+        s = Parser('{:>}')._expression
+        self.assertEqual(s, '^ *(.+?)$')
 
     def test_center(self):
         'skip some surrounding whitespace'
-        s = PARSE_RE.sub(self.p.replace, '{:^}')
-        self.assertEqual(s, ' *(.+?) *')
-
-    def test_float(self):
-        'skip test float expression generation'
-        _ = lambda s: PARSE_RE.sub(self.p.replace, s)
-        self.assertEqual(_('{:f}'), '(-?\d+\.\d+)')
-        self.assertEqual(_('{:+f}'), '([-+]?\d+\.\d+)')
-
-    def test_number_commas(self):
-        'skip number with commas generation'
-        _ = lambda s: PARSE_RE.sub(self.p.replace, s)
-        self.assertEqual(_('{:n}'), '(-?\\d{1,3}([,.]\\d{3})*)')
-        self.assertEqual(_('{:+n}'), '([-+]?\\d{1,3}([,.]\\d{3})*)')
+        s = Parser('{:^}')._expression
+        self.assertEqual(s, '^ *(.+?) *$')
 
     def test_format(self):
         def _(fmt, matches):
-            m = FORMAT_RE.match(fmt)
-            self.assertNotEqual(m, None,
-                'FORMAT_RE failed to parse %r' % fmt)
-            d = m.groupdict()
+            d = extract_format(fmt)
             for k in matches:
                 self.assertEqual(d.get(k), matches[k],
                     'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]))
@@ -763,22 +752,19 @@ class TestPattern(unittest.TestCase):
         for t in '%obxegfdDwWsS':
             _(t, dict(type=t))
             _('10'+t, dict(type=t, width='10'))
-        _('05d', dict(type='d', width='05', zero='0'))
+        _('05d', dict(type='d', width='5', zero=True))
         _('<', dict(align='<'))
-        _('.<', dict(align='.<', fill='.'))
+        _('.<', dict(align='<', fill='.'))
         _('>', dict(align='>'))
-        _('.>', dict(align='.>', fill='.'))
+        _('.>', dict(align='>', fill='.'))
         _('^', dict(align='^'))
-        _('.^', dict(align='.^', fill='.'))
-        _('x=d', dict(type='d', align='x=', fill='x'))
+        _('.^', dict(align='^', fill='.'))
+        _('x=d', dict(type='d', align='=', fill='x'))
         _('d', dict(type='d'))
-        _('-d', dict(type='d', sign='-'))
-        _('+d', dict(type='d', sign='+'))
-        _(' d', dict(type='d', sign=' '))
         _('ti', dict(type='ti'))
 
-        _('.^+010d', dict(type='d', width='010', align='.^', fill='.',
-            sign='+', zero='0'))
+        _('.^010d', dict(type='d', width='10', align='^', fill='.',
+            zero=True))
 
 
 class TestParse(unittest.TestCase):
@@ -791,6 +777,13 @@ class TestParse(unittest.TestCase):
         r = parse('{{hello}}', '{hello}')
         self.assertEqual(r.fixed, ())
         self.assertEqual(r.named, {})
+
+    def test_regular_expression(self):
+        'match an actual regular expression'
+        s = r'^(hello\s[wW]{}!+.*)$'
+        e = s.replace('{}', 'orld')
+        r = parse(s, e)
+        self.assertEqual(r.fixed, ('orld',))
 
     def test_fixed(self):
         'pull a fixed value out of string'
@@ -808,7 +801,7 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.fixed, ('world', ))
 
     def test_center(self):
-        'pull right-aligned text out of string'
+        'pull center-aligned text out of string'
         r = parse('hello {:^} world', 'hello  there     world')
         self.assertEqual(r.fixed, ('there', ))
 
@@ -900,14 +893,8 @@ class TestParse(unittest.TestCase):
         y('a {:5d} b', 'a    12 b', 12)
         y('a {:5d} b', 'a   -12 b', -12)
         y('a {:d} b', 'a -12 b', -12)
-        n('a {:d} b', 'a +12 b', None)
-        y('a {:-d} b', 'a -12 b', -12)
-        n('a {:-d} b', 'a +12 b', None)
-        y('a {:+d} b', 'a -12 b', -12)
-        y('a {:+d} b', 'a +12 b', 12)
-        y('a {: d} b', 'a -12 b', -12)
-        y('a {: d} b', 'a  12 b', 12)
-        n('a {: d} b', 'a +12 b', None)
+        y('a {:d} b', 'a +12 b', 12)
+        y('a {:d} b', 'a  12 b', 12)
         y('a {:d} b', 'a 0b1000 b', 8)
         y('a {:d} b', 'a 0o1000 b', 512)
         y('a {:d} b', 'a 0x1000 b', 4096)
@@ -921,7 +908,6 @@ class TestParse(unittest.TestCase):
         y('a {:n} b', 'a 1,000 b', 1000)
         y('a {:n} b', 'a 1.000 b', 1000)
         y('a {:n} b', 'a -1,000 b', -1000)
-        y('a {:+n} b', 'a +1,000 b', 1000)
         y('a {:n} b', 'a 10,000 b', 10000)
         y('a {:n} b', 'a 100,000 b', 100000)
         n('a {:n} b', 'a 100,00 b', None)
@@ -930,9 +916,7 @@ class TestParse(unittest.TestCase):
 
         y('a {:f} b', 'a 12.0 b', 12.0)
         y('a {:f} b', 'a -12.1 b', -12.1)
-        y('a {:-f} b', 'a -12.1 b', -12.1)
-        y('a {:+f} b', 'a +12.1 b', 12.1)
-        y('a {: f} b', 'a  12.1 b', 12.1)
+        y('a {:f} b', 'a +12.1 b', 12.1)
         n('a {:f} b', 'a 12 b', None)
 
         y('a {:e} b', 'a 1.0e10 b', 1.0e10)
@@ -966,7 +950,7 @@ class TestParse(unittest.TestCase):
 
         y('a {:05d} b', 'a 00001 b', 1)
         y('a {:05d} b', 'a -00001 b', -1)
-        y('a {:+05d} b', 'a +00001 b', 1)
+        y('a {:05d} b', 'a +00001 b', 1)
 
         y('a {:=d} b', 'a 000012 b', 12)
         y('a {:x=5d} b', 'a xxx12 b', 12)
@@ -1097,7 +1081,12 @@ class TestParse(unittest.TestCase):
             binary: {:b} {:b}
             octal: {:o} {:o}
             hex: {:x} {:x}
-            date: {:ti}
+            ISO 8601 e.g. {:ti}
+            RFC2822 e.g. {:te}
+            Global e.g. {:tg}
+            US e.g. {:ta}
+            ctime() e.g. {:tc}
+            HTTP e.g. {:th}
             time: {:tt}
             final value: {}
         ''',
@@ -1115,11 +1104,16 @@ class TestParse(unittest.TestCase):
             binary: 0b1000 0B1000
             octal: 0o1000 0O1000
             hex: 0x1000 0X1000
-            date: 1972-01-20T10:21:36Z
+            ISO 8601 e.g. 1972-01-20T10:21:36Z
+            RFC2822 e.g. Mon, 20 Jan 1972 10:21:36 +1000
+            Global e.g. 20/1/1972 10:21:36 AM +1:00
+            US e.g. 1/20/1972 10:21:36 PM +10:30
+            ctime() e.g. Sun Sep 16 01:03:52 1973
+            HTTP e.g. 21/Nov/2011:00:07:11 +0000
             time: 10:21:36 PM -5:30
             final value: spam
         ''')
-        self.assertEqual(r.fixed[26], 'spam')
+        self.assertEqual(r.fixed[31], 'spam')
 
     def test_too_many_fields(self):
         self.assertRaises(TooManyFields, compile, '{:ti}' * 20)
