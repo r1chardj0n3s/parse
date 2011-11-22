@@ -3,7 +3,7 @@ Parse strings using a specification based on the Python format() syntax.
    ``parse()`` is the opposite of ``format()``
 
 The module is set up to only export ``parse()``, ``search()`` and
-``findall()`` when "import *" is used:
+``findall()`` when ``import *`` is used:
 
 >>> from parse import *
 
@@ -36,7 +36,7 @@ compile it once:
 >>> p.parse("It's spam, I love it!")
 <Result ('spam',) {}>
 
-("compile" is not exported for "import *" usage as it would override the
+("compile" is not exported for ``import *`` usage as it would override the
 built-in ``compile()`` function)
 
 
@@ -229,8 +229,8 @@ with the same identifier.
 
 **Version history (in brief)**:
 
-- 1.3 added search() and findall(); removed compile() from "import *" export
-  as it overwrites builtin.
+- 1.3 added search() and findall(); removed compile() from ``import *``
+  export as it overwrites builtin.
 - 1.2 added ability for custom and override type conversions to be
   provided; some cleanup
 - 1.1.9 to keep things simpler number sign is handled automatically;
