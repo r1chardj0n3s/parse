@@ -120,6 +120,8 @@ does not match:
 <Result (3, 'weapons') {}>
 >>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
 None
+>>> parse('Meet at {:tg}', 'Meet at 11/11/2011 11:11')
+<Result (datetime.datetime(2011, 11, 11, 11, 11),) {}>
 
 And messing about with alignment:
 
@@ -138,23 +140,25 @@ Some notes for the date and time types:
 
 - the presence of the time part is optional (including ISO 8601, starting
   at the "T"). A full datetime object will always be returned; the time
-  will be set to 00:00:00.
-- except in ISO 8601 the day and month digits may be 0-padded
-- the separator for the ta and tg formats may be "-" or "/"
+  will be set to 00:00:00. You may also specify a time without seconds.
+- when a seconds amount is present in the input fractions will be parsed
+  to give microseconds.
+- except in ISO 8601 the day and month digits may be 0-padded.
+- the date separator for the tg and ta formats may be "-" or "/".
 - named months (abbreviations or full names) may be used in the ta and tg
-  formats
+  formats in place of numeric months.
 - as per RFC 2822 the e-mail format may omit the day (and comma), and the
-  seconds but nothing else
-- hours greater than 12 will be happily accepted
+  seconds but nothing else.
+- hours greater than 12 will be happily accepted.
 - the AM/PM are optional, and if PM is found then 12 hours will be added
   to the datetime object's hours amount - even if the hour is greater
   than 12 (for consistency.)
-- except in ISO 8601 and e-mail format the timezone is optional
-- when a seconds amount is present in the input fractions will be parsed
-- named timezones are not handled yet
+- except in ISO 8601 and e-mail format the timezone is optional.
+- named timezones are not handled yet.
 
 Note: attempting to match too many datetime fields in a single parse() will
-currently result in a resource allocation issue.
+currently result in a resource allocation issue. A TooManyFields exception
+will be raised in this instance. The current limit is about 15.
 
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
@@ -409,7 +413,6 @@ def extract_format(format):
     if type and type not in ALLOWED_TYPES:
         raise ValueError('type %r not recognised' % type)
 
-    # TODO yeah, I should make this "better" and not so "yuck"
     return locals()
 
 
@@ -469,6 +472,7 @@ class Parser(object):
         return '\\' + match.group(1)
 
     def generate_expression(self):
+        # turn my _format attribute into the _expression attribute
         e = []
         for part in PARSE_RE.split(self._format):
             if not part:
@@ -478,14 +482,19 @@ class Parser(object):
             elif part == '}}':
                 e.append(r'\}')
             elif part[0] == '{':
+                # this will be a braces-delimited field to handle
                 e.append(self.handle_field(part))
             else:
+                # just some text to match
                 e.append(REGEX_SAFETY.sub(self.re_replace, part))
         return '^%s$' % ''.join(e)
 
     def handle_field(self, field):
-        # lose the braces
+        # first: lose the braces
         field = field[1:-1]
+
+        # now figure whether this is an anonymous or named field, and whether
+        # there's any format specification
         format = ''
         if field and field[0].isalpha():
             if ':' in field:
@@ -507,16 +516,12 @@ class Parser(object):
             self._group_index += 1
             return wrap % '.+?'
 
-        d = extract_format(format)
-        type = d['type']
-        align = d['align']
-        fill = d['fill']
-        zero = d['zero']
-        width = d['width']
-
-        is_numeric = type and type in 'n%fegdobh'
+        # decode the format specification
+        format = extract_format(format)
 
         # figure type conversions, if any
+        type = format['type']
+        is_numeric = type and type in 'n%fegdobh'
         if type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
             self._group_index += 1
@@ -611,6 +616,9 @@ class Parser(object):
         else:
             s = '.+?'
 
+        align = format['align']
+        fill = format['fill']
+
         # handle some numeric-specific things like fill and sign
         if is_numeric:
             # prefix with something (align "=" trumps zero)
@@ -620,7 +628,7 @@ class Parser(object):
                 if not fill:
                     fill = '0'
                 s = '%s*' % fill + s
-            elif zero:
+            elif format['zero']:
                 s = '0*' + s
 
             # allow numbers to be prefixed with a sign
@@ -635,7 +643,7 @@ class Parser(object):
             s = wrap % s
             self._group_index += 1
 
-        if width:
+        if format['width']:
             # all we really care about is that if the format originally
             # specified a width then there will probably be padding - without an
             # explicit alignment that'll mean right alignment with spaces
@@ -1064,7 +1072,7 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.fixed[1], 'spam')
 
     def test_mixed_types(self):
-        'stress-test: pull one of everything out of a string :-)'
+        'stress-test: pull one of everything out of a string'
         r = parse('''
             letters: {:w}
             non-letters: {:W}
@@ -1114,7 +1122,7 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.fixed[31], 'spam')
 
     def test_too_many_fields(self):
-        self.assertRaises(TooManyFields, compile, '{:ti}' * 20)
+        self.assertRaises(TooManyFields, compile, '{:ti}' * 15)
 
 
 if __name__ == '__main__':
