@@ -61,18 +61,18 @@ The align operators will cause spaces (or specified fill character)
 to be stripped from the value. Similarly width is not enforced; it
 just indicates there may be whitespace or "0"s to strip.
 
-The "#" format character is handled automatically by b, o and x - that
-is: if there is a "0b", "0o" or "0x" prefix respectively, it's ignored.
+The "#" format character is handled automatically by d, b, o and x -
+that is: if there is a "0b", "0o" or "0x" prefix respectively, it's
+handled. For "d" any will be accepted, but for the others the correct
+prefix must be present if at all.
 
 The types supported are a slightly different mix to the format() types.
-Some format() types come directly over: d, n, f, e, b, o and x.
+Some format() types come directly over: d, n, %, f, e, b, o and x.
 In addition some regular expression character group types
 D, w, W, s and S are also available.
 
 The "e" and "g" types are case-insensitive so there is not need for
 the "E" or "G" types.
-
-The format() type % is not yet supported.
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
@@ -84,6 +84,7 @@ Type  Characters Matched                          Output
  d    Digits (effectively integer numbers)        int
  D    Non-digit                                   str
  n    Numbers with thousands separators (, or .)  int
+ %    Percentage (converted to value/100.0)       float
  f    Fixed-point numbers                         float
  e    Floating-point numbers with exponent        float
       e.g. 1.1e-10, NAN (all case insensitive)
@@ -147,6 +148,9 @@ Some notes for the date and time types:
 - when a seconds amount is present in the input fractions will be parsed
 - named timezones are not handled yet
 
+Note: attempting to match too many datetime fields in a single parse() will
+currently result in a resource allocation issue.
+
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
@@ -172,6 +176,9 @@ spans
 
 **Version history (in brief)**:
 
+- 1.1.8 allow "d" fields to have number base "0x" etc. prefixes;
+  fix up some field type interactionsi after stress-testing the parser;
+  implement "%" type.
 - 1.1.7 Python 3 compatibility tweaks (2.5 to 2.7 and 3.2 are supported).
 - 1.1.6 add "e" and "g" field types; removed redundant "h" and "X";
   removed need for explicit "#".
