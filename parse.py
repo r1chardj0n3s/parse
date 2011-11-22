@@ -2,18 +2,39 @@
 
    ``parse()`` is the opposite of ``format()``
 
-Basic usage:
+The module is set up to only export ``parse()``, ``search()`` and
+``findall()`` when "import *" is used:
 
->>> from parse import *            # only exports parse() and compile()
+>>> from parse import *
+
+From there it's a simple thing to parse a string:
+
 >>> parse("It's {}, I love it!", "It's spam, I love it!")
 <Result ('spam',) {}>
->>> p = compile("It's {}, I love it!")
+
+Or to search a string for some pattern:
+
+>>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
+<Result (42,) {}>
+
+Or find all the occurrances of some pattern in a string:
+
+>>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>")
+"some bold text"
+
+If you're going to use the same pattern to match lots of strings you can
+compile it once:
+
+>>> import parse
+>>> p = parse.compile("It's {}, I love it!")
 >>> print p
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
 <Result ('spam',) {}>
->>> ''.join(findall(">{}<", "<p>some <b>bold</b> text</p>"))
-"some bold text"
+
+("compile" is not exported for "import *" usage as it would override the
+built-in ``compile()`` function)
+
 
 Format Syntax
 -------------
@@ -47,6 +68,7 @@ Some simple parse() format string examples:
 <Result () {'item': 'hand grenade'}>
 >>> print r.named
 {'item': 'hand grenade'}
+
 
 Format Specification
 --------------------
@@ -110,15 +132,15 @@ Type  Characters Matched                          Output
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
-So, for example, some typed parsing, and ``None`` resulting if the typing
+Some examples of typed parsing with ``None`` returned if the typing
 does not match:
 
 >>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
 <Result (3, 'weapons') {}>
 >>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
 None
->>> parse('Meet at {:tg}', 'Meet at 11/11/2011 11:11')
-<Result (datetime.datetime(2011, 11, 11, 11, 11),) {}>
+>>> parse('Meet at {:tg}', 'Meet at 1/2/2011 11:00 PM')
+<Result (datetime.datetime(2011, 2, 1, 23, 00),) {}>
 
 And messing about with alignment:
 
@@ -128,7 +150,7 @@ And messing about with alignment:
 <Result ('lovely',) {}>
 
 Note that the "center" alignment does not test to make sure the value is
-actually centered. It just strips leading and trailing whitespace.
+centered - it just strips leading and trailing whitespace.
 
 Some notes for the date and time types:
 
@@ -152,7 +174,8 @@ Some notes for the date and time types:
 
 Note: attempting to match too many datetime fields in a single parse() will
 currently result in a resource allocation issue. A TooManyFields exception
-will be raised in this instance. The current limit is about 15.
+will be raised in this instance. The current limit is about 15. It is hoped
+that this limit will be removed one day.
 
 See also the unit tests at the end of the module for some more
 examples. Run the tests with "python -m parse".
@@ -202,7 +225,8 @@ with the same identifier.
 
 **Version history (in brief)**:
 
-- 1.3 added search() and findall()
+- 1.3 added search() and findall(); removed compile() from "import *" export
+  as it overwrites builtin.
 - 1.2 added ability for custom and override type conversions to be
   provided; some cleanup
 - 1.1.9 to keep things simpler number sign is handled automatically;
@@ -228,14 +252,14 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.2'
+__version__ = '1.3'
 
 # yes, I now have two problems
 import re
 from datetime import datetime, time, tzinfo, timedelta
 from functools import partial
 
-__all__ = 'parse compile'.split()
+__all__ = 'parse search findall'.split()
 
 
 def int_convert(base):
@@ -296,6 +320,7 @@ class FixedTzOffset(tzinfo):
 
     def __eq__(self, other):
         return self._name == other._name and self._offset == other._offset
+
 
 MONTHS_MAP = dict(
     Jan=1, January=1,
@@ -438,24 +463,6 @@ def extract_format(format, extra_types):
 PARSE_RE = re.compile('({{|}}|{}|{:[^}]+?}|{\w+?}|{\w+?:[^}]+?})')
 
 
-class ResultIterator(object):
-    def __init__(self, parser, string, pos, endpos):
-        self.parser = parser
-        self.string = string
-        self.pos = pos
-        self.endpos = endpos
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        m = self.parser._search_re.search(self.string, self.pos, self.endpos)
-        if m is None:
-            raise StopIteration()
-        self.pos = m.end()
-        return self.parser._generate_result(m)
-
-
 class Parser(object):
     def __init__(self, format, extra_types={}):
         self._format = format
@@ -464,7 +471,7 @@ class Parser(object):
         self._named_fields = []
         self._group_index = 0
         self._type_conversions = {}
-        self._expression = self.generate_expression()
+        self._expression = self._generate_expression()
         self._search_re = None
         self._match_re = None
 
@@ -561,10 +568,10 @@ class Parser(object):
         # and that's our result
         return Result(fixed_fields, named_fields, spans)
 
-    def re_replace(self, match):
+    def _regex_replace(self, match):
         return '\\' + match.group(1)
 
-    def generate_expression(self):
+    def _generate_expression(self):
         # turn my _format attribute into the _expression attribute
         e = []
         for part in PARSE_RE.split(self._format):
@@ -576,13 +583,13 @@ class Parser(object):
                 e.append(r'\}')
             elif part[0] == '{':
                 # this will be a braces-delimited field to handle
-                e.append(self.handle_field(part))
+                e.append(self._handle_field(part))
             else:
                 # just some text to match
-                e.append(REGEX_SAFETY.sub(self.re_replace, part))
+                e.append(REGEX_SAFETY.sub(self._regex_replace, part))
         return ''.join(e)
 
-    def handle_field(self, field):
+    def _handle_field(self, field):
         # first: lose the braces
         field = field[1:-1]
 
@@ -764,6 +771,8 @@ class Parser(object):
 
 
 class Result(object):
+    '''The result of a parse() or search().
+    '''
     def __init__(self, fixed, named, spans):
         self.fixed = fixed
         self.named = named
@@ -772,6 +781,28 @@ class Result(object):
     def __repr__(self):
         return '<%s %r %r>' % (self.__class__.__name__, self.fixed,
             self.named)
+
+
+class ResultIterator(object):
+    '''The result of a findall() operation.
+
+    Each element is a Result instance.
+    '''
+    def __init__(self, parser, string, pos, endpos):
+        self.parser = parser
+        self.string = string
+        self.pos = pos
+        self.endpos = endpos
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        m = self.parser._search_re.search(self.string, self.pos, self.endpos)
+        if m is None:
+            raise StopIteration()
+        self.pos = m.end()
+        return self.parser._generate_result(m)
 
 
 def parse(format, string, extra_types={}):

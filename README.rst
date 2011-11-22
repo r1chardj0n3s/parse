@@ -2,16 +2,42 @@ Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
 
-Basic usage:
+The module is set up to only export ``parse()``, ``search()`` and
+``findall()`` when "import *" is used:
 
->>> from parse import *            # only exports parse() and compile()
+>>> from parse import *
+
+From there it's a simple thing to parse a string:
+
 >>> parse("It's {}, I love it!", "It's spam, I love it!")
 <Result ('spam',) {}>
->>> p = compile("It's {}, I love it!")
+
+Or to search a string for some pattern:
+
+>>> search('Age: {:d}
+', 'Name: Rufus
+Age: 42
+Color: red
+')
+<Result (42,) {}>
+
+Or find all the occurrances of some pattern in a string:
+
+>>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>")
+"some bold text"
+
+If you're going to use the same pattern to match lots of strings you can
+compile it once:
+
+>>> import parse
+>>> p = parse.compile("It's {}, I love it!")
 >>> print p
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
 <Result ('spam',) {}>
+
+("compile" is not exported for "import *" usage as it would override the
+built-in ``compile()`` function)
 
 
 Format Syntax
@@ -46,6 +72,7 @@ Some simple parse() format string examples:
 <Result () {'item': 'hand grenade'}>
 >>> print r.named
 {'item': 'hand grenade'}
+
 
 Format Specification
 --------------------
@@ -109,15 +136,15 @@ Type  Characters Matched                          Output
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
-So, for example, some typed parsing, and ``None`` resulting if the typing
+Some examples of typed parsing with ``None`` returned if the typing
 does not match:
 
 >>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
 <Result (3, 'weapons') {}>
 >>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
 None
->>> parse('Meet at {:tg}', 'Meet at 11/11/2011 11:11')
-<Result (datetime.datetime(2011, 11, 11, 11, 11),) {}>
+>>> parse('Meet at {:tg}', 'Meet at 1/2/2011 11:00 PM')
+<Result (datetime.datetime(2011, 2, 1, 23, 00),) {}>
 
 And messing about with alignment:
 
@@ -127,7 +154,7 @@ And messing about with alignment:
 <Result ('lovely',) {}>
 
 Note that the "center" alignment does not test to make sure the value is
-actually centered. It just strips leading and trailing whitespace.
+centered - it just strips leading and trailing whitespace.
 
 Some notes for the date and time types:
 
@@ -151,7 +178,8 @@ Some notes for the date and time types:
 
 Note: attempting to match too many datetime fields in a single parse() will
 currently result in a resource allocation issue. A TooManyFields exception
-will be raised in this instance. The current limit is about 15.
+will be raised in this instance. The current limit is about 15. It is hoped
+that this limit will be removed one day.
 
 See also the unit tests at the end of the module for some more
 examples. Run the tests with "python -m parse".
@@ -201,6 +229,8 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.3 added search() and findall(); removed compile() from "import *" export
+  as it overwrites builtin.
 - 1.2 added ability for custom and override type conversions to be
   provided; some cleanup
 - 1.1.9 to keep things simpler number sign is handled automatically;
