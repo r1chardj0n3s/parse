@@ -177,7 +177,7 @@ spans
 **Version history (in brief)**:
 
 - 1.1.8 allow "d" fields to have number base "0x" etc. prefixes;
-  fix up some field type interactionsi after stress-testing the parser;
+  fix up some field type interactions after stress-testing the parser;
   implement "%" type.
 - 1.1.7 Python 3 compatibility tweaks (2.5 to 2.7 and 3.2 are supported).
 - 1.1.6 add "e" and "g" field types; removed redundant "h" and "X";
