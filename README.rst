@@ -181,9 +181,6 @@ currently result in a resource allocation issue. A TooManyFields exception
 will be raised in this instance. The current limit is about 15. It is hoped
 that this limit will be removed one day.
 
-See also the unit tests at the end of the module for some more
-examples. Run the tests with "python -m parse".
-
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
