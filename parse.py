@@ -4,7 +4,7 @@
 #
 '''Parse strings using a specification based on the Python format() syntax.
 
-   parse() is the opposite of format()
+   ``parse()`` is the opposite of ``format()``
 
 Basic usage:
 
@@ -33,8 +33,8 @@ Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
 
 The conversion of fields to types other than strings is done based on the
-type in the format specification, which mirrors the format() behaviour.
-There are no "!" field conversions like format() has.
+type in the format specification, which mirrors the ``format()`` behaviour.
+There are no "!" field conversions like ``format()`` has.
 
 Some simple parse() format string examples:
 
@@ -54,7 +54,7 @@ Some simple parse() format string examples:
 Format Specification
 --------------------
 
-Do remember that most often a straight format-less {} will suffice
+Do remember that most often a straight format-less "{}" will suffice
 where a more complex format specification might have been used.
 
 Most of the `Format Specification Mini-Language`_ is supported::
@@ -71,10 +71,10 @@ handled. For "d" any will be accepted, but for the others the correct
 prefix must be present if at all. Similarly number sign is handled
 automatically.
 
-The types supported are a slightly different mix to the format() types.
-Some format() types come directly over: d, n, %, f, e, b, o and x.
-In addition some regular expression character group types
-D, w, W, s and S are also available.
+The types supported are a slightly different mix to the format() types.  Some
+format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
+In addition some regular expression character group types "D", "w", "W", "s" and
+"S" are also available.
 
 The "e" and "g" types are case-insensitive so there is not need for
 the "E" or "G" types.
@@ -113,7 +113,7 @@ Type  Characters Matched                          Output
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
-So, for example, some typed parsing, and None resulting if the typing
+So, for example, some typed parsing, and ``None`` resulting if the typing
 does not match:
 
 >>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
@@ -132,9 +132,6 @@ And messing about with alignment:
 
 Note that the "center" alignment does not test to make sure the value is
 actually centered. It just strips leading and trailing whitespace.
-
-See also the unit tests at the end of the module for some more
-examples. Run the tests with "python -m parse".
 
 Some notes for the date and time types:
 
@@ -160,6 +157,9 @@ Note: attempting to match too many datetime fields in a single parse() will
 currently result in a resource allocation issue. A TooManyFields exception
 will be raised in this instance. The current limit is about 15.
 
+See also the unit tests at the end of the module for some more
+examples. Run the tests with "python -m parse".
+
 .. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
@@ -181,10 +181,32 @@ spans
    2-tuple slice range of where the match occurred in the input.
    The span does not include any stripped padding (alignment or width).
 
+
+Custom Type Conversions
+-----------------------
+
+If you wish to have matched fields automatically converted to your own type you
+may pass in a dictionary of type conversion information to ``parse()`` and
+``compile()``.
+
+The converter will be passed the field string matched. Whatever it returns
+will be substituted in the ``Result`` instance for that field.
+
+Your custom type conversions may override the builtin types if you supply one
+with the same identifier.
+
+>>> def converter(string):
+...    return string.upper()
+...
+>>> r = parse('{:shouty} world', 'hello world', dict(shouty=shouty))
+<Result ('HELLO',) {}>
+
 ----
 
 **Version history (in brief)**:
 
+- 1.1.10 added ability for custom and override type conversions to be
+  provided; some cleanup
 - 1.1.9 to keep things simpler number sign is handled automatically;
   significant robustification in the face of edge-case input.
 - 1.1.8 allow "d" fields to have number base "0x" etc. prefixes;
@@ -383,7 +405,7 @@ ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
    ['t'+c for c in 'ieahgct'])
 
 
-def extract_format(format):
+def extract_format(format, extra_types):
     '''Pull apart the format [[fill]align][0][width][type]
     '''
     fill = align = None
@@ -407,10 +429,9 @@ def extract_format(format):
         width += format[0]
         format = format[1:]
 
-    # the rest is the type
+    # the rest is the type, if present
     type = format
-
-    if type and type not in ALLOWED_TYPES:
+    if type and type not in ALLOWED_TYPES and type not in extra_types:
         raise ValueError('type %r not recognised' % type)
 
     return locals()
@@ -420,11 +441,12 @@ PARSE_RE = re.compile('({{|}}|{}|{:[^}]+?}|{\w+?}|{\w+?:[^}]+?})')
 
 
 class Parser(object):
-    def __init__(self, format):
+    def __init__(self, format, extra_types={}):
+        self._format = format
+        self._extra_types = extra_types
         self._fixed_fields = []
         self._named_fields = []
         self._group_index = 0
-        self._format = format
         self._type_conversions = {}
         self._expression = self.generate_expression()
         try:
@@ -517,12 +539,17 @@ class Parser(object):
             return wrap % '.+?'
 
         # decode the format specification
-        format = extract_format(format)
+        format = extract_format(format, self._extra_types)
 
         # figure type conversions, if any
         type = format['type']
         is_numeric = type and type in 'n%fegdobh'
-        if type == 'n':
+        if type in self._extra_types:
+            s = '.+?'
+            def f(string, m, type=type):
+                return self._extra_types[type](string)
+            self._type_conversions[group] = f
+        elif type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
             self._group_index += 1
             self._type_conversions[group] = int_convert(10)
@@ -676,8 +703,9 @@ class Result(object):
             self.named)
 
 
-def parse(format, string):
+def parse(format, string, extra_types={}):
     '''Using "format" attempt to pull values from "string".
+
 
     The return value will be an object with two attributes:
 
@@ -686,12 +714,14 @@ def parse(format, string):
 
     If the format is invalid a ValueError will be raised.
 
+    See the module documentation for the use of "extra_types".
+
     In the case there is no match parse() will return None.
     '''
-    return Parser(format).parse(string)
+    return Parser(format, extra_types=extra_types).parse(string)
 
 
-def compile(format):
+def compile(format, extra_types={}):
     '''Create a Parser instance to parse "format".
 
     The resultant Parser has a method .parse(string) which
@@ -699,8 +729,12 @@ def compile(format):
 
     Use this function if you intend to parse many strings
     with the same format.
+
+    See the module documentation for the use of "extra_types".
+
+    Returns a Parser instance.
     '''
-    return Parser(format)
+    return Parser(format, extra_types=extra_types)
 
 
 # yes, I now unit test both of the problems
@@ -747,7 +781,7 @@ class TestPattern(unittest.TestCase):
 
     def test_format(self):
         def _(fmt, matches):
-            d = extract_format(fmt)
+            d = extract_format(fmt, {'spam':'spam'})
             for k in matches:
                 self.assertEqual(d.get(k), matches[k],
                     'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]))
@@ -765,6 +799,7 @@ class TestPattern(unittest.TestCase):
         _('x=d', dict(type='d', align='=', fill='x'))
         _('d', dict(type='d'))
         _('ti', dict(type='ti'))
+        _('spam', dict(type='spam'))
 
         _('.^010d', dict(type='d', width='10', align='^', fill='.',
             zero=True))
@@ -817,6 +852,16 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.fixed, (12, 'people'))
         r = parse('hello {:w} {:w}', 'hello 12 people')
         self.assertEqual(r.fixed, ('12', 'people'))
+
+    def test_custom_type(self):
+        'use a custom type'
+        r = parse('{:shouty} {:spam}', 'hello world',
+            dict(shouty=lambda s:s.upper(), spam=lambda s:''.join(reversed(s))))
+        self.assertEqual(r.fixed, ('HELLO', 'dlrow'))
+        r = parse('{:d}', '12', dict(d=lambda s: int(s) * 2))
+        self.assertEqual(r.fixed, (24,))
+        r = parse('{:d}', '12')
+        self.assertEqual(r.fixed, (12,))
 
     def test_typed_fail(self):
         'pull a named, typed values out of string'
