@@ -697,51 +697,45 @@ def compile(format):
 
 # yes, I now unit test both of the problems
 class TestPattern(unittest.TestCase):
+    def _test_expression(self, format, expression):
+        self.assertEqual(Parser(format)._expression, expression)
+
     def test_braces(self):
         'pull a simple string out of another string'
-        s = Parser('{{ }}')._expression
-        self.assertEqual(s, r'^\{ \}$')
+        self._test_expression('{{ }}', '^\{ \}$')
 
     def test_fixed(self):
         'pull a simple string out of another string'
-        s = Parser('{}')._expression
-        self.assertEqual(s, '^(.+?)$')
-        s = Parser('{} {}')._expression
-        self.assertEqual(s, '^(.+?) (.+?)$')
+        self._test_expression('{}', '^(.+?)$')
+        self._test_expression('{} {}', '^(.+?) (.+?)$')
 
     def test_named(self):
         'pull a named string out of another string'
-        s = Parser('{name}')._expression
-        self.assertEqual(s, '^(?P<name>.+?)$')
-        s = Parser('{name} {other}')._expression
-        self.assertEqual(s, '^(?P<name>.+?) (?P<other>.+?)$')
+        self._test_expression('{name}', '^(?P<name>.+?)$')
+        self._test_expression('{name} {other}',
+            '^(?P<name>.+?) (?P<other>.+?)$')
 
     def test_named_typed(self):
         'pull a named string out of another string'
-        s = Parser('{name:w}')._expression
-        self.assertEqual(s, '^(?P<name>\w+)$')
-        s = Parser('{name:w} {other:w}')._expression
-        self.assertEqual(s, '^(?P<name>\w+) (?P<other>\w+)$')
+        self._test_expression('{name:w}', '^(?P<name>\w+)$')
+        self._test_expression('{name:w} {other:w}',
+            '^(?P<name>\w+) (?P<other>\w+)$')
 
     def test_beaker(self):
         'skip some trailing whitespace'
-        s = Parser('{:<}')._expression
-        self.assertEqual(s, '^(.+?) *$')
+        self._test_expression('{:<}', '^(.+?) *$')
 
     def test_left_fill(self):
         'skip some trailing periods'
-        s = Parser('{:.<}')._expression
-        self.assertEqual(s, '^(.+?)\.*$')
+        self._test_expression('{:.<}', '^(.+?)\.*$')
 
     def test_bird(self):
         'skip some trailing whitespace'
-        s = Parser('{:>}')._expression
-        self.assertEqual(s, '^ *(.+?)$')
+        self._test_expression('{:>}', '^ *(.+?)$')
 
     def test_center(self):
         'skip some surrounding whitespace'
-        s = Parser('{:^}')._expression
-        self.assertEqual(s, '^ *(.+?) *$')
+        self._test_expression('{:^}', '^ *(.+?) *$')
 
     def test_format(self):
         def _(fmt, matches):
@@ -785,6 +779,9 @@ class TestParse(unittest.TestCase):
         e = s.replace('{}', 'orld')
         r = parse(s, e)
         self.assertEqual(r.fixed, ('orld',))
+        e = s.replace('{}', '.*?')
+        r = parse(s, e)
+        self.assertEqual(r.fixed, ('.*?',))
 
     def test_fixed(self):
         'pull a fixed value out of string'
