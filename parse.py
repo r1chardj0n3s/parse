@@ -14,8 +14,10 @@ From there it's a simple thing to parse a string:
 
 Or to search a string for some pattern:
 
->>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
+>>> search('Age: {:d}\\n', 'Name: Rufus\\nAge: 42\\nColor: red\\n')
 <Result (42,) {}>
+
+.. please excuse the double-backslash in that example; it's an ReST work-around
 
 Or find all the occurrances of some pattern in a string:
 
