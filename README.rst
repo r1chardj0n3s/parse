@@ -17,7 +17,7 @@ Or to search a string for some pattern:
 >>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
 <Result (42,) {}>
 
-.. please excuse the double-backslash in that example; it's a ReST work-around
+.. please excuse the double-backslash in that example; it's an ReST work-around
 
 Or find all the occurrances of some pattern in a string:
 
@@ -224,6 +224,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.3.1 fix a couple of Python 3.2 compatibility issues.
 - 1.3 added search() and findall(); removed compile() from ``import *``
   export as it overwrites builtin.
 - 1.2 added ability for custom and override type conversions to be

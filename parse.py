@@ -224,6 +224,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.3.1 fix a couple of Python 3.2 compatibility issues.
 - 1.3 added search() and findall(); removed compile() from ``import *``
   export as it overwrites builtin.
 - 1.2 added ability for custom and override type conversions to be
@@ -251,10 +252,11 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.3'
+__version__ = '1.3.1'
 
 # yes, I now have two problems
 import re
+import sys
 from datetime import datetime, time, tzinfo, timedelta
 from functools import partial
 
@@ -471,27 +473,44 @@ class Parser(object):
         self._group_index = 0
         self._type_conversions = {}
         self._expression = self._generate_expression()
-        self._search_re = None
-        self._match_re = None
+        self.__search_re = None
+        self.__match_re = None
 
     def __repr__(self):
         if len(self._format) > 20:
             return '<%s %r>' % (self.__class__.__name__, self._format[:17] + '...')
         return '<%s %r>' % (self.__class__.__name__, self._format)
 
+    @property
+    def _search_re(self):
+        if self.__search_re is None:
+            try:
+                self.__search_re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
+            except AssertionError:
+                e = sys.exc_info()[1]   # to keep py3k and backward compat
+                if str(e).endswith('this version only supports 100 named groups'):
+                    raise TooManyFields('sorry, you are attempting to parse too '
+                        'many complex fields')
+        return self.__search_re
+
+    @property
+    def _match_re(self):
+        if self.__match_re is None:
+            expression = '^%s$' % self._expression
+            try:
+                self.__match_re = re.compile(expression, re.IGNORECASE|re.DOTALL)
+            except AssertionError:
+                e = sys.exc_info()[1]   # to keep py3k and backward compat
+                if str(e).endswith('this version only supports 100 named groups'):
+                    raise TooManyFields('sorry, you are attempting to parse too '
+                        'many complex fields')
+        return self.__match_re
+
     def parse(self, string):
         '''Match my format to the string exactly.
 
         Return either a Result instance or None if there's no match.
         '''
-        if self._match_re is None:
-            expression = '^%s$' % self._expression
-            try:
-                self._match_re = re.compile(expression, re.IGNORECASE|re.DOTALL)
-            except AssertionError, e:
-                if str(e).endswith('this version only supports 100 named groups'):
-                    raise TooManyFields('sorry, you are attempting to parse too '
-                        'many complex fields')
         m = self._match_re.match(string)
         if m is None:
             return None
@@ -507,13 +526,6 @@ class Parser(object):
 
         Return either a Result instance or None if there's no match.
         '''
-        if self._search_re is None:
-            try:
-                self._search_re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
-            except AssertionError, e:
-                if str(e).endswith('this version only supports 100 named groups'):
-                    raise TooManyFields('sorry, you are attempting to parse too '
-                        'many complex fields')
         if endpos is None:
             endpos = len(string)
         m = self._search_re.search(string, pos, endpos)
@@ -532,13 +544,6 @@ class Parser(object):
         Returns an iterator that holds Result instances for each format match
         found.
         '''
-        if self._search_re is None:
-            try:
-                self._search_re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
-            except AssertionError, e:
-                if str(e).endswith('this version only supports 100 named groups'):
-                    raise TooManyFields('sorry, you are attempting to parse too '
-                        'many complex fields')
         if endpos is None:
             endpos = len(string)
         return ResultIterator(self, string, pos, endpos)
@@ -796,12 +801,15 @@ class ResultIterator(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         m = self.parser._search_re.search(self.string, self.pos, self.endpos)
         if m is None:
             raise StopIteration()
         self.pos = m.end()
         return self.parser._generate_result(m)
+
+    # pre-py3k compat
+    next = __next__
 
 
 def parse(format, string, extra_types={}):
