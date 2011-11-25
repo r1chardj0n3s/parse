@@ -12,7 +12,7 @@ setup(
     name = "parse",
     version = __version__,
     description = "parse() is the opposite of format()",
-    long_description = __doc__.decode('utf8'),
+    long_description = __doc__,
     author = "Richard Jones",
     author_email = "rjones@ekit-inc.com",
     py_modules = ['parse'],
