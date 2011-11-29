@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import with_statement
+
 from distutils.core import setup
 
 from parse import __version__, __doc__

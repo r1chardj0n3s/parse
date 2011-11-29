@@ -224,6 +224,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.3.3 fix Python 2.5 setup.py issue.
 - 1.3.2 fix Python 3.2 setup.py issue.
 - 1.3.1 fix a couple of Python 3.2 compatibility issues.
 - 1.3 added search() and findall(); removed compile() from ``import *``
@@ -253,7 +254,7 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.3.2'
+__version__ = '1.3.3'
 
 # yes, I now have two problems
 import re

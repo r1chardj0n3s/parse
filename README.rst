@@ -224,6 +224,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.3.3 fix Python 2.5 setup.py issue.
 - 1.3.2 fix Python 3.2 setup.py issue.
 - 1.3.1 fix a couple of Python 3.2 compatibility issues.
 - 1.3 added search() and findall(); removed compile() from ``import *``
