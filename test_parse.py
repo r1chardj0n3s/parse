@@ -75,6 +75,19 @@ class TestPattern(unittest.TestCase):
         _('.^010d', dict(type='d', width='10', align='^', fill='.',
             zero=True))
 
+class TestResult(unittest.TestCase):
+    def test_fixed_access(self):
+        r = parse.Result((1, 2), {}, None)
+        self.assertEquals(r[0], 1)
+        self.assertEquals(r[1], 2)
+        self.assertRaises(IndexError, r.__getitem__, 2)
+        self.assertRaises(KeyError, r.__getitem__, 'spam')
+
+    def test_named_access(self):
+        r = parse.Result((), {'spam': 'ham'}, None)
+        self.assertEquals(r['spam'], 'ham')
+        self.assertRaises(KeyError, r.__getitem__, 'ham')
+        self.assertRaises(IndexError, r.__getitem__, 0)
 
 class TestParse(unittest.TestCase):
     def test_no_match(self):

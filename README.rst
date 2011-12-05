@@ -11,6 +11,8 @@ From there it's a simple thing to parse a string:
 
 >>> parse("It's {}, I love it!", "It's spam, I love it!")
 <Result ('spam',) {}>
+>>> _[0]
+'spam'
 
 Or to search a string for some pattern:
 
@@ -70,6 +72,8 @@ Some simple parse() format string examples:
 <Result () {'item': 'hand grenade'}>
 >>> print r.named
 {'item': 'hand grenade'}
+>>> print r['item']
+hand grenade
 
 
 Format Specification
@@ -224,6 +228,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.4 add __getitem__ convenience access on Result.
 - 1.3.3 fix Python 2.5 setup.py issue.
 - 1.3.2 fix Python 3.2 setup.py issue.
 - 1.3.1 fix a couple of Python 3.2 compatibility issues.

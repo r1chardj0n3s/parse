@@ -11,6 +11,8 @@ From there it's a simple thing to parse a string:
 
 >>> parse("It's {}, I love it!", "It's spam, I love it!")
 <Result ('spam',) {}>
+>>> _[0]
+'spam'
 
 Or to search a string for some pattern:
 
@@ -70,6 +72,8 @@ Some simple parse() format string examples:
 <Result () {'item': 'hand grenade'}>
 >>> print r.named
 {'item': 'hand grenade'}
+>>> print r['item']
+hand grenade
 
 
 Format Specification
@@ -224,6 +228,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.4 add __getitem__ convenience access on Result.
 - 1.3.3 fix Python 2.5 setup.py issue.
 - 1.3.2 fix Python 3.2 setup.py issue.
 - 1.3.1 fix a couple of Python 3.2 compatibility issues.
@@ -254,7 +259,7 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.3.3'
+__version__ = '1.4'
 
 # yes, I now have two problems
 import re
@@ -778,11 +783,19 @@ class Parser(object):
 
 class Result(object):
     '''The result of a parse() or search().
+
+    Fixed results may be looked up using result[index]. Named results may be
+    looked up using result['name'].
     '''
     def __init__(self, fixed, named, spans):
         self.fixed = fixed
         self.named = named
         self.spans = spans
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self.fixed[item]
+        return self.named[item]
 
     def __repr__(self):
         return '<%s %r %r>' % (self.__class__.__name__, self.fixed,
