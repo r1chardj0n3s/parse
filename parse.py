@@ -286,7 +286,7 @@ def int_convert(base):
         else:
             sign = 1
 
-        if string[0] == '0':
+        if string[0] == '0' and len(string) > 1:
             if string[1] in 'bB':
                 base = 2
             elif string[1] in 'oO':

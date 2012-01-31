@@ -224,6 +224,7 @@ class TestParse(unittest.TestCase):
         def n(fmt, s, e):
             if parse.parse(fmt, s) is not None:
                 self.fail('%r matched %r' % (fmt, s))
+        y('a {:d} b', 'a 0 b', 0)
         y('a {:d} b', 'a 12 b', 12)
         y('a {:5d} b', 'a    12 b', 12)
         y('a {:5d} b', 'a   -12 b', -12)
