@@ -218,7 +218,7 @@ will be substituted in the ``Result`` instance for that field.
 Your custom type conversions may override the builtin types if you supply one
 with the same identifier.
 
->>> def converter(string):
+>>> def shouty(string):
 ...    return string.upper()
 ...
 >>> r = parse('{:shouty} world', 'hello world', dict(shouty=shouty))
