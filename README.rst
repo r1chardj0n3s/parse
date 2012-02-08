@@ -27,8 +27,8 @@ Or find all the occurrances of some pattern in a string:
 If you're going to use the same pattern to match lots of strings you can
 compile it once:
 
->>> import parse
->>> p = parse.compile("It's {}, I love it!")
+>>> from parse import compile
+>>> p = compile("It's {}, I love it!")
 >>> print p
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
