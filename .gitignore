@@ -1,0 +1,6 @@
+*.pyc
+
+.tox/
+__pycache__/
+
+MANIFEST
