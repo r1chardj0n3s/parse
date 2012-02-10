@@ -228,6 +228,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.4.1 fix parsing of "0" in int conversion (thanks James Rowe)
 - 1.4 add __getitem__ convenience access on Result.
 - 1.3.3 fix Python 2.5 setup.py issue.
 - 1.3.2 fix Python 3.2 setup.py issue.
@@ -259,7 +260,7 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.4'
+__version__ = '1.4.1'
 
 # yes, I now have two problems
 import re

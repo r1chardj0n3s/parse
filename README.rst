@@ -228,6 +228,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.4.1 fix parsing of "0" in int conversion (thanks James Rowe)
 - 1.4 add __getitem__ convenience access on Result.
 - 1.3.3 fix Python 2.5 setup.py issue.
 - 1.3.2 fix Python 3.2 setup.py issue.
