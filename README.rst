@@ -19,18 +19,16 @@ Or to search a string for some pattern:
 >>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
 <Result (42,) {}>
 
-.. please excuse the double-backslash in that example; it's an ReST work-around
-
 Or find all the occurrances of some pattern in a string:
 
->>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>")
-"some bold text"
+>>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>"))
+'some bold text'
 
 If you're going to use the same pattern to match lots of strings you can
 compile it once:
 
->>> import parse
->>> p = parse.compile("It's {}, I love it!")
+>>> from parse import compile
+>>> p = compile("It's {}, I love it!")
 >>> print p
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
@@ -144,9 +142,8 @@ does not match:
 >>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
 <Result (3, 'weapons') {}>
 >>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
-None
 >>> parse('Meet at {:tg}', 'Meet at 1/2/2011 11:00 PM')
-<Result (datetime.datetime(2011, 2, 1, 23, 00),) {}>
+<Result (datetime.datetime(2011, 2, 1, 23, 0),) {}>
 
 And messing about with alignment:
 
@@ -218,10 +215,10 @@ will be substituted in the ``Result`` instance for that field.
 Your custom type conversions may override the builtin types if you supply one
 with the same identifier.
 
->>> def converter(string):
+>>> def shouty(string):
 ...    return string.upper()
 ...
->>> r = parse('{:shouty} world', 'hello world', dict(shouty=shouty))
+>>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
 ----
