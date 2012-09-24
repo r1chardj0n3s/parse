@@ -512,6 +512,8 @@ class Parser(object):
                 if str(e).endswith('this version only supports 100 named groups'):
                     raise TooManyFields('sorry, you are attempting to parse too '
                         'many complex fields')
+            except re.error:
+                raise NotImplementedError("Group names (e.g. (?P<name>) can cause failure, as they are not esacped properly: '%s'" % expression)
         return self.__match_re
 
     def parse(self, string):
