@@ -74,6 +74,14 @@ class TestPattern(unittest.TestCase):
 
         _('.^010d', dict(type='d', width='10', align='^', fill='.',
             zero=True))
+        
+    def test_dot_separated_fields(self):
+        # this should just work and provide the named value
+        res = parse.parse('{hello.world}_{jojo.foo.baz}_{simple}', 'a_b_c')
+        assert res.named['hello.world'] == 'a'
+        assert res.named['jojo.foo.baz'] == 'b'
+        assert res.named['simple'] == 'c'
+        
 
 class TestResult(unittest.TestCase):
     def test_fixed_access(self):
