@@ -470,10 +470,12 @@ PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*}|{\w+?(?:\.\w+?)*:[
 
 
 class Parser(object):
-    # used for temporary transformation
-    sep = '__'
     
     def __init__(self, format, extra_types={}):
+        # a mapping of a name as in {hello.world} to a regex-group compatible name, like hello__world
+        # Its used to prevent the transformation of name-to-group and group to name to fail subtly, such 
+        # as in: hello_.world-> hello___world->hello._world
+        self._group_to_name_map = {}
         self._format = format
         self._extra_types = extra_types
         self._fixed_fields = []
@@ -604,16 +606,14 @@ class Parser(object):
                 e.append(REGEX_SAFETY.sub(self._regex_replace, part))
         return ''.join(e)
         
-    @classmethod
-    def _to_group_name(cls, field):
+    def _to_group_name(self, field):
         # return a version of field which can be used as capture group, even though it might contain '.'
-        assert cls.sep not in field
-        return field.replace('.', cls.sep)
+        group = field.replace('.', '_')
+        self._group_to_name_map[group] = field
+        return group
         
-    @classmethod
-    def _from_group_name(cls, group):
-        # undoes the transformation dopne by _to_group_name
-        return group.replace(cls.sep, '.')
+    def _from_group_name(self, group):
+        return self._group_to_name_map[group]
 
     def _handle_field(self, field):
         # first: lose the braces
