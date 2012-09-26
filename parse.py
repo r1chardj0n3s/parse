@@ -466,11 +466,16 @@ def extract_format(format, extra_types):
     return locals()
 
 
-PARSE_RE = re.compile('({{|}}|{}|{:[^}]+?}|{\w+?}|{\w+?:[^}]+?})')
+PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*}|{\w+?(?:\.\w+?)*:[^}]+?})')
 
 
 class Parser(object):
+    
     def __init__(self, format, extra_types={}):
+        # a mapping of a name as in {hello.world} to a regex-group compatible name, like hello__world
+        # Its used to prevent the transformation of name-to-group and group to name to fail subtly, such 
+        # as in: hello_.world-> hello___world->hello._world
+        self._group_to_name_map = {}
         self._format = format
         self._extra_types = extra_types
         self._fixed_fields = []
@@ -509,6 +514,8 @@ class Parser(object):
                 if str(e).endswith('this version only supports 100 named groups'):
                     raise TooManyFields('sorry, you are attempting to parse too '
                         'many complex fields')
+            except re.error:
+                raise NotImplementedError("Group names (e.g. (?P<name>) can cause failure, as they are not esacped properly: '%s'" % expression)
         return self.__match_re
 
     def parse(self, string):
@@ -565,13 +572,14 @@ class Parser(object):
         groupdict = m.groupdict()
         named_fields = {}
         for k in self._named_fields:
-            if k in self._type_conversions:
-                named_fields[k] = self._type_conversions[k](groupdict[k], m)
+            korig = self._from_group_name(k)
+            if korig in self._type_conversions:
+                named_fields[korig] = self._type_conversions[korig](groupdict[k], m)
             else:
-                named_fields[k] = groupdict[k]
+                named_fields[korig] = groupdict[k]
 
         # now figure the match spans
-        spans = dict((n, m.span(n)) for n in named_fields)
+        spans = dict((n, m.span(self._to_group_name(n))) for n in named_fields)
         spans.update((i, m.span(n+1)) for i, n in enumerate(self._fixed_fields))
 
         # and that's our result
@@ -597,6 +605,15 @@ class Parser(object):
                 # just some text to match
                 e.append(REGEX_SAFETY.sub(self._regex_replace, part))
         return ''.join(e)
+        
+    def _to_group_name(self, field):
+        # return a version of field which can be used as capture group, even though it might contain '.'
+        group = field.replace('.', '_')
+        self._group_to_name_map[group] = field
+        return group
+        
+    def _from_group_name(self, group):
+        return self._group_to_name_map[group]
 
     def _handle_field(self, field):
         # first: lose the braces
@@ -610,16 +627,17 @@ class Parser(object):
                 name, format = field.split(':')
             else:
                 name = field
-            self._named_fields.append(name)
-            group = name
-            wrap = '(?P<%s>%%s)' % name
+            group = self._to_group_name(name)
+            self._named_fields.append(group)
+            # this will become a group, which must not contain dots
+            wrap = '(?P<%s>%%s)' % group
         else:
             self._fixed_fields.append(self._group_index)
             wrap = '(%s)'
             if ':' in field:
                 format = field[1:]
             group = self._group_index
-
+        
         # simplest case: a bare {}
         if not format:
             self._group_index += 1
