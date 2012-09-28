@@ -46,7 +46,7 @@ A basic version of the `Format String Syntax`_ is supported with anonymous
 
    {[field name]:[format spec]}
 
-Field names must be a single Python identifier word. No attributes or
+Field names must be a valid Python identifiers, including dotted names;
 element indexes are supported (as they would make no sense.)
 
 Numbered fields are also not supported: the result of parsing will include
@@ -72,6 +72,17 @@ Some simple parse() format string examples:
 {'item': 'hand grenade'}
 >>> print r['item']
 hand grenade
+
+Dotted names are possible though the application must make additional sense of
+the result:
+
+>>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
+>>> print r
+<Result () {'food.type': 'spam'}>
+>>> print r.named
+{'food.type': 'spam'}
+>>> print r['food.type']
+spam
 
 
 Format Specification
@@ -225,6 +236,8 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.5.1 implement handling of named datetime fields
+- 1.5 add handling of dotted field names (thanks Sebastian Thiel)
 - 1.4.1 fix parsing of "0" in int conversion (thanks James Rowe)
 - 1.4 add __getitem__ convenience access on Result.
 - 1.3.3 fix Python 2.5 setup.py issue.

@@ -46,7 +46,7 @@ A basic version of the `Format String Syntax`_ is supported with anonymous
 
    {[field name]:[format spec]}
 
-Field names must be a single Python identifier word. No attributes or
+Field names must be a valid Python identifiers, including dotted names;
 element indexes are supported (as they would make no sense.)
 
 Numbered fields are also not supported: the result of parsing will include
@@ -72,6 +72,17 @@ Some simple parse() format string examples:
 {'item': 'hand grenade'}
 >>> print r['item']
 hand grenade
+
+Dotted names are possible though the application must make additional sense of
+the result:
+
+>>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
+>>> print r
+<Result () {'food.type': 'spam'}>
+>>> print r.named
+{'food.type': 'spam'}
+>>> print r['food.type']
+spam
 
 
 Format Specification
@@ -225,6 +236,8 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.5.1 implement handling of named datetime fields
+- 1.5 add handling of dotted field names (thanks Sebastian Thiel)
 - 1.4.1 fix parsing of "0" in int conversion (thanks James Rowe)
 - 1.4 add __getitem__ convenience access on Result.
 - 1.3.3 fix Python 2.5 setup.py issue.
@@ -257,15 +270,18 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.4.1'
+__version__ = '1.5.1'
 
 # yes, I now have two problems
 import re
 import sys
 from datetime import datetime, time, tzinfo, timedelta
 from functools import partial
+import logging
 
 __all__ = 'parse search findall'.split()
+
+log = logging.getLogger(__name__)
 
 
 def int_convert(base):
@@ -487,6 +503,8 @@ class Parser(object):
         self.__search_re = None
         self.__match_re = None
 
+        logging.debug('format %r -> %r' % (format, self._expression))
+
     def __repr__(self):
         if len(self._format) > 20:
             return '<%s %r>' % (self.__class__.__name__, self._format[:17] + '...')
@@ -650,7 +668,7 @@ class Parser(object):
                 format = field[1:]
             group = self._group_index
 
-        # simplest case: a bare {}
+        # simplest case: no type specifier ({} or {name})
         if not format:
             self._group_index += 1
             return wrap % '.+?'
@@ -702,59 +720,52 @@ class Parser(object):
         elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|[-+]\d\d:\d\d)?' % TIME_PAT
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, ymd=n,
-                hms=n+3, tz=n+6)
+            self._type_conversions[group] = partial(date_convert, ymd=n+1,
+                hms=n+4, tz=n+7)
             self._group_index += 7
-            wrap = ''
         elif type == 'tg':
             s = r'(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n,
-                hms=n+4, am=n+7, tz=n+8)
+            self._type_conversions[group] = partial(date_convert, dmy=n+1,
+                hms=n+5, am=n+8, tz=n+9)
             self._group_index += 9
-            wrap = ''
         elif type == 'ta':
             s = r'((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, mdy=n,
-                hms=n+4, am=n+7, tz=n+8)
+            self._type_conversions[group] = partial(date_convert, mdy=n+1,
+                hms=n+5, am=n+8, tz=n+9)
             self._group_index += 9
-            wrap = ''
         elif type == 'te':
             # this will allow microseconds through if they're present, but meh
             s = r'(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s' % (DAYS_PAT,
                 MONTHS_PAT, TIME_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n+2,
-                hms=n+4, tz=n+7)
+            self._type_conversions[group] = partial(date_convert, dmy=n+3,
+                hms=n+5, tz=n+8)
             self._group_index += 8
-            wrap = ''
         elif type == 'th':
             # slight flexibility here from the stock Apache format
             s = r'(\d{1,2}[-/]%s[-/]\d{4}):%s%s' % (MONTHS_PAT, TIME_PAT,
                 TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n,
-                hms=n+2, tz=n+5)
+            self._type_conversions[group] = partial(date_convert, dmy=n+1,
+                hms=n+3, tz=n+6)
             self._group_index += 6
-            wrap = ''
         elif type == 'tc':
             s = r'(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})' % (
                 DAYS_PAT, MONTHS_PAT, TIME_PAT)
             n = self._group_index
             self._type_conversions[group] = partial(date_convert,
-                d_m_y=(n+3,n+2,n+7), hms=n+4)
+                d_m_y=(n+4,n+3,n+8), hms=n+5)
             self._group_index += 8
-            wrap = ''
         elif type == 'tt':
             s = r'%s?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, hms=n,
-                am=n+3, tz=n+4)
+            self._type_conversions[group] = partial(date_convert, hms=n+1,
+                am=n+4, tz=n+5)
             self._group_index += 5
-            wrap = ''
         elif type:
             s = r'\%s+' % type
         else:
