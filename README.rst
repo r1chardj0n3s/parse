@@ -236,6 +236,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
 - 1.5 add handling of dotted field names (thanks Sebastian Thiel)
 - 1.4.1 fix parsing of "0" in int conversion (thanks James Rowe)
