@@ -573,8 +573,8 @@ class Parser(object):
         named_fields = {}
         for k in self._named_fields:
             korig = self._from_group_name(k)
-            if korig in self._type_conversions:
-                named_fields[korig] = self._type_conversions[korig](groupdict[k], m)
+            if k in self._type_conversions:
+                named_fields[korig] = self._type_conversions[k](groupdict[k], m)
             else:
                 named_fields[korig] = groupdict[k]
 
