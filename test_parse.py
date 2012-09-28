@@ -567,6 +567,15 @@ class TestBugs(unittest.TestCase):
         r = parse.parse('a {date:ti} b', 'a 1997-07-16T19:20Z b')
         self.assertEquals(r['date'], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
 
+    def test_dotted_type_conversion_pull_8(self):
+        # test pull request 8 which fixes type conversion related to dotted
+        # names being applied correctly
+        r = parse.parse('{a.b:d}', '1')
+        self.assertEquals(r['a.b'], 1)
+        r = parse.parse('{a_b:w} {a.b:d}', '1 2')
+        self.assertEquals(r['a_b'], '1')
+        self.assertEquals(r['a.b'], 2)
+
 if __name__ == '__main__':
     unittest.main()
 

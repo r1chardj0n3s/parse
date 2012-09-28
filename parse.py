@@ -236,6 +236,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
 - 1.5 add handling of dotted field names (thanks Sebastian Thiel)
 - 1.4.1 fix parsing of "0" in int conversion (thanks James Rowe)
@@ -270,7 +271,7 @@ with the same identifier.
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.1'
+__version__ = '1.5.2'
 
 # yes, I now have two problems
 import re
@@ -594,8 +595,8 @@ class Parser(object):
         for k in self._named_fields:
             korig = self._group_to_name_map[k]
             name_map[korig] = k
-            if korig in self._type_conversions:
-                named_fields[korig] = self._type_conversions[korig](groupdict[k], m)
+            if k in self._type_conversions:
+                named_fields[korig] = self._type_conversions[k](groupdict[k], m)
             else:
                 named_fields[korig] = groupdict[k]
 
