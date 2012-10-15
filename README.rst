@@ -236,6 +236,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
 - 1.5 add handling of dotted field names (thanks Sebastian Thiel)
@@ -268,5 +269,5 @@ with the same identifier.
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
+This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.

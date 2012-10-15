@@ -236,6 +236,7 @@ with the same identifier.
 
 **Version history (in brief)**:
 
+- 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
 - 1.5 add handling of dotted field names (thanks Sebastian Thiel)
@@ -268,10 +269,10 @@ with the same identifier.
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
+This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.2'
+__version__ = '1.5.3'
 
 # yes, I now have two problems
 import re
@@ -444,7 +445,7 @@ class TooManyFields(ValueError):
     pass
 
 # note: {} are handled separately
-REGEX_SAFETY = re.compile(r'([\\.[\]()*+\^$!])')
+REGEX_SAFETY = re.compile(r'([?\\.[\]()*+\^$!])')
 
 # allowed field types
 ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
@@ -949,7 +950,7 @@ def compile(format, extra_types={}):
     return Parser(format, extra_types=extra_types)
 
 
-# Copyright (c) 2011 eKit.com Inc (http://www.ekit.com/)
+# Copyright (c) 2012 Richard Jones <richard@python.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

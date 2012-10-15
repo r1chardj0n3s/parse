@@ -129,6 +129,11 @@ class TestParse(unittest.TestCase):
         r = parse.parse(s, e)
         self.assertEqual(r.fixed, ('.*?',))
 
+    def test_question_mark(self):
+        # issue9: make sure a ? in the parse string is handled correctly
+        r = parse.parse('"{}"?', '"teststr"?')
+        self.assertEqual(r[0], 'teststr')
+
     def test_fixed(self):
         # pull a fixed value out of string
         r = parse.parse('hello {}', 'hello world')
