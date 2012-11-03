@@ -232,6 +232,18 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
+
+If the converter has a ``pattern`` attribute, it is used for better
+pattern matching (instead of the default one).
+
+>>> def parse_number(text):
+...    return int(text)
+>>> parse_number.pattern = r'\d+'
+>>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+<Result () {'number': 42}>
+>>> parse('Answer: {number:Number}', 'Answer: Alice', dict(Number=parse_number))
+>>> # -- MISMATCH: Returns None
+
 ----
 
 **Version history (in brief)**:

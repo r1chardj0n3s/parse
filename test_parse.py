@@ -581,6 +581,66 @@ class TestBugs(unittest.TestCase):
         self.assertEquals(r['a_b'], '1')
         self.assertEquals(r['a.b'], 2)
 
+# -----------------------------------------------------------------------------
+# TEST SUPPORT FOR: TestParseType
+# -----------------------------------------------------------------------------
+# -- PROOF-OF-CONCEPT DATATYPE:
+def parse_number(text):
+    return int(text)
+
+parse_number.pattern = r"\d+"   # Provide better regexp pattern than default.
+parse_number.name = "Number"    # For testing only.
+
+# -- ENUM DATATYPE:
+def parse_yesno(text):
+    return parse_yesno.mapping[text.lower()]
+
+parse_yesno.mapping = {
+    "yes":  True,   "no":  False,
+    "on":   True,   "off": False,
+    "true": True,   "false": False,
+}
+parse_yesno.pattern = r"|".join(parse_yesno.mapping.keys())
+parse_yesno.name = "YesNo"      # For testing only.
+
+# -----------------------------------------------------------------------------
+# TEST CASE: TestParseType
+# -----------------------------------------------------------------------------
+class TestParseType(unittest.TestCase):
+
+    def _check(self, parser, text, param_name, expected):
+        result = parser.parse(text)
+        self.assertEquals(result[param_name], expected)
+
+    def _check_mismatch(self, parser, text, param_name):
+        result = parser.parse(text)
+        self.assertTrue(result is None)
+
+    def test_pattern_should_be_used(self):
+        extra_types = { parse_number.name: parse_number }
+        format = "Value is {number:Number} and..."
+        parser = parse.Parser(format, extra_types)
+
+        self._check(parser, "Value is 42 and...",    "number",  42)
+        self._check(parser, "Value is 00123 and...", "number", 123)
+        self._check_mismatch(parser, "Value is ALICE and...", "number")
+        self._check_mismatch(parser, "Value is -123 and...",  "number")
+
+    def test_pattern_should_be_used2(self):
+        extra_types = { parse_yesno.name: parse_yesno }
+        format = "Answer: {answer:YesNo}"
+        parser = parse.Parser(format, extra_types)
+
+        # -- ENSURE: Known enum values are correctly extracted.
+        for value_name, value in parse_yesno.mapping.items():
+            text = "Answer: {0}".format(value_name)
+            self._check(parser, text, "answer",  value)
+
+        # -- IGNORE-CASE: In parsing, calls type converter function !!!
+        self._check(parser, "Answer: YES", "answer", True)
+        self._check_mismatch(parser, "Answer: __YES__", "answer")
+
+
 if __name__ == '__main__':
     unittest.main()
 
