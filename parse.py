@@ -232,10 +232,23 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
+
+If the converter has the optional ``pattern`` attribute, it is used as
+regular expression for better pattern matching (instead of the default one).
+
+>>> def parse_number(text):
+...    return int(text)
+>>> parse_number.pattern = r'\d+'
+>>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+<Result () {'number': 42}>
+>>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
+>>> assert _ is None, "MISMATCH"
+
 ----
 
 **Version history (in brief)**:
 
+- 1.5.3.1 Add support for optional 'pattern' attribute in user-defined types.
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
@@ -272,7 +285,7 @@ with the same identifier.
 This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.3'
+__version__ = '1.5.3.1'
 
 # yes, I now have two problems
 import re
@@ -326,6 +339,8 @@ def percentage(string, match):
 class FixedTzOffset(tzinfo):
     """Fixed offset in minutes east from UTC.
     """
+    ZERO = timedelta(0)
+
     def __init__(self, offset, name):
         self._offset = timedelta(minutes = offset)
         self._name = name
@@ -340,7 +355,7 @@ class FixedTzOffset(tzinfo):
         return self._name
 
     def dst(self, dt):
-        return ZERO
+        return self.ZERO
 
     def __eq__(self, other):
         return self._name == other._name and self._offset == other._offset
@@ -415,7 +430,7 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         tz = tz.strip()
         if tz.isupper():
             # TODO use the awesome python TZ module?
-            TODO
+            pass
         else:
             sign = tz[0]
             if ':' in tz:
@@ -682,9 +697,10 @@ class Parser(object):
         type = format['type']
         is_numeric = type and type in 'n%fegdobh'
         if type in self._extra_types:
-            s = '.+?'
-            def f(string, m, type=type):
-                return self._extra_types[type](string)
+            type_converter = self._extra_types[type]
+            s = getattr(type_converter, 'pattern', r'.+?')
+            def f(string, m):
+                return type_converter(string)
             self._type_conversions[group] = f
         elif type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
