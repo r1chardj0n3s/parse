@@ -232,6 +232,18 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
+
+If the converter has a ``pattern`` attribute, it is used for better
+pattern matching (instead of the default one).
+
+>>> def parse_number(text):
+...    return int(text)
+>>> parse_number.pattern = r'\d+'
+>>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+<Result () {'number': 42}>
+>>> parse('Answer: {number:Number}', 'Answer: Alice', dict(Number=parse_number))
+>>> # -- MISMATCH: Returns None
+
 ----
 
 **Version history (in brief)**:
@@ -682,9 +694,10 @@ class Parser(object):
         type = format['type']
         is_numeric = type and type in 'n%fegdobh'
         if type in self._extra_types:
-            s = '.+?'
-            def f(string, m, type=type):
-                return self._extra_types[type](string)
+            type_converter = self._extra_types[type]
+            s = getattr(type_converter, 'pattern', r'.+?')
+            def f(string, m):
+                return type_converter(string)
             self._type_conversions[group] = f
         elif type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
