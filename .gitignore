@@ -1,5 +1,8 @@
 *.pyc
+*.pyo
 
+.cache/
+.idea/
 .tox/
 __pycache__/
 

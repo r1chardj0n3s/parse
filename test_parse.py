@@ -91,20 +91,20 @@ class TestPattern(unittest.TestCase):
         assert res.named['a___b'] == 'd'
 
     def test_invalid_groupnames_are_handled_gracefully(self):
-        self.failUnlessRaises(NotImplementedError, parse.parse,
+        self.assertRaises(NotImplementedError, parse.parse,
             "{hello['world']}", "doesn't work")
 
 class TestResult(unittest.TestCase):
     def test_fixed_access(self):
         r = parse.Result((1, 2), {}, None)
-        self.assertEquals(r[0], 1)
-        self.assertEquals(r[1], 2)
+        self.assertEqual(r[0], 1)
+        self.assertEqual(r[1], 2)
         self.assertRaises(IndexError, r.__getitem__, 2)
         self.assertRaises(KeyError, r.__getitem__, 'spam')
 
     def test_named_access(self):
         r = parse.Result((), {'spam': 'ham'}, None)
-        self.assertEquals(r['spam'], 'ham')
+        self.assertEqual(r['spam'], 'ham')
         self.assertRaises(KeyError, r.__getitem__, 'ham')
         self.assertRaises(IndexError, r.__getitem__, 0)
 
@@ -561,25 +561,25 @@ class TestFindall(unittest.TestCase):
 class TestBugs(unittest.TestCase):
     def test_named_date_issue7(self):
         r = parse.parse('on {date:ti}', 'on 2012-09-17')
-        self.assertEquals(r['date'], datetime(2012, 9, 17, 0, 0, 0))
+        self.assertEqual(r['date'], datetime(2012, 9, 17, 0, 0, 0))
 
         # fix introduced regressions
         r = parse.parse('a {:ti} b', 'a 1997-07-16T19:20 b')
-        self.assertEquals(r[0], datetime(1997, 7, 16, 19, 20, 0))
+        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, 0))
         r = parse.parse('a {:ti} b', 'a 1997-07-16T19:20Z b')
         utc = parse.FixedTzOffset(0, 'UTC')
-        self.assertEquals(r[0], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
+        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
         r = parse.parse('a {date:ti} b', 'a 1997-07-16T19:20Z b')
-        self.assertEquals(r['date'], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
+        self.assertEqual(r['date'], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
 
     def test_dotted_type_conversion_pull_8(self):
         # test pull request 8 which fixes type conversion related to dotted
         # names being applied correctly
         r = parse.parse('{a.b:d}', '1')
-        self.assertEquals(r['a.b'], 1)
+        self.assertEqual(r['a.b'], 1)
         r = parse.parse('{a_b:w} {a.b:d}', '1 2')
-        self.assertEquals(r['a_b'], '1')
-        self.assertEquals(r['a.b'], 2)
+        self.assertEqual(r['a_b'], '1')
+        self.assertEqual(r['a.b'], 2)
 
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
@@ -610,7 +610,7 @@ class TestParseType(unittest.TestCase):
 
     def _check(self, parser, text, param_name, expected):
         result = parser.parse(text)
-        self.assertEquals(result[param_name], expected)
+        self.assertEqual(result[param_name], expected)
 
     def _check_mismatch(self, parser, text, param_name):
         result = parser.parse(text)
@@ -633,7 +633,7 @@ class TestParseType(unittest.TestCase):
 
         # -- ENSURE: Known enum values are correctly extracted.
         for value_name, value in parse_yesno.mapping.items():
-            text = "Answer: {0}".format(value_name)
+            text = "Answer: %s" % value_name
             self._check(parser, text, "answer",  value)
 
         # -- IGNORE-CASE: In parsing, calls type converter function !!!
