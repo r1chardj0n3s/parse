@@ -233,21 +233,22 @@ with the same identifier.
 <Result ('HELLO',) {}>
 
 
-If the converter has a ``pattern`` attribute, it is used for better
-pattern matching (instead of the default one).
+If the converter has the optional ``pattern`` attribute, it is used as
+regular expression for better pattern matching (instead of the default one).
 
 >>> def parse_number(text):
 ...    return int(text)
 >>> parse_number.pattern = r'\d+'
 >>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
 <Result () {'number': 42}>
->>> parse('Answer: {number:Number}', 'Answer: Alice', dict(Number=parse_number))
->>> # -- MISMATCH: Returns None
+>>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
+>>> assert _ is None, "MISMATCH"
 
 ----
 
 **Version history (in brief)**:
 
+- 1.5.3.1 Add support for optional 'pattern' attribute in user-defined types.
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
