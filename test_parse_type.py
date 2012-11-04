@@ -37,6 +37,14 @@ parse_person_choice.name = "PersonChoice"      # For testing only.
 # -----------------------------------------------------------------------------
 class TestTypeBuilder(unittest.TestCase):
 
+    # -- PYTHON VERSION BACKWARD-COMPATIBILTY:
+    if not hasattr(unittest.TestCase, "assertIsNone"):
+        def assertIsNone(self, obj, msg=None):
+            self.assert_(obj is None, msg)
+
+        def assertIsNotNone(self, obj, msg=None):
+            self.assert_(obj is not None, msg)
+
     @staticmethod
     def build_type_dict(type_converters):
         """
