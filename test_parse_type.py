@@ -111,7 +111,7 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         # -- PARSE MISMATCH:
         self.assert_mismatch(parser, "List: x",   "number")  # Not a Number.
         self.assert_mismatch(parser, "List: -1",  "number")  # Negative.
-        self.assert_mismatch(parser, "List: a, b", "numbers") # List of ...
+        self.assert_mismatch(parser, "List: a, b", "number") # List of ...
 
     def test_with_optional(self):
         # -- ALIAS FOR: zero_or_one
@@ -176,12 +176,12 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         self.assertEqual(parse_numbers.pattern, r"(\d+)(\s*,\s*(\d+))*")
 
     def test_with_one_or_more_basics_with_other_separator(self):
-        separator = ';'
-        parse_numbers2 = TypeBuilder.with_one_or_more(parse_number, separator)
+        listsep = ';'
+        parse_numbers2 = TypeBuilder.with_one_or_more(parse_number, listsep)
         self.assertEqual(parse_numbers2.pattern, r"(\d+)(\s*;\s*(\d+))*")
 
-        separator = ':'
-        parse_numbers2 = TypeBuilder.with_one_or_more(parse_number, separator)
+        listsep = ':'
+        parse_numbers2 = TypeBuilder.with_one_or_more(parse_number, listsep)
         self.assertEqual(parse_numbers2.pattern, r"(\d+)(\s*:\s*(\d+))*")
 
     def test_with_one_or_more(self):
@@ -262,8 +262,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         self.assert_mismatch(parser, "List: a, b",  "colors")  # List of ...
 
     def test_with_one_or_more_with_other_separator(self):
-        separator = ';'
-        parse_numbers2 = TypeBuilder.with_one_or_more(parse_number, separator)
+        listsep = ';'
+        parse_numbers2 = TypeBuilder.with_one_or_more(parse_number, listsep)
         parse_numbers2.name = "Numbers2"
 
         extra_types = self.build_type_dict([ parse_numbers2 ])

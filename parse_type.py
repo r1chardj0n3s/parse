@@ -59,6 +59,23 @@ EXAMPLE:
 
 """
 
+class Cardinality(object):
+    """
+    Helper class to build regular expression pattern for differen cardinalities.
+    """
+    @classmethod
+    def make_zero_or_one_pattern(cls, pattern):
+        return r"(%s)?" % pattern
+
+    @classmethod
+    def make_zero_or_more_pattern(cls, pattern, listsep=','):
+        return r"(%s)?(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
+
+    @classmethod
+    def make_one_or_more_pattern(cls, pattern, listsep=','):
+        return r"(%s)(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
+
+
 class TypeBuilder(object):
     """
     Provides a utility class to build type-converters (parse_types) for parse.
@@ -81,60 +98,61 @@ class TypeBuilder(object):
         by using the type-converter for one item of T.
 
         :param parse_type: Type-converter (function) for data type T.
-        :param max_size:   Optional max. number of items constraint (future).
-        :param separator:  Optional list separator between items (default: ',')
-        :return: Create type-converter for list<T>
+        :return: Create type-converter for optional<T> (T or None).
         """
         def parse_optional(text):
-            text = text.strip()
+            if text:
+                text = text.strip()
             if not text:
                 return None
             return parse_type(text)
         pattern = getattr(parse_type, "pattern", cls.default_pattern)
-        parse_optional.pattern = r"(%s)?" % pattern
+        new_pattern = Cardinality.make_zero_or_one_pattern(pattern)
+        parse_optional.pattern = new_pattern
         return parse_optional
 
     @classmethod
-    def with_zero_or_more(cls, parse_type, separator=",", max_size=None):
+    def with_zero_or_more(cls, parse_type, listsep=",", max_size=None):
         """
         Creates a type-converter function for a list<T> with 0..N items
         by using the type-converter for one item of T.
 
         :param parse_type: Type-converter (function) for data type T.
-        :param separator:  Optional list separator between items (default: ',')
-        :param max_size:   Optional max. number of items constraint (future).
+        :param listsep:  Optional list separator between items (default: ',')
+        :param max_size: Optional max. number of items constraint (future).
         :return: Create type-converter for list<T>
         """
-        def parse_list(text):
-            text = text.strip()
+        def parse_list0(text):
+            if text:
+                text = text.strip()
             if not text:
                 return []
             parts = [ parse_type(texti.strip())
-                      for texti in text.split(separator) ]
+                      for texti in text.split(listsep) ]
             return parts
         pattern  = getattr(parse_type, "pattern", cls.default_pattern)
-        list_pattern = r"(%s)?(\s*%s\s*(%s))*" % (pattern, separator, pattern)
-        parse_list.pattern  = list_pattern
-        parse_list.max_size = max_size
-        return parse_list
+        list_pattern = Cardinality.make_zero_or_more_pattern(pattern, listsep)
+        parse_list0.pattern  = list_pattern
+        parse_list0.max_size = max_size
+        return parse_list0
 
     @classmethod
-    def with_one_or_more(cls, parse_type, separator=",", max_size=None):
+    def with_one_or_more(cls, parse_type, listsep=",", max_size=None):
         """
         Creates a type-converter function for a list<T> with 1..N items
         by using the type-converter for one item of T.
 
         :param parse_type: Type-converter (function) for data type T.
-        :param separator:  Optional list separator between items (default: ',')
-        :param max_size:   Optional max. number of items constraint (future).
+        :param listsep:  Optional list separator between items (default: ',')
+        :param max_size: Optional max. number of items constraint (future).
         :return: Create type-converter for list<T>
         """
         def parse_list(text):
             parts = [ parse_type(texti.strip())
-                      for texti in text.split(separator) ]
+                      for texti in text.split(listsep) ]
             return parts
         pattern = getattr(parse_type, "pattern", cls.default_pattern)
-        list_pattern = r"(%s)(\s*%s\s*(%s))*" % (pattern, separator, pattern)
+        list_pattern = Cardinality.make_one_or_more_pattern(pattern, listsep)
         parse_list.pattern  = list_pattern
         parse_list.max_size = max_size
         return parse_list
@@ -169,6 +187,7 @@ class TypeBuilder(object):
         choices = list(choices)
         def parse_choice(text):
             assert text in parse_choice.choices
+            # text = text.strip()
             if value_converter:
                 return value_converter(text)
             return text
@@ -189,6 +208,9 @@ class TypeBuilder(object):
         choices = list(choices)
         def parse_choice2(text):
             assert text in parse_choice2.choices
+            # text = text.strip()
+            if not text:
+                return None #< OPTIONAL CASE OCCURED.
             index = parse_choice2.choices.index(text)
             return index, text
         parse_choice2.pattern = r"|".join(choices)

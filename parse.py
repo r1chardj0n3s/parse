@@ -466,7 +466,77 @@ REGEX_SAFETY = re.compile(r'([?\\.[\]()*+\^$!])')
 ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
    ['t'+c for c in 'ieahgct'])
 
+# -----------------------------------------------------------------------------
+# CLASS: Cardinality (Field Part)
+# -----------------------------------------------------------------------------
+class Cardinality(object):
+    """
+    Cardinality field for parse format expression, ala:
 
+        "... {person:Person?} ..."  -- OPTIONAL: Cardinality zero or one, 0..1
+        "... {person:Person*} ..."  -- MANY0: Cardinality zero or more, 0..
+        "... {person:Person+} ..."  -- MANY:  Cardinality one  or more, 1..
+    """
+    one = 1
+    zero_or_one  = 2
+    zero_or_more = 3
+    one_or_more  = 4
+
+    # -- ALIASES:
+    optional = zero_or_one
+    many = one_or_more
+
+    # -- MAPPING SUPPORT:
+    pattern_chars = "?*+"
+    from_char_map = {
+        '?': zero_or_one,
+        '*': zero_or_more,
+        '+': one_or_more,
+    }
+
+    @classmethod
+    def is_one(cls, cardinality):
+        return cardinality == cls.one or cardinality is None
+
+    @classmethod
+    def is_many(cls, cardinality):
+        return cardinality == cls.one_or_more or cardinality == cls.zero_or_more
+
+    @classmethod
+    def make_zero_or_one_pattern(cls, pattern):
+        return r"(%s)?" % pattern
+
+    @classmethod
+    def make_zero_or_more_pattern(cls, pattern, listsep=','):
+        return r"(%s)?(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
+
+    @classmethod
+    def make_one_or_more_pattern(cls, pattern, listsep=','):
+        return r"(%s)(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
+
+    @classmethod
+    def make_pattern_for(cls, cardinality, pattern, listsep=','):
+        """
+        Creates a new regular expression pattern for the cardinality.
+
+        :param cardinality: Cardinality case (zero_or_one, zero_or_more, ...)
+        :param pattern:  Regex pattern for cardinality one (as text).
+        :param listsep:  Optional list separator for many (default: comma ',').
+        :return: New regular expression pattern for this cardinality case.
+        """
+        if cardinality == cls.zero_or_one:
+            return cls.make_zero_or_one_pattern(pattern)
+        elif cardinality == cls.zero_or_more:
+            return cls.make_zero_or_more_pattern(pattern, listsep)
+        elif cardinality == cls.one_or_more:
+            return cls.make_one_or_more_pattern(pattern, listsep)
+            # -- OTHERWISE, EXPECT: Cardinality one, otherwise OOPS.
+        assert cls.is_one(cardinality), "Unknown value: %s" % cardinality
+        return pattern
+
+# -----------------------------------------------------------------------------
+# FUNCTIONS: Parse Helpers
+# -----------------------------------------------------------------------------
 def extract_format(format, extra_types):
     '''Pull apart the format [[fill]align][0][width][type]
     '''
@@ -490,6 +560,14 @@ def extract_format(format, extra_types):
             break
         width += format[0]
         format = format[1:]
+    # -- CARDINALITY-FIELD:
+    cardinality = None
+    if format and format[-1] in Cardinality.pattern_chars:
+        _cardinality_char = format[-1]
+        cardinality = Cardinality.from_char_map[_cardinality_char]
+        format = format[:-1]
+        assert format, "Type information is required for cardinality"
+    # -- CARDINALITY-FIELD END.
 
     # the rest is the type, if present
     type = format
@@ -692,6 +770,7 @@ class Parser(object):
 
         # decode the format specification
         format = extract_format(format, self._extra_types)
+        cardinality = format["cardinality"]
 
         # figure type conversions, if any
         type = format['type']
@@ -699,8 +778,29 @@ class Parser(object):
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, 'pattern', r'.+?')
-            def f(string, m):
-                return type_converter(string)
+            if Cardinality.is_many(cardinality):
+                # -- CASE MANY: zero_or_more, one_or_more (list<T> as CSV).
+                # BETTER: parse_many = TypeBuilder.with_zero_or_more(type_converter)
+                # BETTER: parse_many = TypeBuilder.with_one_or_more(type_converter)
+                # s = parse_many.pattern
+                s = Cardinality.make_pattern_for(cardinality, s)
+                def f(text, m):
+                    if not text:
+                        return []
+                    parts = [ type_converter(texti.strip())
+                              for texti in text.split(',') ]
+                    return parts
+            elif cardinality == Cardinality.zero_or_one:
+                # -- CASE: zero_or_one (T or None)
+                # BETTER: parse_optional = TypeBuilder.with_optional(type_converter)
+                def f(text, m):
+                    if not text:
+                        return None
+                    return type_converter(text)
+            else:
+                # -- CASE: one (T)
+                def f(string, m):
+                    return type_converter(string)
             self._type_conversions[group] = f
         elif type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
@@ -809,6 +909,11 @@ class Parser(object):
 
         if not fill:
             fill = ' '
+
+        if cardinality == Cardinality.zero_or_one:
+            # -- CARDINALITY: Make field optional.
+            assert wrap, "Cardinality requires wrap"
+            wrap += '?'
 
         # Place into a group now - this captures the value we want to keep.
         # Everything else from now is just padding to be stripped off
