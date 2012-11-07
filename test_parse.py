@@ -608,11 +608,11 @@ parse_yesno.name = "YesNo"      # For testing only.
 # -----------------------------------------------------------------------------
 class TestParseType(unittest.TestCase):
 
-    def _check(self, parser, text, param_name, expected):
+    def assert_match(self, parser, text, param_name, expected):
         result = parser.parse(text)
         self.assertEqual(result[param_name], expected)
 
-    def _check_mismatch(self, parser, text, param_name):
+    def assert_mismatch(self, parser, text, param_name):
         result = parser.parse(text)
         self.assertTrue(result is None)
 
@@ -621,10 +621,10 @@ class TestParseType(unittest.TestCase):
         format = "Value is {number:Number} and..."
         parser = parse.Parser(format, extra_types)
 
-        self._check(parser, "Value is 42 and...",    "number",  42)
-        self._check(parser, "Value is 00123 and...", "number", 123)
-        self._check_mismatch(parser, "Value is ALICE and...", "number")
-        self._check_mismatch(parser, "Value is -123 and...",  "number")
+        self.assert_match(parser, "Value is 42 and...",    "number",  42)
+        self.assert_match(parser, "Value is 00123 and...", "number", 123)
+        self.assert_mismatch(parser, "Value is ALICE and...", "number")
+        self.assert_mismatch(parser, "Value is -123 and...",  "number")
 
     def test_pattern_should_be_used2(self):
         extra_types = { parse_yesno.name: parse_yesno }
@@ -634,11 +634,11 @@ class TestParseType(unittest.TestCase):
         # -- ENSURE: Known enum values are correctly extracted.
         for value_name, value in parse_yesno.mapping.items():
             text = "Answer: %s" % value_name
-            self._check(parser, text, "answer",  value)
+            self.assert_match(parser, text, "answer",  value)
 
         # -- IGNORE-CASE: In parsing, calls type converter function !!!
-        self._check(parser, "Answer: YES", "answer", True)
-        self._check_mismatch(parser, "Answer: __YES__", "answer")
+        self.assert_match(parser, "Answer: YES", "answer", True)
+        self.assert_mismatch(parser, "Answer: __YES__", "answer")
 
 
 if __name__ == '__main__':
