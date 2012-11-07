@@ -285,7 +285,7 @@ regular expression for better pattern matching (instead of the default one).
 This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.3.1'
+__version__ = '1.5.3.2'
 
 # yes, I now have two problems
 import re
