@@ -232,7 +232,32 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
+
+If the type-converter has the optional ``pattern`` attribute, it is used as
+regular expression for better pattern matching (instead of the default one).
+You can also use the ``with_pattern(pattern)`` decorator to add this
+information to a type-converter function:
+
+>>> import parse
+>>> @parse.with_pattern(r'\d+')
+... def parse_number(text):
+...    return int(text)
+>>> assert parse_number.pattern == r'\d+'
+>>> schema = 'Answer: {number:Number}'
+>>> parse.parse(schema, 'Answer: 42', dict(Number=parse_number))
+<Result () {'number': 42}>
+>>> _ = parse.parse(schema, 'Answer: Alice', dict(Number=parse_number))
+>>> assert _ is None, "EXPECT MISMATCH"
+
 ----
+
+**Unreleased Changes**:
+
+- Add optional cardinality field support after type field in parse expressions.
+- Add Cardinality, TypeBuilder classes to support different cardinality.
+- Add parse_type module to simplify type creation for common use cases.
+- Add with_pattern() decorator for type-converter functions.
+- Add support for optional 'pattern' attribute in user-defined types.
 
 **Version history (in brief)**:
 

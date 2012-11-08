@@ -91,20 +91,20 @@ class TestPattern(unittest.TestCase):
         assert res.named['a___b'] == 'd'
 
     def test_invalid_groupnames_are_handled_gracefully(self):
-        self.failUnlessRaises(NotImplementedError, parse.parse,
+        self.assertRaises(NotImplementedError, parse.parse,
             "{hello['world']}", "doesn't work")
 
 class TestResult(unittest.TestCase):
     def test_fixed_access(self):
         r = parse.Result((1, 2), {}, None)
-        self.assertEquals(r[0], 1)
-        self.assertEquals(r[1], 2)
+        self.assertEqual(r[0], 1)
+        self.assertEqual(r[1], 2)
         self.assertRaises(IndexError, r.__getitem__, 2)
         self.assertRaises(KeyError, r.__getitem__, 'spam')
 
     def test_named_access(self):
         r = parse.Result((), {'spam': 'ham'}, None)
-        self.assertEquals(r['spam'], 'ham')
+        self.assertEqual(r['spam'], 'ham')
         self.assertRaises(KeyError, r.__getitem__, 'ham')
         self.assertRaises(IndexError, r.__getitem__, 0)
 
@@ -561,25 +561,85 @@ class TestFindall(unittest.TestCase):
 class TestBugs(unittest.TestCase):
     def test_named_date_issue7(self):
         r = parse.parse('on {date:ti}', 'on 2012-09-17')
-        self.assertEquals(r['date'], datetime(2012, 9, 17, 0, 0, 0))
+        self.assertEqual(r['date'], datetime(2012, 9, 17, 0, 0, 0))
 
         # fix introduced regressions
         r = parse.parse('a {:ti} b', 'a 1997-07-16T19:20 b')
-        self.assertEquals(r[0], datetime(1997, 7, 16, 19, 20, 0))
+        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, 0))
         r = parse.parse('a {:ti} b', 'a 1997-07-16T19:20Z b')
         utc = parse.FixedTzOffset(0, 'UTC')
-        self.assertEquals(r[0], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
+        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
         r = parse.parse('a {date:ti} b', 'a 1997-07-16T19:20Z b')
-        self.assertEquals(r['date'], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
+        self.assertEqual(r['date'], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
 
     def test_dotted_type_conversion_pull_8(self):
         # test pull request 8 which fixes type conversion related to dotted
         # names being applied correctly
         r = parse.parse('{a.b:d}', '1')
-        self.assertEquals(r['a.b'], 1)
+        self.assertEqual(r['a.b'], 1)
         r = parse.parse('{a_b:w} {a.b:d}', '1 2')
-        self.assertEquals(r['a_b'], '1')
-        self.assertEquals(r['a.b'], 2)
+        self.assertEqual(r['a_b'], '1')
+        self.assertEqual(r['a.b'], 2)
+
+# -----------------------------------------------------------------------------
+# TEST SUPPORT FOR: TestParseType
+# -----------------------------------------------------------------------------
+# -- PROOF-OF-CONCEPT DATATYPE:
+def parse_number(text):
+    return int(text)
+
+parse_number.pattern = r"\d+"   # Provide better regexp pattern than default.
+parse_number.name = "Number"    # For testing only.
+
+# -- ENUM DATATYPE:
+def parse_yesno(text):
+    return parse_yesno.mapping[text.lower()]
+
+parse_yesno.mapping = {
+    "yes":  True,   "no":  False,
+    "on":   True,   "off": False,
+    "true": True,   "false": False,
+}
+parse_yesno.pattern = r"|".join(parse_yesno.mapping.keys())
+parse_yesno.name = "YesNo"      # For testing only.
+
+# -----------------------------------------------------------------------------
+# TEST CASE: TestParseType
+# -----------------------------------------------------------------------------
+class TestParseType(unittest.TestCase):
+
+    def assert_match(self, parser, text, param_name, expected):
+        result = parser.parse(text)
+        self.assertEqual(result[param_name], expected)
+
+    def assert_mismatch(self, parser, text, param_name):
+        result = parser.parse(text)
+        self.assertTrue(result is None)
+
+    def test_pattern_should_be_used(self):
+        extra_types = { parse_number.name: parse_number }
+        format = "Value is {number:Number} and..."
+        parser = parse.Parser(format, extra_types)
+
+        self.assert_match(parser, "Value is 42 and...",    "number",  42)
+        self.assert_match(parser, "Value is 00123 and...", "number", 123)
+        self.assert_mismatch(parser, "Value is ALICE and...", "number")
+        self.assert_mismatch(parser, "Value is -123 and...",  "number")
+
+    def test_pattern_should_be_used2(self):
+        extra_types = { parse_yesno.name: parse_yesno }
+        format = "Answer: {answer:YesNo}"
+        parser = parse.Parser(format, extra_types)
+
+        # -- ENSURE: Known enum values are correctly extracted.
+        for value_name, value in parse_yesno.mapping.items():
+            text = "Answer: %s" % value_name
+            self.assert_match(parser, text, "answer",  value)
+
+        # -- IGNORE-CASE: In parsing, calls type converter function !!!
+        self.assert_match(parser, "Answer: YES", "answer", True)
+        self.assert_mismatch(parser, "Answer: __YES__", "answer")
+
 
 if __name__ == '__main__':
     unittest.main()
