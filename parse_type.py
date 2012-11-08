@@ -18,7 +18,7 @@ EXAMPLE:
     >>> from parse_type import TypeBuilder
     >>> from parse import Parser
     >>> def parse_number(text):
-    ...     int(text)
+    ...     return int(text)
     >>> parse_number.pattern = r"\d+"
     >>> parse_many_numbers = TypeBuilder.with_many(parse_number)
     >>> more_types = { "Numbers": parse_many_numbers }
@@ -156,6 +156,10 @@ class TypeBuilder(TypeBuilderBase):
 #        parse_type_choice.pattern = r"|".join(choice_patterns)
 #        parse_type_choice.converters = type_converters
 #        return parse_type_choice
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
 
 # -----------------------------------------------------------------------------
 # Copyright (c) 2012 by Jens Engel (https://github/jenisys/)
