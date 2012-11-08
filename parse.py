@@ -245,10 +245,14 @@ regular expression for better pattern matching (instead of the default one).
 >>> assert _ is None, "MISMATCH"
 
 ----
+UNRELEASED CHANGES:
+- Add optional cardinality field support after type field in parse expressions.
+- Add Cardinality, TypeBuilder classes to support different cardinality.
+- Add parse_type module to simplify type creation for common use cases.
+- Add support for optional 'pattern' attribute in user-defined types.
 
 **Version history (in brief)**:
 
-- 1.5.3.1 Add support for optional 'pattern' attribute in user-defined types.
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
@@ -285,7 +289,7 @@ regular expression for better pattern matching (instead of the default one).
 This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.3.2'
+__version__ = '1.5.3.3'
 
 # yes, I now have two problems
 import re
@@ -495,14 +499,6 @@ class Cardinality(object):
     }
 
     @classmethod
-    def is_one(cls, cardinality):
-        return cardinality == cls.one or cardinality is None
-
-    @classmethod
-    def is_many(cls, cardinality):
-        return cardinality == cls.one_or_more or cardinality == cls.zero_or_more
-
-    @classmethod
     def make_zero_or_one_pattern(cls, pattern):
         return r"(%s)?" % pattern
 
@@ -514,25 +510,128 @@ class Cardinality(object):
     def make_one_or_more_pattern(cls, pattern, listsep=','):
         return r"(%s)(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
 
-    @classmethod
-    def make_pattern_for(cls, cardinality, pattern, listsep=','):
-        """
-        Creates a new regular expression pattern for the cardinality.
+# -- OPTIONAL CODE:
+#    @classmethod
+#    def make_pattern_for(cls, cardinality, pattern, listsep=','):
+#        """
+#        Creates a new regular expression pattern for the cardinality.
+#
+#        :param cardinality: Cardinality case (zero_or_one, zero_or_more, ...)
+#        :param pattern:  Regex pattern for cardinality one (as text).
+#        :param listsep:  Optional list separator for many (default: comma ',').
+#        :return: New regular expression pattern for this cardinality case.
+#        """
+#        if cardinality == cls.zero_or_one:
+#            return cls.make_zero_or_one_pattern(pattern)
+#        elif cardinality == cls.zero_or_more:
+#            return cls.make_zero_or_more_pattern(pattern, listsep)
+#        elif cardinality == cls.one_or_more:
+#            return cls.make_one_or_more_pattern(pattern, listsep)
+#            # -- OTHERWISE, EXPECT: Cardinality one, otherwise OOPS.
+#        assert cls.is_one(cardinality), "Unknown value: %s" % cardinality
+#        return pattern
+#
+#    @classmethod
+#    def is_one(cls, cardinality):
+#        return cardinality == cls.one or cardinality is None
+#
+#    @classmethod
+#    def is_many(cls, cardinality):
+#        return cardinality == cls.one_or_more or cardinality == cls.zero_or_more
+#
+# -----------------------------------------------------------------------------
+# CLASS: TypeBuilder
+# -----------------------------------------------------------------------------
+class TypeBuilder(object):
+    """
+    Provides a utility class to build type-converters (parse_types) for parse.
+    It supports to build new type-converters for different cardinality
+    based on the type-converter for cardinality one.
+    """
+    default_pattern = r".+?"
 
-        :param cardinality: Cardinality case (zero_or_one, zero_or_more, ...)
-        :param pattern:  Regex pattern for cardinality one (as text).
-        :param listsep:  Optional list separator for many (default: comma ',').
-        :return: New regular expression pattern for this cardinality case.
+    @classmethod
+    def with_zero_or_one(cls, parse_type):
         """
-        if cardinality == cls.zero_or_one:
-            return cls.make_zero_or_one_pattern(pattern)
-        elif cardinality == cls.zero_or_more:
-            return cls.make_zero_or_more_pattern(pattern, listsep)
-        elif cardinality == cls.one_or_more:
-            return cls.make_one_or_more_pattern(pattern, listsep)
-            # -- OTHERWISE, EXPECT: Cardinality one, otherwise OOPS.
-        assert cls.is_one(cardinality), "Unknown value: %s" % cardinality
-        return pattern
+        Creates a type-converter function for a T with 0..1 times
+        by using the type-converter for one item of T.
+
+        :param parse_type: Type-converter (function) for data type T.
+        :return: type-converter for optional<T> (T or None).
+        """
+        def parse_optional(text, m=None):
+            if text:
+                text = text.strip()
+            if not text:
+                return None
+            return parse_type(text)
+        pattern = getattr(parse_type, "pattern", cls.default_pattern)
+        new_pattern = Cardinality.make_zero_or_one_pattern(pattern)
+        parse_optional.pattern = new_pattern
+        return parse_optional
+
+    @classmethod
+    def with_zero_or_more(cls, parse_type, listsep=",", max_size=None):
+        """
+        Creates a type-converter function for a list<T> with 0..N items
+        by using the type-converter for one item of T.
+
+        :param parse_type: Type-converter (function) for data type T.
+        :param listsep:  Optional list separator between items (default: ',')
+        :param max_size: Optional max. number of items constraint (future).
+        :return: type-converter for list<T>
+        """
+        def parse_list0(text, m=None):
+            if text:
+                text = text.strip()
+            if not text:
+                return []
+            parts = [ parse_type(texti.strip())
+                      for texti in text.split(listsep) ]
+            return parts
+        pattern  = getattr(parse_type, "pattern", cls.default_pattern)
+        list_pattern = Cardinality.make_zero_or_more_pattern(pattern, listsep)
+        parse_list0.pattern  = list_pattern
+        parse_list0.max_size = max_size
+        return parse_list0
+
+    @classmethod
+    def with_one_or_more(cls, parse_type, listsep=",", max_size=None):
+        """
+        Creates a type-converter function for a list<T> with 1..N items
+        by using the type-converter for one item of T.
+
+        :param parse_type: Type-converter (function) for data type T.
+        :param listsep:  Optional list separator between items (default: ',')
+        :param max_size: Optional max. number of items constraint (future).
+        :return: type-converter for list<T>
+        """
+        def parse_list(text, m=None):
+            parts = [ parse_type(texti.strip())
+                      for texti in text.split(listsep) ]
+            return parts
+        pattern = getattr(parse_type, "pattern", cls.default_pattern)
+        list_pattern = Cardinality.make_one_or_more_pattern(pattern, listsep)
+        parse_list.pattern  = list_pattern
+        parse_list.max_size = max_size
+        return parse_list
+
+    # -- ALIAS METHODS:
+    @classmethod
+    def with_optional(cls, parse_type):
+        """Alias for :py:meth:`with_zero_or_one` method."""
+        return cls.with_zero_or_one(parse_type)
+
+    @classmethod
+    def with_many(cls, parse_type, **kwargs):
+        """Alias for :py:meth:`with_one_or_more` method."""
+        return cls.with_one_or_more(parse_type, **kwargs)
+
+    @classmethod
+    def with_many0(cls, parse_type, **kwargs):
+        """Alias for :py:meth:`with_zero_or_more` method."""
+        return cls.with_zero_or_more(parse_type, **kwargs)
+
 
 # -----------------------------------------------------------------------------
 # FUNCTIONS: Parse Helpers
@@ -777,28 +876,22 @@ class Parser(object):
         is_numeric = type and type in 'n%fegdobh'
         if type in self._extra_types:
             type_converter = self._extra_types[type]
-            s = getattr(type_converter, 'pattern', r'.+?')
-            if Cardinality.is_many(cardinality):
-                # -- CASE MANY: zero_or_more, one_or_more (list<T> as CSV).
-                # BETTER: parse_many = TypeBuilder.with_zero_or_more(type_converter)
-                # BETTER: parse_many = TypeBuilder.with_one_or_more(type_converter)
-                # s = parse_many.pattern
-                s = Cardinality.make_pattern_for(cardinality, s)
-                def f(text, m):
-                    if not text:
-                        return []
-                    parts = [ type_converter(texti.strip())
-                              for texti in text.split(',') ]
-                    return parts
+            s = getattr(type_converter, 'pattern', TypeBuilder.default_pattern)
+            if cardinality == Cardinality.one_or_more:
+                # -- CASE MANY one_or_more: list<T> as comma-separated list.
+                f = TypeBuilder.with_one_or_more(type_converter)
+                s = f.pattern
+            elif cardinality == Cardinality.zero_or_more:
+                # -- CASE MANY zero_or_more: list<T> as comma-separated list.
+                f = TypeBuilder.with_zero_or_more(type_converter)
+                s = f.pattern
             elif cardinality == Cardinality.zero_or_one:
-                # -- CASE: zero_or_one (T or None)
-                # BETTER: parse_optional = TypeBuilder.with_optional(type_converter)
-                def f(text, m):
-                    if not text:
-                        return None
-                    return type_converter(text)
+                # -- CASE zero_or_one: optional<T> := T or None
+                f = TypeBuilder.with_zero_or_one(type_converter)
+                # -- NOT HERE: s = f.pattern
+                #    OPTIONAL case is better handled below.
             else:
-                # -- CASE: one (T)
+                # -- CASE one: T
                 def f(string, m):
                     return type_converter(string)
             self._type_conversions[group] = f

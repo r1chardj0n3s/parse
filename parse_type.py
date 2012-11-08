@@ -9,7 +9,7 @@ It is often useful to constrain how often a data type occurs.
 This is also called the cardinality of a data type (in a context).
 The supported cardinality are:
 
-  * 0..1  zero_or_one, optional: T or None
+  * 0..1  zero_or_one,  optional<T>: T or None
   * 0..N  zero_or_more, list_of<T>
   * 1..N  one_or_more,  list_of<T> (many)
 
@@ -19,7 +19,7 @@ EXAMPLE:
     >>> from parse import Parser
     >>> def parse_number(text):
     ...     int(text)
-    >>> parse_number.pattern = r"\s*\d+"
+    >>> parse_number.pattern = r"\d+"
     >>> parse_many_numbers = TypeBuilder.with_many(parse_number)
     >>> more_types = { "Numbers": parse_many_numbers }
     >>> parser = Parser("List: {numbers:Numbers}", more_types)
@@ -59,103 +59,13 @@ EXAMPLE:
 
 """
 
-class Cardinality(object):
-    """
-    Helper class to build regular expression pattern for different cardinality.
-    """
-    @classmethod
-    def make_zero_or_one_pattern(cls, pattern):
-        return r"(%s)?" % pattern
+from parse import TypeBuilder as TypeBuilderBase
 
-    @classmethod
-    def make_zero_or_more_pattern(cls, pattern, listsep=','):
-        return r"(%s)?(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
-
-    @classmethod
-    def make_one_or_more_pattern(cls, pattern, listsep=','):
-        return r"(%s)(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
-
-
-class TypeBuilder(object):
+class TypeBuilder(TypeBuilderBase):
     """
     Provides a utility class to build type-converters (parse_types) for parse.
-
     """
     default_pattern = r".+?"
-
-    @classmethod
-    def with_optional(cls, parse_type):
-        return cls.with_zero_or_one(parse_type)
-
-    @classmethod
-    def with_many(cls, parse_type, **kwargs):
-        return cls.with_one_or_more(parse_type, **kwargs)
-
-    @classmethod
-    def with_zero_or_one(cls, parse_type):
-        """
-        Creates a type-converter function for a T with 0..1 times
-        by using the type-converter for one item of T.
-
-        :param parse_type: Type-converter (function) for data type T.
-        :return: Create type-converter for optional<T> (T or None).
-        """
-        def parse_optional(text):
-            if text:
-                text = text.strip()
-            if not text:
-                return None
-            return parse_type(text)
-        pattern = getattr(parse_type, "pattern", cls.default_pattern)
-        new_pattern = Cardinality.make_zero_or_one_pattern(pattern)
-        parse_optional.pattern = new_pattern
-        return parse_optional
-
-    @classmethod
-    def with_zero_or_more(cls, parse_type, listsep=",", max_size=None):
-        """
-        Creates a type-converter function for a list<T> with 0..N items
-        by using the type-converter for one item of T.
-
-        :param parse_type: Type-converter (function) for data type T.
-        :param listsep:  Optional list separator between items (default: ',')
-        :param max_size: Optional max. number of items constraint (future).
-        :return: Create type-converter for list<T>
-        """
-        def parse_list0(text):
-            if text:
-                text = text.strip()
-            if not text:
-                return []
-            parts = [ parse_type(texti.strip())
-                      for texti in text.split(listsep) ]
-            return parts
-        pattern  = getattr(parse_type, "pattern", cls.default_pattern)
-        list_pattern = Cardinality.make_zero_or_more_pattern(pattern, listsep)
-        parse_list0.pattern  = list_pattern
-        parse_list0.max_size = max_size
-        return parse_list0
-
-    @classmethod
-    def with_one_or_more(cls, parse_type, listsep=",", max_size=None):
-        """
-        Creates a type-converter function for a list<T> with 1..N items
-        by using the type-converter for one item of T.
-
-        :param parse_type: Type-converter (function) for data type T.
-        :param listsep:  Optional list separator between items (default: ',')
-        :param max_size: Optional max. number of items constraint (future).
-        :return: Create type-converter for list<T>
-        """
-        def parse_list(text):
-            parts = [ parse_type(texti.strip())
-                      for texti in text.split(listsep) ]
-            return parts
-        pattern = getattr(parse_type, "pattern", cls.default_pattern)
-        list_pattern = Cardinality.make_one_or_more_pattern(pattern, listsep)
-        parse_list.pattern  = list_pattern
-        parse_list.max_size = max_size
-        return parse_list
 
     @staticmethod
     def make_enum(enum_mappings):
@@ -247,7 +157,8 @@ class TypeBuilder(object):
 #        parse_type_choice.converters = type_converters
 #        return parse_type_choice
 
-# Copyright (c) 2012 by jenisys (https://github/jenisys/)
+# -----------------------------------------------------------------------------
+# Copyright (c) 2012 by Jens Engel (https://github/jenisys/)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
