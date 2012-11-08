@@ -33,9 +33,9 @@ parse_person_choice = TypeBuilder.make_choice(["Alice", "Bob", "Charly"])
 parse_person_choice.name = "PersonChoice"      # For testing only.
 
 # -----------------------------------------------------------------------------
-# TEST CASE: TestTypeBuilder
+# TEST CASE: TestParseType
 # -----------------------------------------------------------------------------
-class TestTypeBuilder(unittest.TestCase):
+class TestParseType(unittest.TestCase):
 
     # -- PYTHON VERSION BACKWARD-COMPATIBILTY:
     if not hasattr(unittest.TestCase, "assertIsNone"):
@@ -89,7 +89,7 @@ class TestTypeBuilder(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # TEST CASE: TestTypeBuilder4Cardinality
 # -----------------------------------------------------------------------------
-class TestTypeBuilder4Cardinality(TestTypeBuilder):
+class TestTypeBuilder4Cardinality(TestParseType):
 
     def test_with_zero_or_one_basics(self):
         parse_opt_number = TypeBuilder.with_zero_or_one(parse_number)
@@ -100,8 +100,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_opt_number.name = "OptionalNumber"
 
         extra_types = self.build_type_dict([ parse_opt_number ])
-        format_ = "Optional: {number:OptionalNumber}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "Optional: {number:OptionalNumber}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "Optional: ",   "number", None)
@@ -119,8 +119,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_opt_number.name = "OptionalNumber"
 
         extra_types = self.build_type_dict([ parse_opt_number ])
-        format_ = "Optional: {number:OptionalNumber}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "Optional: {number:OptionalNumber}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "Optional: ",   "number", None)
@@ -136,8 +136,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_numbers.name = "Numbers0"
 
         extra_types = self.build_type_dict([ parse_numbers ])
-        format_ = "List: {numbers:Numbers0}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "List: {numbers:Numbers0}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "List: ",        "numbers", [ ])
@@ -157,8 +157,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_colors.name = "Colors0"
 
         extra_types = self.build_type_dict([ parse_colors ])
-        format_ = "List: {colors:Colors0}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "List: {colors:Colors0}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "List: ",           "colors", [ ])
@@ -189,8 +189,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_numbers.name = "Numbers"
 
         extra_types = self.build_type_dict([ parse_numbers ])
-        format_ = "List: {numbers:Numbers}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "List: {numbers:Numbers}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "List: 1",       "numbers", [ 1 ])
@@ -210,8 +210,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_numbers.name = "Numbers"
 
         extra_types = self.build_type_dict([ parse_numbers ])
-        format_ = "List: {numbers:Numbers}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "List: {numbers:Numbers}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "List: 1",       "numbers", [ 1 ])
@@ -227,8 +227,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_colors.name = "Colors"
 
         extra_types = self.build_type_dict([ parse_colors ])
-        format_ = "List: {colors:Colors}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "List: {colors:Colors}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "List: green",      "colors", [ "green" ])
@@ -247,8 +247,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_colors.name = "Colors"
 
         extra_types = self.build_type_dict([ parse_colors ])
-        format_ = "List: {colors:Colors}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "List: {colors:Colors}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "List: green",      "colors", [ 2 ])
@@ -267,8 +267,8 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
         parse_numbers2.name = "Numbers2"
 
         extra_types = self.build_type_dict([ parse_numbers2 ])
-        format_ = "List: {numbers:Numbers2}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "List: {numbers:Numbers2}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "List: 1",       "numbers", [ 1 ])
@@ -278,7 +278,7 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
 # -----------------------------------------------------------------------------
 # TEST CASE: TestTypeBuilder4Enum
 # -----------------------------------------------------------------------------
-class TestTypeBuilder4Enum(TestTypeBuilder):
+class TestTypeBuilder4Enum(TestParseType):
 
     TYPE_CONVERTERS = [ parse_yesno ]
 
@@ -290,8 +290,8 @@ class TestTypeBuilder4Enum(TestTypeBuilder):
 
     def test_parse_enum_yesno(self):
         extra_types = self.build_type_dict([ parse_yesno ])
-        format_ = "Answer: {answer:YesNo}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "Answer: {answer:YesNo}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.ensure_can_parse_all_enum_values(parser,
@@ -314,8 +314,8 @@ class TestTypeBuilder4Enum(TestTypeBuilder):
         parse_nword.name = "NumberAsWord"
 
         extra_types = self.build_type_dict([ parse_nword ])
-        format_ = "Answer: {number:NumberAsWord}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "Answer: {number:NumberAsWord}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.ensure_can_parse_all_enum_values(parser,
@@ -337,7 +337,7 @@ class TestTypeBuilder4Enum(TestTypeBuilder):
 # -----------------------------------------------------------------------------
 # TEST CASE: TestTypeBuilder4Choice
 # -----------------------------------------------------------------------------
-class TestTypeBuilder4Choice(TestTypeBuilder):
+class TestTypeBuilder4Choice(TestParseType):
 
     def ensure_can_parse_all_choices(self, parser, type_converter, schema, name):
         for choice_value in type_converter.choices:
@@ -351,8 +351,8 @@ class TestTypeBuilder4Choice(TestTypeBuilder):
 
     def test_parse_choice_persons(self):
         extra_types = self.build_type_dict([ parse_person_choice ])
-        format_ = "Answer: {answer:PersonChoice}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "Answer: {answer:PersonChoice}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "Answer: Alice", "answer", "Alice")
@@ -372,8 +372,8 @@ class TestTypeBuilder4Choice(TestTypeBuilder):
         parse_choice = TypeBuilder.make_choice(["one", "two", "three"])
         parse_choice.name = "NumberWordChoice"
         extra_types = self.build_type_dict([ parse_choice ])
-        format_ = "Answer: {answer:NumberWordChoice}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "Answer: {answer:NumberWordChoice}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "Answer: one", "answer", "one")
@@ -390,8 +390,8 @@ class TestTypeBuilder4Choice(TestTypeBuilder):
         parse_choice2 = TypeBuilder.make_choice2(["zero", "one", "two"])
         parse_choice2.name = "NumberWordChoice2"
         extra_types = self.build_type_dict([ parse_choice2 ])
-        format_ = "Answer: {answer:NumberWordChoice2}"
-        parser  = parse.Parser(format_, extra_types)
+        schema = "Answer: {answer:NumberWordChoice2}"
+        parser = parse.Parser(schema, extra_types)
 
         # -- PERFORM TESTS:
         self.assert_match(parser, "Answer: zero", "answer", (0, "zero"))
@@ -412,7 +412,7 @@ if __name__ == '__main__':
     unittest.main()
 
 
-# Copyright (c) 2012 by jenisys (https://github/jenisys/)
+# Copyright (c) 2012 by Jens Engel (https://github/jenisys/)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

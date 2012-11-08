@@ -4,9 +4,9 @@
 Test experiment for parse.
 Add cardinality format field after type:
 
-    "... {person:Person?} ..."  -- CARDINALITY: Zero or one,  0..1 (optional)
-    "... {person:Person*} ..."  -- CARDINALITY: Zero or more, 0..N
-    "... {person:Person+} ..."  -- CARDINALITY: One or more,  1..N (many)
+    "... {person:Person?} ..."   -- CARDINALITY: Zero or one,  0..1 (optional)
+    "... {persons:Person*} ..."  -- CARDINALITY: Zero or more, 0..N (many0)
+    "... {persons:Person+} ..."  -- CARDINALITY: One or more,  1..N (many)
 
 
 
@@ -17,12 +17,13 @@ REQUIRES:
 import unittest
 import parse
 from parse_type import TypeBuilder
-from test_parse_type import TestTypeBuilder
+from test_parse_type import TestParseType
+
 
 # -----------------------------------------------------------------------------
-# TEST CASE: TestTypeBuilder4CardinalityField
+# TEST CASE: TestParseTypeWithCardinalityField
 # -----------------------------------------------------------------------------
-class TestTypeBuilder4CardinalityField(TestTypeBuilder):
+class TestParseTypeWithCardinalityField(TestParseType):
     """
     Test cardinality field part in parse type expressions, ala:
 
@@ -122,7 +123,7 @@ if __name__ == '__main__':
     unittest.main()
 
 
-# Copyright (c) 2012 by jenisys (https://github/jenisys/)
+# Copyright (c) 2012 by Jens Engel (https://github/jenisys/)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

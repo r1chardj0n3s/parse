@@ -246,9 +246,15 @@ regular expression for better pattern matching (instead of the default one).
 
 ----
 
+**Unreleased Changes**:
+
+- Add optional cardinality field support after type field in parse expressions.
+- Add Cardinality, TypeBuilder classes to support different cardinality.
+- Add parse_type module to simplify type creation for common use cases.
+- Add support for optional 'pattern' attribute in user-defined types.
+
 **Version history (in brief)**:
 
-- 1.5.3.1 Add support for optional 'pattern' attribute in user-defined types.
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
