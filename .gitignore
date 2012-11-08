@@ -5,5 +5,8 @@
 .idea/
 .tox/
 __pycache__/
+build/
+dist/
+.coverage
 
 MANIFEST
