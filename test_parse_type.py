@@ -33,9 +33,9 @@ parse_person_choice = TypeBuilder.make_choice(["Alice", "Bob", "Charly"])
 parse_person_choice.name = "PersonChoice"      # For testing only.
 
 # -----------------------------------------------------------------------------
-# TEST CASE: TestTypeBuilder
+# TEST CASE: TestParseType
 # -----------------------------------------------------------------------------
-class TestTypeBuilder(unittest.TestCase):
+class TestParseType(unittest.TestCase):
 
     # -- PYTHON VERSION BACKWARD-COMPATIBILTY:
     if not hasattr(unittest.TestCase, "assertIsNone"):
@@ -89,7 +89,7 @@ class TestTypeBuilder(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # TEST CASE: TestTypeBuilder4Cardinality
 # -----------------------------------------------------------------------------
-class TestTypeBuilder4Cardinality(TestTypeBuilder):
+class TestTypeBuilder4Cardinality(TestParseType):
 
     def test_with_zero_or_one_basics(self):
         parse_opt_number = TypeBuilder.with_zero_or_one(parse_number)
@@ -278,7 +278,7 @@ class TestTypeBuilder4Cardinality(TestTypeBuilder):
 # -----------------------------------------------------------------------------
 # TEST CASE: TestTypeBuilder4Enum
 # -----------------------------------------------------------------------------
-class TestTypeBuilder4Enum(TestTypeBuilder):
+class TestTypeBuilder4Enum(TestParseType):
 
     TYPE_CONVERTERS = [ parse_yesno ]
 
@@ -337,7 +337,7 @@ class TestTypeBuilder4Enum(TestTypeBuilder):
 # -----------------------------------------------------------------------------
 # TEST CASE: TestTypeBuilder4Choice
 # -----------------------------------------------------------------------------
-class TestTypeBuilder4Choice(TestTypeBuilder):
+class TestTypeBuilder4Choice(TestParseType):
 
     def ensure_can_parse_all_choices(self, parser, type_converter, schema, name):
         for choice_value in type_converter.choices:
@@ -412,7 +412,7 @@ if __name__ == '__main__':
     unittest.main()
 
 
-# Copyright (c) 2012 by jenisys (https://github/jenisys/)
+# Copyright (c) 2012 by Jens Engel (https://github/jenisys/)
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
