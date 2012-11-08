@@ -109,9 +109,9 @@ class TestTypeBuilder4Cardinality(TestParseType):
         self.assert_match(parser, "Optional: 42", "number", 42)
 
         # -- PARSE MISMATCH:
-        self.assert_mismatch(parser, "List: x",   "number")  # Not a Number.
-        self.assert_mismatch(parser, "List: -1",  "number")  # Negative.
-        self.assert_mismatch(parser, "List: a, b", "number") # List of ...
+        self.assert_mismatch(parser, "Optional: x",   "number")  # Not a Number.
+        self.assert_mismatch(parser, "Optional: -1",  "number")  # Negative.
+        self.assert_mismatch(parser, "Optional: a, b", "number") # List of ...
 
     def test_with_optional(self):
         # -- ALIAS FOR: zero_or_one
