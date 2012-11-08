@@ -473,9 +473,9 @@ class Cardinality(object):
     """
     Cardinality field for parse format expression, ala:
 
-        "... {person:Person?} ..."  -- OPTIONAL: Cardinality zero or one, 0..1
-        "... {person:Person*} ..."  -- MANY0: Cardinality zero or more, 0..
-        "... {person:Person+} ..."  -- MANY:  Cardinality one  or more, 1..
+        "... {person:Person?} ..."   -- OPTIONAL: Cardinality zero or one, 0..1
+        "... {persons:Person*} ..."  -- MANY0: Cardinality zero or more, 0..
+        "... {persons:Person+} ..."  -- MANY:  Cardinality one  or more, 1..
     """
     one = 1
     zero_or_one  = 2

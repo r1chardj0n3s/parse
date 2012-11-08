@@ -61,7 +61,7 @@ EXAMPLE:
 
 class Cardinality(object):
     """
-    Helper class to build regular expression pattern for differen cardinalities.
+    Helper class to build regular expression pattern for different cardinality.
     """
     @classmethod
     def make_zero_or_one_pattern(cls, pattern):

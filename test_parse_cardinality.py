@@ -4,9 +4,9 @@
 Test experiment for parse.
 Add cardinality format field after type:
 
-    "... {person:Person?} ..."  -- CARDINALITY: Zero or one,  0..1 (optional)
-    "... {person:Person*} ..."  -- CARDINALITY: Zero or more, 0..N
-    "... {person:Person+} ..."  -- CARDINALITY: One or more,  1..N (many)
+    "... {person:Person?} ..."   -- CARDINALITY: Zero or one,  0..1 (optional)
+    "... {persons:Person*} ..."  -- CARDINALITY: Zero or more, 0..N (many0)
+    "... {persons:Person+} ..."  -- CARDINALITY: One or more,  1..N (many)
 
 
 
