@@ -245,7 +245,9 @@ regular expression for better pattern matching (instead of the default one).
 >>> assert _ is None, "MISMATCH"
 
 ----
-UNRELEASED CHANGES:
+
+**Unreleased Changes**:
+
 - Add optional cardinality field support after type field in parse expressions.
 - Add Cardinality, TypeBuilder classes to support different cardinality.
 - Add parse_type module to simplify type creation for common use cases.
