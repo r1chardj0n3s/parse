@@ -232,7 +232,32 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
+
+If the type-converter has the optional ``pattern`` attribute, it is used as
+regular expression for better pattern matching (instead of the default one).
+You can also use the ``with_pattern(pattern)`` decorator to add this
+information to a type-converter function:
+
+>>> import parse
+>>> @parse.with_pattern(r'\d+')
+... def parse_number(text):
+...    return int(text)
+>>> assert parse_number.pattern == r'\d+'
+>>> schema = 'Answer: {number:Number}'
+>>> parse.parse(schema, 'Answer: 42', dict(Number=parse_number))
+<Result () {'number': 42}>
+>>> _ = parse.parse(schema, 'Answer: Alice', dict(Number=parse_number))
+>>> assert _ is None, "EXPECT MISMATCH"
+
 ----
+
+**Unreleased Changes**:
+
+- Add optional cardinality field support after type field in parse expressions.
+- Add Cardinality, TypeBuilder classes to support different cardinality.
+- Add parse_type module to simplify type creation for common use cases.
+- Add with_pattern() decorator for type-converter functions.
+- Add support for optional 'pattern' attribute in user-defined types.
 
 **Version history (in brief)**:
 
@@ -272,7 +297,7 @@ with the same identifier.
 This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.3'
+__version__ = '1.5.3.4'
 
 # yes, I now have two problems
 import re
@@ -326,6 +351,8 @@ def percentage(string, match):
 class FixedTzOffset(tzinfo):
     """Fixed offset in minutes east from UTC.
     """
+    ZERO = timedelta(0)
+
     def __init__(self, offset, name):
         self._offset = timedelta(minutes = offset)
         self._name = name
@@ -340,7 +367,7 @@ class FixedTzOffset(tzinfo):
         return self._name
 
     def dst(self, dt):
-        return ZERO
+        return self.ZERO
 
     def __eq__(self, other):
         return self._name == other._name and self._offset == other._offset
@@ -415,7 +442,7 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         tz = tz.strip()
         if tz.isupper():
             # TODO use the awesome python TZ module?
-            TODO
+            pass
         else:
             sign = tz[0]
             if ':' in tz:
@@ -451,7 +478,199 @@ REGEX_SAFETY = re.compile(r'([?\\.[\]()*+\^$!])')
 ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
    ['t'+c for c in 'ieahgct'])
 
+# -----------------------------------------------------------------------------
+# CLASS: Cardinality (Field Part)
+# -----------------------------------------------------------------------------
+class Cardinality(object):
+    """
+    Cardinality field for parse format expression, ala:
 
+        "... {person:Person?} ..."   -- OPTIONAL: Cardinality zero or one, 0..1
+        "... {persons:Person*} ..."  -- MANY0: Cardinality zero or more, 0..
+        "... {persons:Person+} ..."  -- MANY:  Cardinality one  or more, 1..
+    """
+    one = 1
+    zero_or_one  = 2
+    zero_or_more = 3
+    one_or_more  = 4
+
+    # -- ALIASES:
+    optional = zero_or_one
+    many = one_or_more
+
+    # -- MAPPING SUPPORT:
+    pattern_chars = "?*+"
+    from_char_map = {
+        '?': zero_or_one,
+        '*': zero_or_more,
+        '+': one_or_more,
+    }
+
+    @classmethod
+    def make_zero_or_one_pattern(cls, pattern):
+        return r"(%s)?" % pattern
+
+    @classmethod
+    def make_zero_or_more_pattern(cls, pattern, listsep=','):
+        return r"(%s)?(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
+
+    @classmethod
+    def make_one_or_more_pattern(cls, pattern, listsep=','):
+        return r"(%s)(\s*%s\s*(%s))*" % (pattern, listsep, pattern)
+
+# -- OPTIONAL CODE:
+#    @classmethod
+#    def make_pattern_for(cls, cardinality, pattern, listsep=','):
+#        """
+#        Creates a new regular expression pattern for the cardinality.
+#
+#        :param cardinality: Cardinality case (zero_or_one, zero_or_more, ...)
+#        :param pattern:  Regex pattern for cardinality one (as text).
+#        :param listsep:  Optional list separator for many (default: comma ',').
+#        :return: New regular expression pattern for this cardinality case.
+#        """
+#        if cardinality == cls.zero_or_one:
+#            return cls.make_zero_or_one_pattern(pattern)
+#        elif cardinality == cls.zero_or_more:
+#            return cls.make_zero_or_more_pattern(pattern, listsep)
+#        elif cardinality == cls.one_or_more:
+#            return cls.make_one_or_more_pattern(pattern, listsep)
+#            # -- OTHERWISE, EXPECT: Cardinality one, otherwise OOPS.
+#        assert cls.is_one(cardinality), "Unknown value: %s" % cardinality
+#        return pattern
+#
+#    @classmethod
+#    def is_one(cls, cardinality):
+#        return cardinality == cls.one or cardinality is None
+#
+#    @classmethod
+#    def is_many(cls, cardinality):
+#        return cardinality == cls.one_or_more or cardinality == cls.zero_or_more
+#
+# -----------------------------------------------------------------------------
+# CLASS: TypeBuilder
+# -----------------------------------------------------------------------------
+class TypeBuilder(object):
+    """
+    Provides a utility class to build type-converters (parse_types) for parse.
+    It supports to build new type-converters for different cardinality
+    based on the type-converter for cardinality one.
+    """
+    default_pattern = r".+?"
+
+    @classmethod
+    def with_zero_or_one(cls, parse_type):
+        """
+        Creates a type-converter function for a T with 0..1 times
+        by using the type-converter for one item of T.
+
+        :param parse_type: Type-converter (function) for data type T.
+        :return: type-converter for optional<T> (T or None).
+        """
+        def parse_optional(text, m=None):
+            if text:
+                text = text.strip()
+            if not text:
+                return None
+            return parse_type(text)
+        pattern = getattr(parse_type, "pattern", cls.default_pattern)
+        new_pattern = Cardinality.make_zero_or_one_pattern(pattern)
+        parse_optional.pattern = new_pattern
+        return parse_optional
+
+    @classmethod
+    def with_zero_or_more(cls, parse_type, listsep=",", max_size=None):
+        """
+        Creates a type-converter function for a list<T> with 0..N items
+        by using the type-converter for one item of T.
+
+        :param parse_type: Type-converter (function) for data type T.
+        :param listsep:  Optional list separator between items (default: ',')
+        :param max_size: Optional max. number of items constraint (future).
+        :return: type-converter for list<T>
+        """
+        def parse_list0(text, m=None):
+            if text:
+                text = text.strip()
+            if not text:
+                return []
+            parts = [ parse_type(texti.strip())
+                      for texti in text.split(listsep) ]
+            return parts
+        pattern  = getattr(parse_type, "pattern", cls.default_pattern)
+        list_pattern = Cardinality.make_zero_or_more_pattern(pattern, listsep)
+        parse_list0.pattern  = list_pattern
+        parse_list0.max_size = max_size
+        return parse_list0
+
+    @classmethod
+    def with_one_or_more(cls, parse_type, listsep=",", max_size=None):
+        """
+        Creates a type-converter function for a list<T> with 1..N items
+        by using the type-converter for one item of T.
+
+        :param parse_type: Type-converter (function) for data type T.
+        :param listsep:  Optional list separator between items (default: ',')
+        :param max_size: Optional max. number of items constraint (future).
+        :return: type-converter for list<T>
+        """
+        def parse_list(text, m=None):
+            parts = [ parse_type(texti.strip())
+                      for texti in text.split(listsep) ]
+            return parts
+        pattern = getattr(parse_type, "pattern", cls.default_pattern)
+        list_pattern = Cardinality.make_one_or_more_pattern(pattern, listsep)
+        parse_list.pattern  = list_pattern
+        parse_list.max_size = max_size
+        return parse_list
+
+    # -- ALIAS METHODS:
+    @classmethod
+    def with_optional(cls, parse_type):
+        """Alias for :py:meth:`with_zero_or_one` method."""
+        return cls.with_zero_or_one(parse_type)
+
+    @classmethod
+    def with_many(cls, parse_type, **kwargs):
+        """Alias for :py:meth:`with_one_or_more` method."""
+        return cls.with_one_or_more(parse_type, **kwargs)
+
+    @classmethod
+    def with_many0(cls, parse_type, **kwargs):
+        """Alias for :py:meth:`with_zero_or_more` method."""
+        return cls.with_zero_or_more(parse_type, **kwargs)
+
+# -----------------------------------------------------------------------------
+# DECORATOR: with_pattern
+# -----------------------------------------------------------------------------
+def with_pattern(pattern):
+    """
+    Provides a decorator for type-converter (parse_type) functions.
+    Annotates the type converter with the :attr:`pattern` attribute.
+
+    EXAMPLE:
+        >>> import parse
+        >>> @parse.with_pattern(r"\d+")
+        ... def parse_number(text):
+        ...     return int(text)
+
+    is equivalent to:
+
+        >>> def parse_number(text):
+        ...     return int(text)
+        >>> parse_number.pattern = r"\d+"
+
+    :param pattern:  Regular expression pattern (as text).
+    :return: Wrapped function
+    """
+    def decorator(func):
+        func.pattern = pattern
+        return func
+    return decorator
+
+# -----------------------------------------------------------------------------
+# FUNCTIONS: Parse Helpers
+# -----------------------------------------------------------------------------
 def extract_format(format, extra_types):
     '''Pull apart the format [[fill]align][0][width][type]
     '''
@@ -475,6 +694,14 @@ def extract_format(format, extra_types):
             break
         width += format[0]
         format = format[1:]
+    # -- CARDINALITY-FIELD:
+    cardinality = None
+    if format and format[-1] in Cardinality.pattern_chars:
+        _cardinality_char = format[-1]
+        cardinality = Cardinality.from_char_map[_cardinality_char]
+        format = format[:-1]
+        assert format, "Type information is required for cardinality"
+    # -- CARDINALITY-FIELD END.
 
     # the rest is the type, if present
     type = format
@@ -677,14 +904,31 @@ class Parser(object):
 
         # decode the format specification
         format = extract_format(format, self._extra_types)
+        cardinality = format["cardinality"]
 
         # figure type conversions, if any
         type = format['type']
         is_numeric = type and type in 'n%fegdobh'
         if type in self._extra_types:
-            s = '.+?'
-            def f(string, m, type=type):
-                return self._extra_types[type](string)
+            type_converter = self._extra_types[type]
+            s = getattr(type_converter, 'pattern', TypeBuilder.default_pattern)
+            if cardinality == Cardinality.one_or_more:
+                # -- CASE MANY one_or_more: list<T> as comma-separated list.
+                f = TypeBuilder.with_one_or_more(type_converter)
+                s = f.pattern
+            elif cardinality == Cardinality.zero_or_more:
+                # -- CASE MANY zero_or_more: list<T> as comma-separated list.
+                f = TypeBuilder.with_zero_or_more(type_converter)
+                s = f.pattern
+            elif cardinality == Cardinality.zero_or_one:
+                # -- CASE zero_or_one: optional<T> := T or None
+                f = TypeBuilder.with_zero_or_one(type_converter)
+                # -- NOT HERE: s = f.pattern
+                #    OPTIONAL case is better handled below.
+            else:
+                # -- CASE one: T
+                def f(string, m):
+                    return type_converter(string)
             self._type_conversions[group] = f
         elif type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
@@ -793,6 +1037,11 @@ class Parser(object):
 
         if not fill:
             fill = ' '
+
+        if cardinality == Cardinality.zero_or_one:
+            # -- CARDINALITY: Make field optional.
+            assert wrap, "Cardinality requires wrap"
+            wrap += '?'
 
         # Place into a group now - this captures the value we want to keep.
         # Everything else from now is just padding to be stripped off

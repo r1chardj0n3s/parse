@@ -2,7 +2,11 @@
 
 from __future__ import with_statement
 
-from distutils.core import setup
+try:
+    # -- BETTER SUPPORT: More commands, like 'develop', etc.
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 from parse import __version__, __doc__
 
@@ -17,7 +21,7 @@ setup(
     long_description = __doc__,
     author = "Richard Jones",
     author_email = "rjones@ekit-inc.com",
-    py_modules = ['parse'],
+    py_modules = ['parse', 'parse_type' ], # EXPERIMENTAL: parse_type
     url = 'https://github.com/r1chardj0n3s/parse',
     classifiers = [
         'Environment :: Web Environment',
