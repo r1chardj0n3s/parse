@@ -584,49 +584,46 @@ class TestBugs(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
 # -----------------------------------------------------------------------------
-# -- PROOF-OF-CONCEPT DATATYPE:
-def parse_number(text):
-    return int(text)
-
-parse_number.pattern = r"\d+"   # Provide better regexp pattern than default.
-parse_number.name = "Number"    # For testing only.
-
-# -- ENUM DATATYPE:
-def parse_yesno(text):
-    return parse_yesno.mapping[text.lower()]
-
-parse_yesno.mapping = {
-    "yes":  True,   "no":  False,
-    "on":   True,   "off": False,
-    "true": True,   "false": False,
-}
-parse_yesno.pattern = r"|".join(parse_yesno.mapping.keys())
-parse_yesno.name = "YesNo"      # For testing only.
 
 # -----------------------------------------------------------------------------
 # TEST CASE: TestParseType
 # -----------------------------------------------------------------------------
 class TestParseType(unittest.TestCase):
 
-    def _check(self, parser, text, param_name, expected):
+    def assert_match(self, parser, text, param_name, expected):
         result = parser.parse(text)
         self.assertEqual(result[param_name], expected)
 
-    def _check_mismatch(self, parser, text, param_name):
+    def assert_mismatch(self, parser, text, param_name):
         result = parser.parse(text)
         self.assertTrue(result is None)
 
     def test_pattern_should_be_used(self):
+        def parse_number(text):
+            return int(text)
+        parse_number.pattern = r"\d+"
+        parse_number.name = "Number"    # For testing only.
+
         extra_types = { parse_number.name: parse_number }
         format = "Value is {number:Number} and..."
         parser = parse.Parser(format, extra_types)
 
-        self._check(parser, "Value is 42 and...",    "number",  42)
-        self._check(parser, "Value is 00123 and...", "number", 123)
-        self._check_mismatch(parser, "Value is ALICE and...", "number")
-        self._check_mismatch(parser, "Value is -123 and...",  "number")
+        self.assert_match(parser, "Value is 42 and...",    "number",  42)
+        self.assert_match(parser, "Value is 00123 and...", "number", 123)
+        self.assert_mismatch(parser, "Value is ALICE and...", "number")
+        self.assert_mismatch(parser, "Value is -123 and...",  "number")
 
     def test_pattern_should_be_used2(self):
+        def parse_yesno(text):
+            return parse_yesno.mapping[text.lower()]
+        parse_yesno.mapping = {
+            "yes":  True,   "no":  False,
+            "on":   True,   "off": False,
+            "true": True,   "false": False,
+        }
+        parse_yesno.pattern = r"|".join(parse_yesno.mapping.keys())
+        parse_yesno.name = "YesNo"      # For testing only.
+
         extra_types = { parse_yesno.name: parse_yesno }
         format = "Answer: {answer:YesNo}"
         parser = parse.Parser(format, extra_types)
@@ -634,11 +631,22 @@ class TestParseType(unittest.TestCase):
         # -- ENSURE: Known enum values are correctly extracted.
         for value_name, value in parse_yesno.mapping.items():
             text = "Answer: %s" % value_name
-            self._check(parser, text, "answer",  value)
+            self.assert_match(parser, text, "answer",  value)
 
         # -- IGNORE-CASE: In parsing, calls type converter function !!!
-        self._check(parser, "Answer: YES", "answer", True)
-        self._check_mismatch(parser, "Answer: __YES__", "answer")
+        self.assert_match(parser, "Answer: YES", "answer", True)
+        self.assert_mismatch(parser, "Answer: __YES__", "answer")
+
+    def test_with_pattern(self):
+        ab_vals = dict(a=1, b=2)
+        @parse.with_pattern(r'[ab]')
+        def ab(text):
+            return ab_vals[text]
+
+        parser = parse.Parser('test {result:ab}', {'ab': ab})
+        self.assert_match(parser, 'test a', 'result', 1)
+        self.assert_match(parser, 'test b', 'result', 2)
+        self.assert_mismatch(parser, "test c", "result")
 
 
 if __name__ == '__main__':

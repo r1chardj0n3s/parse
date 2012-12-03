@@ -232,8 +232,7 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
-
-If the converter has the optional ``pattern`` attribute, it is used as
+If the type converter has the optional ``pattern`` attribute, it is used as
 regular expression for better pattern matching (instead of the default one).
 
 >>> def parse_number(text):
@@ -244,11 +243,34 @@ regular expression for better pattern matching (instead of the default one).
 >>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
 >>> assert _ is None, "MISMATCH"
 
+You can also use the ``with_pattern(pattern)`` decorator to add this
+information to a type converter function:
+
+>>> from parse import with_pattern
+>>> @with_pattern(r'\d+')
+... def parse_number(text):
+...    return int(text)
+>>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+<Result () {'number': 42}>
+
+A more complete example of a custom type might be:
+
+>>> yesno_mapping = {
+...     "yes":  True,   "no":    False,
+...     "on":   True,   "off":   False,
+...     "true": True,   "false": False,
+... }
+... @with_pattern(r"|".join(yesno_mapping))
+... def parse_yesno(text):
+...     return yesno_mapping[text.lower()]
+
+
 ----
 
 **Version history (in brief)**:
 
-- 1.5.3.1 Add support for optional 'pattern' attribute in user-defined types.
+- 1.6.0 add support for optional ``pattern`` attribute in user-defined types
+  (thanks Jens Engel)
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
@@ -285,7 +307,7 @@ regular expression for better pattern matching (instead of the default one).
 This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.3.1'
+__version__ = '1.6.0'
 
 # yes, I now have two problems
 import re
@@ -294,9 +316,36 @@ from datetime import datetime, time, tzinfo, timedelta
 from functools import partial
 import logging
 
-__all__ = 'parse search findall'.split()
+__all__ = 'parse search findall with_pattern'.split()
 
 log = logging.getLogger(__name__)
+
+
+def with_pattern(pattern):
+    """Attach a regular expression pattern matcher to a custom type converter
+    function.
+
+    This annotates the type converter with the :attr:`pattern` attribute.
+
+    EXAMPLE:
+        >>> import parse
+        >>> @parse.with_pattern(r"\d+")
+        ... def parse_number(text):
+        ...     return int(text)
+
+    is equivalent to:
+
+        >>> def parse_number(text):
+        ...     return int(text)
+        >>> parse_number.pattern = r"\d+"
+
+    :param pattern: regular expression pattern (as text)
+    :return: wrapped function
+    """
+    def decorator(func):
+        func.pattern = pattern
+        return func
+    return decorator
 
 
 def int_convert(base):
