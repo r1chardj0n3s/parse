@@ -88,30 +88,30 @@ spam
 Format Specification
 --------------------
 
-Do remember that most often a straight format-less "{}" will suffice
-where a more complex format specification might have been used.
+Most often a straight format-less ``{}`` will suffice where a more complex
+format specification might have been used.
 
-Most of the `Format Specification Mini-Language`_ is supported::
+Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
    [[fill]align][0][width][type]
 
-The align operators will cause spaces (or specified fill character)
-to be stripped from the value. Similarly width is not enforced; it
-just indicates there may be whitespace or "0"s to strip.
+The differences between `parse()` and `format()` are:
 
-The "#" format character is handled automatically by d, b, o and x -
-that is: if there is a "0b", "0o" or "0x" prefix respectively, it's
-handled. For "d" any will be accepted, but for the others the correct
-prefix must be present if at all. Similarly number sign is handled
-automatically.
-
-The types supported are a slightly different mix to the format() types.  Some
-format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
-In addition some regular expression character group types "D", "w", "W", "s" and
-"S" are also available.
-
-The "e" and "g" types are case-insensitive so there is not need for
-the "E" or "G" types.
+- The align operators will cause spaces (or specified fill character) to be
+  stripped from the parsed value. The width is not enforced; it just indicates
+  there may be whitespace or "0"s to strip.
+- Numeric parsing will automatically handle a "0b", "0o" or "0x" prefix.
+  That is, the "#" format character is handled automatically by d, b, o
+  and x formats. For "d" any will be accepted, but for the others the correct
+  prefix must be present if at all.
+- Numberic sign is handled automatically.
+- The thousands separator is handled automatically if the "n" type is used.
+- The types supported are a slightly different mix to the format() types.  Some
+  format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
+  In addition some regular expression character group types "D", "w", "W", "s"
+  and "S" are also available.
+- The "e" and "g" types are case-insensitive so there is not need for
+  the "E" or "G" types.
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
