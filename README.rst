@@ -91,8 +91,7 @@ Format Specification
 Most often a straight format-less ``{}`` will suffice where a more complex
 format specification might have been used.
 
-Most of `format()`'s `Format Specification Mini-Language`_ is supported with
-some minor changes::
+Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
    [[fill]align][0][width][type]
 
@@ -105,7 +104,8 @@ The differences between `parse()` and `format()` are:
   That is, the "#" format character is handled automatically by d, b, o
   and x formats. For "d" any will be accepted, but for the others the correct
   prefix must be present if at all.
-- Similarly number sign is handled automatically.
+- Numberic sign is handled automatically.
+- The thousands separator is handled automatically if the "n" type is used.
 - The types supported are a slightly different mix to the format() types.  Some
   format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
   In addition some regular expression character group types "D", "w", "W", "s"
@@ -132,7 +132,8 @@ Type  Characters Matched                          Output
  o    Octal numbers                               int
  x    Hexadecimal numbers (lower and upper case)  int
  ti   ISO 8601 format date/time                   datetime
-      e.g. 1972-01-20T10:21:36Z
+      e.g. 1972-01-20T10:21:36Z ("T" and "Z"
+      optional)
  te   RFC2822 e-mail format date/time             datetime
       e.g. Mon, 20 Jan 1972 10:21:36 +1000
  tg   Global (day/month) format date/time         datetime

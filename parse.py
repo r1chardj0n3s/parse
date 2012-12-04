@@ -132,7 +132,8 @@ Type  Characters Matched                          Output
  o    Octal numbers                               int
  x    Hexadecimal numbers (lower and upper case)  int
  ti   ISO 8601 format date/time                   datetime
-      e.g. 1972-01-20T10:21:36Z
+      e.g. 1972-01-20T10:21:36Z ("T" and "Z"
+      optional)
  te   RFC2822 e-mail format date/time             datetime
       e.g. Mon, 20 Jan 1972 10:21:36 +1000
  tg   Global (day/month) format date/time         datetime
