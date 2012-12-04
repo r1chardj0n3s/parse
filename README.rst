@@ -29,7 +29,7 @@ compile it once:
 
 >>> from parse import compile
 >>> p = compile("It's {}, I love it!")
->>> print p
+>>> print(p)
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
 <Result ('spam',) {}>
@@ -61,27 +61,27 @@ Some simple parse() format string examples:
 >>> parse("Bring me a {}", "Bring me a shrubbery")
 <Result ('shrubbery',) {}>
 >>> r = parse("The {} who say {}", "The knights who say Ni!")
->>> print r
+>>> print(r)
 <Result ('knights', 'Ni!') {}>
->>> print r.fixed
+>>> print(r.fixed)
 ('knights', 'Ni!')
 >>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
->>> print r
+>>> print(r)
 <Result () {'item': 'hand grenade'}>
->>> print r.named
+>>> print(r.named)
 {'item': 'hand grenade'}
->>> print r['item']
+>>> print(r['item'])
 hand grenade
 
 Dotted names are possible though the application must make additional sense of
 the result:
 
 >>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
->>> print r
+>>> print(r)
 <Result () {'food.type': 'spam'}>
->>> print r.named
+>>> print(r.named)
 {'food.type': 'spam'}
->>> print r['food.type']
+>>> print(r['food.type'])
 spam
 
 
@@ -184,7 +184,11 @@ Some notes for the date and time types:
 - the AM/PM are optional, and if PM is found then 12 hours will be added
   to the datetime object's hours amount - even if the hour is greater
   than 12 (for consistency.)
-- except in ISO 8601 and e-mail format the timezone is optional.
+- in ISO 8601 the "Z" (UTC) timezone part may be a numeric offset
+- timezones are specified as "+HH:MM" or "-HH:MM". The hour may be one or two
+  digits (0-padded is OK.) Also, the ":" is optional.
+- the timezone is optional in all except the e-mail format (it defaults to
+  UTC.)
 - named timezones are not handled yet.
 
 Note: attempting to match too many datetime fields in a single parse() will
@@ -270,6 +274,8 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
+  general, fix bug in timezones without ":" and improve docs
 - 1.6.0 add support for optional ``pattern`` attribute in user-defined types
   (thanks Jens Engel)
 - 1.5.3 fix handling of question marks

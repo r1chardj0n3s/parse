@@ -329,8 +329,12 @@ class TestParse(unittest.TestCase):
             if r is None:
                 self.fail('%r (%r) did not match %r' % (fmt, p._expression, s))
             r = r.fixed[0]
-            self.assertEqual(r, e,
-                '%r found %r in %r, not %r' % (fmt, r, s, e))
+            try:
+                self.assertEqual(r, e,
+                    '%r found %r in %r, not %r' % (fmt, r, s, e))
+            except ValueError:
+                self.fail('%r found %r in %r, not %r' % (fmt, r, s, e))
+
             if tz is not None:
                 self.assertEqual(r.tzinfo, tz,
                     '%r found TZ %r in %r, not %r' % (fmt, r.tzinfo, s, e))
@@ -353,7 +357,11 @@ class TestParse(unittest.TestCase):
             datetime(1997, 7, 16, 19, 20, 0))
         y('a {:ti} b', 'a 1997-07-16T19:20Z b',
             datetime(1997, 7, 16, 19, 20, tzinfo=utc))
+        y('a {:ti} b', 'a 1997-07-16T19:20+0100 b',
+            datetime(1997, 7, 16, 19, 20, tzinfo=tz60))
         y('a {:ti} b', 'a 1997-07-16T19:20+01:00 b',
+            datetime(1997, 7, 16, 19, 20, tzinfo=tz60))
+        y('a {:ti} b', 'a 1997-07-16T19:20 +01:00 b',
             datetime(1997, 7, 16, 19, 20, tzinfo=tz60))
 
         # YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00)
@@ -364,6 +372,8 @@ class TestParse(unittest.TestCase):
         y('a {:ti} b', 'a 1997-07-16T19:20:30Z b',
             datetime(1997, 7, 16, 19, 20, 30, tzinfo=utc))
         y('a {:ti} b', 'a 1997-07-16T19:20:30+01:00 b',
+            datetime(1997, 7, 16, 19, 20, 30, tzinfo=tz60))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30 +01:00 b',
             datetime(1997, 7, 16, 19, 20, 30, tzinfo=tz60))
 
         # YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00)
@@ -383,10 +393,12 @@ class TestParse(unittest.TestCase):
 
         # te   RFC2822 e-mail format        datetime
         y('a {:te} b', 'a Mon, 21 Nov 2011 10:21:36 +1000 b', aest_d)
+        y('a {:te} b', 'a Mon, 21 Nov 2011 10:21:36 +10:00 b', aest_d)
         y('a {:te} b', 'a 21 Nov 2011 10:21:36 +1000 b', aest_d)
 
         # tg   global (day/month) format datetime
         y('a {:tg} b', 'a 21/11/2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:tg} b', 'a 21/11/2011 10:21:36 AM +10:00 b', aest_d)
         y('a {:tg} b', 'a 21-11-2011 10:21:36 AM +1000 b', aest_d)
         y('a {:tg} b', 'a 21/11/2011 10:21:36 +1000 b', aest_d)
         y('a {:tg} b', 'a 21/11/2011 10:21:36 b', dt)
@@ -397,6 +409,7 @@ class TestParse(unittest.TestCase):
 
         # ta   US (month/day) format     datetime
         y('a {:ta} b', 'a 11/21/2011 10:21:36 AM +1000 b', aest_d)
+        y('a {:ta} b', 'a 11/21/2011 10:21:36 AM +10:00 b', aest_d)
         y('a {:ta} b', 'a 11-21-2011 10:21:36 AM +1000 b', aest_d)
         y('a {:ta} b', 'a 11/21/2011 10:21:36 +1000 b', aest_d)
         y('a {:ta} b', 'a 11/21/2011 10:21:36 b', dt)
@@ -408,6 +421,7 @@ class TestParse(unittest.TestCase):
 
         # th   HTTP log format date/time                   datetime
         y('a {:th} b', 'a 21/Nov/2011:10:21:36 +1000 b', aest_d)
+        y('a {:th} b', 'a 21/Nov/2011:10:21:36 +10:00 b', aest_d)
 
         d = datetime(2011, 11, 21, 10, 21, 36)
 
@@ -415,14 +429,21 @@ class TestParse(unittest.TestCase):
         y('a {:tc} b', 'a Mon Nov 21 10:21:36 2011 b', d)
 
         t530 = parse.FixedTzOffset(-5*60 - 30, '-5:30')
+        t830 = parse.FixedTzOffset(-8*60 - 30, '-8:30')
 
         # tt   Time                                        time
         y('a {:tt} b', 'a 10:21:36 AM +1000 b', time(10, 21, 36, tzinfo=aest))
+        y('a {:tt} b', 'a 10:21:36 AM +10:00 b', time(10, 21, 36, tzinfo=aest))
         y('a {:tt} b', 'a 10:21:36 AM b', time(10, 21, 36))
         y('a {:tt} b', 'a 10:21:36 PM b', time(22, 21, 36))
         y('a {:tt} b', 'a 10:21:36 b', time(10, 21, 36))
         y('a {:tt} b', 'a 10:21 b', time(10, 21))
         y('a {:tt} b', 'a 10:21:36 PM -5:30 b', time(22, 21, 36, tzinfo=t530))
+        y('a {:tt} b', 'a 10:21:36 PM -530 b', time(22, 21, 36, tzinfo=t530))
+        y('a {:tt} b', 'a 10:21:36 PM -05:30 b', time(22, 21, 36, tzinfo=t530))
+        y('a {:tt} b', 'a 10:21:36 PM -0530 b', time(22, 21, 36, tzinfo=t530))
+        y('a {:tt} b', 'a 10:21:36 PM -08:30 b', time(22, 21, 36, tzinfo=t830))
+        y('a {:tt} b', 'a 10:21:36 PM -0830 b', time(22, 21, 36, tzinfo=t830))
 
     def test_datetime_group_count(self):
         # test we increment the group count correctly for datetimes
@@ -491,7 +512,8 @@ class TestParse(unittest.TestCase):
         ''')
         self.assertNotEqual(r, None)
         self.assertEqual(r.fixed[22], 'spam')
-        # variants
+
+    def test_mixed_type_variant(self):
         r = parse.parse('''
             letters: {:w}
             non-letters: {:W}

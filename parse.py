@@ -29,7 +29,7 @@ compile it once:
 
 >>> from parse import compile
 >>> p = compile("It's {}, I love it!")
->>> print p
+>>> print(p)
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
 <Result ('spam',) {}>
@@ -61,27 +61,27 @@ Some simple parse() format string examples:
 >>> parse("Bring me a {}", "Bring me a shrubbery")
 <Result ('shrubbery',) {}>
 >>> r = parse("The {} who say {}", "The knights who say Ni!")
->>> print r
+>>> print(r)
 <Result ('knights', 'Ni!') {}>
->>> print r.fixed
+>>> print(r.fixed)
 ('knights', 'Ni!')
 >>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
->>> print r
+>>> print(r)
 <Result () {'item': 'hand grenade'}>
->>> print r.named
+>>> print(r.named)
 {'item': 'hand grenade'}
->>> print r['item']
+>>> print(r['item'])
 hand grenade
 
 Dotted names are possible though the application must make additional sense of
 the result:
 
 >>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
->>> print r
+>>> print(r)
 <Result () {'food.type': 'spam'}>
->>> print r.named
+>>> print(r.named)
 {'food.type': 'spam'}
->>> print r['food.type']
+>>> print(r['food.type'])
 spam
 
 
@@ -184,7 +184,11 @@ Some notes for the date and time types:
 - the AM/PM are optional, and if PM is found then 12 hours will be added
   to the datetime object's hours amount - even if the hour is greater
   than 12 (for consistency.)
-- except in ISO 8601 and e-mail format the timezone is optional.
+- in ISO 8601 the "Z" (UTC) timezone part may be a numeric offset
+- timezones are specified as "+HH:MM" or "-HH:MM". The hour may be one or two
+  digits (0-padded is OK.) Also, the ":" is optional.
+- the timezone is optional in all except the e-mail format (it defaults to
+  UTC.)
 - named timezones are not handled yet.
 
 Note: attempting to match too many datetime fields in a single parse() will
@@ -270,6 +274,8 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
+  general, fix bug in timezones without ":" and improve docs
 - 1.6.0 add support for optional ``pattern`` attribute in user-defined types
   (thanks Jens Engel)
 - 1.5.3 fix handling of question marks
@@ -308,7 +314,7 @@ A more complete example of a custom type might be:
 This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.6.0'
+__version__ = '1.6.1'
 
 # yes, I now have two problems
 import re
@@ -485,6 +491,8 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
             sign = tz[0]
             if ':' in tz:
                 tzh, tzm = tz[1:].split(':')
+            elif len(tz) == 4:  # 'snnn'
+                tzh, tzm = tz[1], tz[2:4]
             else:
                 tzh, tzm = tz[1:3], tz[3:5]
             offset = int(tzm) + int(tzh) * 60
@@ -786,7 +794,7 @@ class Parser(object):
             s = r'\d+|0[xX][0-9a-fA-F]+|[0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
             self._type_conversions[group] = int_convert(10)
         elif type == 'ti':
-            s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|[-+]\d\d:\d\d)?' % TIME_PAT
+            s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % TIME_PAT
             n = self._group_index
             self._type_conversions[group] = partial(date_convert, ymd=n+1,
                 hms=n+4, tz=n+7)
