@@ -274,6 +274,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.2 fix logging to use local, not root logger (thanks Necku)
 - 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
   general, fix bug in timezones without ":" and improve docs
 - 1.6.0 add support for optional ``pattern`` attribute in user-defined types
@@ -314,7 +315,7 @@ A more complete example of a custom type might be:
 This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.6.1'
+__version__ = '1.6.2'
 
 # yes, I now have two problems
 import re
