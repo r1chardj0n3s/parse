@@ -9,6 +9,7 @@ from datetime import datetime, time
 
 import parse
 
+
 class TestPattern(unittest.TestCase):
     def _test_expression(self, format, expression):
         self.assertEqual(parse.Parser(format)._expression, expression)
@@ -52,14 +53,14 @@ class TestPattern(unittest.TestCase):
 
     def test_format(self):
         def _(fmt, matches):
-            d = parse.extract_format(fmt, {'spam':'spam'})
+            d = parse.extract_format(fmt, {'spam': 'spam'})
             for k in matches:
                 self.assertEqual(d.get(k), matches[k],
                     'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]))
 
         for t in '%obxegfdDwWsS':
             _(t, dict(type=t))
-            _('10'+t, dict(type=t, width='10'))
+            _('10' + t, dict(type=t, width='10'))
         _('05d', dict(type='d', width='5', zero=True))
         _('<', dict(align='<'))
         _('.<', dict(align='<', fill='.'))
@@ -94,6 +95,7 @@ class TestPattern(unittest.TestCase):
         self.assertRaises(NotImplementedError, parse.parse,
             "{hello['world']}", "doesn't work")
 
+
 class TestResult(unittest.TestCase):
     def test_fixed_access(self):
         r = parse.Result((1, 2), {}, None)
@@ -107,6 +109,7 @@ class TestResult(unittest.TestCase):
         self.assertEqual(r['spam'], 'ham')
         self.assertRaises(KeyError, r.__getitem__, 'ham')
         self.assertRaises(IndexError, r.__getitem__, 0)
+
 
 class TestParse(unittest.TestCase):
     def test_no_match(self):
@@ -164,7 +167,8 @@ class TestParse(unittest.TestCase):
     def test_custom_type(self):
         # use a custom type
         r = parse.parse('{:shouty} {:spam}', 'hello world',
-            dict(shouty=lambda s:s.upper(), spam=lambda s:''.join(reversed(s))))
+            dict(shouty=lambda s: s.upper(),
+                spam=lambda s: ''.join(reversed(s))))
         self.assertEqual(r.fixed, ('HELLO', 'dlrow'))
         r = parse.parse('{:d}', '12', dict(d=lambda s: int(s) * 2))
         self.assertEqual(r.fixed, (24,))
@@ -173,7 +177,8 @@ class TestParse(unittest.TestCase):
 
     def test_typed_fail(self):
         # pull a named, typed values out of string
-        self.assertEqual(parse.parse('hello {:d} {:w}', 'hello people 12'), None)
+        self.assertEqual(parse.parse('hello {:d} {:w}', 'hello people 12'),
+            None)
 
     def test_named(self):
         # pull a named value out of string
@@ -182,7 +187,8 @@ class TestParse(unittest.TestCase):
 
     def test_mixed(self):
         # pull a fixed and named values out of string
-        r = parse.parse('hello {} {name} {} {spam}', 'hello world and other beings')
+        r = parse.parse('hello {} {name} {} {spam}',
+            'hello world and other beings')
         self.assertEqual(r.fixed, ('world', 'other'))
         self.assertEqual(r.named, dict(name='and', spam='beings'))
 
@@ -199,7 +205,8 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.named, dict(number=12, things='people'))
         r = parse.parse('hello {number:>d} {things}', 'hello      12 people')
         self.assertEqual(r.named, dict(number=12, things='people'))
-        r = parse.parse('hello {number:^d} {things}', 'hello      12      people')
+        r = parse.parse('hello {number:^d} {things}',
+            'hello      12      people')
         self.assertEqual(r.named, dict(number=12, things='people'))
 
     def test_multiline(self):
@@ -210,19 +217,19 @@ class TestParse(unittest.TestCase):
         # test the string sections our fields come from
         string = 'hello world'
         r = parse.parse('hello {}', string)
-        self.assertEqual(r.spans, {0: (6,11)})
+        self.assertEqual(r.spans, {0: (6, 11)})
         start, end = r.spans[0]
         self.assertEqual(string[start:end], r.fixed[0])
 
         string = 'hello     world'
         r = parse.parse('hello {:>}', string)
-        self.assertEqual(r.spans, {0: (10,15)})
+        self.assertEqual(r.spans, {0: (10, 15)})
         start, end = r.spans[0]
         self.assertEqual(string[start:end], r.fixed[0])
 
         string = 'hello 0x12 world'
         r = parse.parse('hello {val:x} world', string)
-        self.assertEqual(r.spans, {'val': (6,10)})
+        self.assertEqual(r.spans, {'val': (6, 10)})
         start, end = r.spans['val']
         self.assertEqual(string[start:end], '0x%x' % r.named['val'])
 
@@ -245,6 +252,7 @@ class TestParse(unittest.TestCase):
             else:
                 self.assertEqual(r, e,
                     '%r found %r in %r, not %r' % (fmt, r, s, e))
+
         def n(fmt, s, e):
             if parse.parse(fmt, s) is not None:
                 self.fail('%r matched %r' % (fmt, s))
@@ -338,12 +346,13 @@ class TestParse(unittest.TestCase):
             if tz is not None:
                 self.assertEqual(r.tzinfo, tz,
                     '%r found TZ %r in %r, not %r' % (fmt, r.tzinfo, s, e))
+
         def n(fmt, s, e):
             if parse.parse(fmt, s) is not None:
                 self.fail('%r matched %r' % (fmt, s))
 
         utc = parse.FixedTzOffset(0, 'UTC')
-        aest = parse.FixedTzOffset(10*60, '+1000')
+        aest = parse.FixedTzOffset(10 * 60, '+1000')
         tz60 = parse.FixedTzOffset(60, '+01:00')
 
         # ISO 8660 variants
@@ -428,8 +437,8 @@ class TestParse(unittest.TestCase):
         # tc   ctime() format           datetime
         y('a {:tc} b', 'a Mon Nov 21 10:21:36 2011 b', d)
 
-        t530 = parse.FixedTzOffset(-5*60 - 30, '-5:30')
-        t830 = parse.FixedTzOffset(-8*60 - 30, '-8:30')
+        t530 = parse.FixedTzOffset(-5 * 60 - 30, '-5:30')
+        t830 = parse.FixedTzOffset(-8 * 60 - 30, '-8:30')
 
         # tt   Time                                        time
         y('a {:tt} b', 'a 10:21:36 AM +1000 b', time(10, 21, 36, tzinfo=aest))
@@ -567,6 +576,7 @@ class TestParse(unittest.TestCase):
         p = parse.compile('{:ti}' * 15)
         self.assertRaises(parse.TooManyFields, p.parse, '')
 
+
 class TestSearch(unittest.TestCase):
     def test_basic(self):
         # basic search() test
@@ -583,11 +593,14 @@ class TestSearch(unittest.TestCase):
         r = parse.search('a {} c', ' a b c ', 2)
         self.assertEqual(r, None)
 
+
 class TestFindall(unittest.TestCase):
     def test_findall(self):
         # basic findall() test
-        s = ''.join(r.fixed[0] for r in parse.findall(">{}<", "<p>some <b>bold</b> text</p>"))
+        s = ''.join(r.fixed[0] for r in parse.findall(">{}<",
+            "<p>some <b>bold</b> text</p>"))
         self.assertEqual(s, "some bold text")
+
 
 class TestBugs(unittest.TestCase):
     def test_named_date_issue7(self):
@@ -616,9 +629,7 @@ class TestBugs(unittest.TestCase):
 # TEST SUPPORT FOR: TestParseType
 # -----------------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
-# TEST CASE: TestParseType
-# -----------------------------------------------------------------------------
+
 class TestParseType(unittest.TestCase):
 
     def assert_match(self, parser, text, param_name, expected):
@@ -635,34 +646,34 @@ class TestParseType(unittest.TestCase):
         parse_number.pattern = r"\d+"
         parse_number.name = "Number"    # For testing only.
 
-        extra_types = { parse_number.name: parse_number }
+        extra_types = {parse_number.name: parse_number}
         format = "Value is {number:Number} and..."
         parser = parse.Parser(format, extra_types)
 
-        self.assert_match(parser, "Value is 42 and...",    "number",  42)
+        self.assert_match(parser, "Value is 42 and...", "number", 42)
         self.assert_match(parser, "Value is 00123 and...", "number", 123)
         self.assert_mismatch(parser, "Value is ALICE and...", "number")
-        self.assert_mismatch(parser, "Value is -123 and...",  "number")
+        self.assert_mismatch(parser, "Value is -123 and...", "number")
 
     def test_pattern_should_be_used2(self):
         def parse_yesno(text):
             return parse_yesno.mapping[text.lower()]
         parse_yesno.mapping = {
-            "yes":  True,   "no":  False,
-            "on":   True,   "off": False,
-            "true": True,   "false": False,
+            "yes": True, "no": False,
+            "on": True, "off": False,
+            "true": True, "false": False,
         }
         parse_yesno.pattern = r"|".join(parse_yesno.mapping.keys())
         parse_yesno.name = "YesNo"      # For testing only.
 
-        extra_types = { parse_yesno.name: parse_yesno }
+        extra_types = {parse_yesno.name: parse_yesno}
         format = "Answer: {answer:YesNo}"
         parser = parse.Parser(format, extra_types)
 
         # -- ENSURE: Known enum values are correctly extracted.
         for value_name, value in parse_yesno.mapping.items():
             text = "Answer: %s" % value_name
-            self.assert_match(parser, text, "answer",  value)
+            self.assert_match(parser, text, "answer", value)
 
         # -- IGNORE-CASE: In parsing, calls type converter function !!!
         self.assert_match(parser, "Answer: YES", "answer", True)
@@ -670,6 +681,7 @@ class TestParseType(unittest.TestCase):
 
     def test_with_pattern(self):
         ab_vals = dict(a=1, b=2)
+
         @parse.with_pattern(r'[ab]')
         def ab(text):
             return ab_vals[text]
