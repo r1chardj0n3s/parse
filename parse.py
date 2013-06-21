@@ -21,8 +21,8 @@ Or to search a string for some pattern:
 
 Or find all the occurrances of some pattern in a string:
 
->>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>"))
-'some bold text'
+>>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
+'the bold text'
 
 If you're going to use the same pattern to match lots of strings you can
 compile it once:
@@ -196,8 +196,10 @@ currently result in a resource allocation issue. A TooManyFields exception
 will be raised in this instance. The current limit is about 15. It is hoped
 that this limit will be removed one day.
 
-.. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
-.. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
+.. _`Format String Syntax`:
+  http://docs.python.org/library/string.html#format-string-syntax
+.. _`Format Specification Mini-Language`:
+  http://docs.python.org/library/string.html#format-specification-mini-language
 
 
 Result Objects
@@ -366,6 +368,7 @@ def int_convert(base):
     It may also have other non-numeric characters that we can ignore.
     '''
     CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
+
     def f(string, match, base=base):
         if string[0] == '-':
             sign = -1
@@ -399,11 +402,12 @@ class FixedTzOffset(tzinfo):
     ZERO = timedelta(0)
 
     def __init__(self, offset, name):
-        self._offset = timedelta(minutes = offset)
+        self._offset = timedelta(minutes=offset)
         self._name = name
 
     def __repr__(self):
-        return '<%s %s %s>' % (self.__class__.__name__, self._name, self._offset)
+        return '<%s %s %s>' % (self.__class__.__name__, self._name,
+            self._offset)
 
     def utcoffset(self, dt):
         return self._offset
@@ -438,6 +442,7 @@ ALL_MONTHS_PAT = '(%s)' % '|'.join(MONTHS_MAP)
 TIME_PAT = r'(\d{1,2}:\d{1,2}(:\d{1,2}(\.\d+)?)?)'
 AM_PAT = r'(\s+[AP]M)'
 TZ_PAT = r'(\s+[-+]\d\d?:?\d\d)'
+
 
 def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         d_m_y=None, hms=None, am=None, tz=None):
@@ -519,11 +524,12 @@ class TooManyFields(ValueError):
     pass
 
 # note: {} are handled separately
-REGEX_SAFETY = re.compile(r'([?\\.[\]()*+\^$!])')
+# note: I don't use r'' here because Sublime Text 2 syntax highlight has a fit
+REGEX_SAFETY = re.compile('([?\\\\.[\]()*+\^$!])')
 
 # allowed field types
 ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
-   ['t'+c for c in 'ieahgct'])
+   ['t' + c for c in 'ieahgct'])
 
 
 def extract_format(format, extra_types):
@@ -558,16 +564,18 @@ def extract_format(format, extra_types):
     return locals()
 
 
-PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*}|{\w+?(?:\.\w+?)*:[^}]+?})')
+PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*}|'
+    r'{\w+?(?:\.\w+?)*:[^}]+?})')
 
 
 class Parser(object):
     '''Encapsulate a format string that may be used to parse other strings.
     '''
     def __init__(self, format, extra_types={}):
-        # a mapping of a name as in {hello.world} to a regex-group compatible name, like hello__world
-        # Its used to prevent the transformation of name-to-group and group to name to fail subtly, such
-        # as in: hello_.world-> hello___world->hello._world
+        # a mapping of a name as in {hello.world} to a regex-group compatible
+        # name, like hello__world Its used to prevent the transformation of
+        # name-to-group and group to name to fail subtly, such as in:
+        # hello_.world-> hello___world->hello._world
         self._group_to_name_map = {}
         self._format = format
         self._extra_types = extra_types
@@ -583,19 +591,22 @@ class Parser(object):
 
     def __repr__(self):
         if len(self._format) > 20:
-            return '<%s %r>' % (self.__class__.__name__, self._format[:17] + '...')
+            return '<%s %r>' % (self.__class__.__name__,
+                self._format[:17] + '...')
         return '<%s %r>' % (self.__class__.__name__, self._format)
 
     @property
     def _search_re(self):
         if self.__search_re is None:
             try:
-                self.__search_re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
+                self.__search_re = re.compile(self._expression,
+                    re.IGNORECASE | re.DOTALL)
             except AssertionError:
-                e = sys.exc_info()[1]   # to keep py3k and backward compat
-                if str(e).endswith('this version only supports 100 named groups'):
-                    raise TooManyFields('sorry, you are attempting to parse too '
-                        'many complex fields')
+                # access error through sys to keep py3k and backward compat
+                e = str(sys.exc_info()[1])
+                if e.endswith('this version only supports 100 named groups'):
+                    raise TooManyFields('sorry, you are attempting to parse '
+                        'too many complex fields')
         return self.__search_re
 
     @property
@@ -603,14 +614,18 @@ class Parser(object):
         if self.__match_re is None:
             expression = '^%s$' % self._expression
             try:
-                self.__match_re = re.compile(expression, re.IGNORECASE|re.DOTALL)
+                self.__match_re = re.compile(expression,
+                    re.IGNORECASE | re.DOTALL)
             except AssertionError:
-                e = sys.exc_info()[1]   # to keep py3k and backward compat
-                if str(e).endswith('this version only supports 100 named groups'):
-                    raise TooManyFields('sorry, you are attempting to parse too '
-                        'many complex fields')
+                # access error through sys to keep py3k and backward compat
+                e = str(sys.exc_info()[1])
+                if e.endswith('this version only supports 100 named groups'):
+                    raise TooManyFields('sorry, you are attempting to parse '
+                        'too many complex fields')
             except re.error:
-                raise NotImplementedError("Group names (e.g. (?P<name>) can cause failure, as they are not esacped properly: '%s'" % expression)
+                raise NotImplementedError("Group names (e.g. (?P<name>) can "
+                    "cause failure, as they are not escaped properly: '%s'" %
+                    expression)
         return self.__match_re
 
     def parse(self, string):
@@ -671,13 +686,15 @@ class Parser(object):
             korig = self._group_to_name_map[k]
             name_map[korig] = k
             if k in self._type_conversions:
-                named_fields[korig] = self._type_conversions[k](groupdict[k], m)
+                named_fields[korig] = self._type_conversions[k](groupdict[k],
+                    m)
             else:
                 named_fields[korig] = groupdict[k]
 
         # now figure the match spans
         spans = dict((n, m.span(name_map[n])) for n in named_fields)
-        spans.update((i, m.span(n+1)) for i, n in enumerate(self._fixed_fields))
+        spans.update((i, m.span(n + 1))
+            for i, n in enumerate(self._fixed_fields))
 
         # and that's our result
         return Result(fixed_fields, named_fields, spans)
@@ -713,9 +730,9 @@ class Parser(object):
         while group in self._group_to_name_map:
             n += 1
             if '.' in field:
-                group = field.replace('.', '_'*n)
+                group = field.replace('.', '_' * n)
             else:
-                group = field.replace('_', '_'*n)
+                group = field.replace('_', '_' * n)
 
         # save off the mapping
         self._group_to_name_map[group] = field
@@ -758,6 +775,7 @@ class Parser(object):
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, 'pattern', r'.+?')
+
             def f(string, m):
                 return type_converter(string)
             self._type_conversions[group] = f
@@ -795,53 +813,54 @@ class Parser(object):
             s = r'\d+|0[xX][0-9a-fA-F]+|[0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
             self._type_conversions[group] = int_convert(10)
         elif type == 'ti':
-            s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % TIME_PAT
+            s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \
+                TIME_PAT
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, ymd=n+1,
-                hms=n+4, tz=n+7)
+            self._type_conversions[group] = partial(date_convert, ymd=n + 1,
+                hms=n + 4, tz=n + 7)
             self._group_index += 7
         elif type == 'tg':
             s = r'(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n+1,
-                hms=n+5, am=n+8, tz=n+9)
+            self._type_conversions[group] = partial(date_convert, dmy=n + 1,
+                hms=n + 5, am=n + 8, tz=n + 9)
             self._group_index += 9
         elif type == 'ta':
             s = r'((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, mdy=n+1,
-                hms=n+5, am=n+8, tz=n+9)
+            self._type_conversions[group] = partial(date_convert, mdy=n + 1,
+                hms=n + 5, am=n + 8, tz=n + 9)
             self._group_index += 9
         elif type == 'te':
             # this will allow microseconds through if they're present, but meh
             s = r'(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s' % (DAYS_PAT,
                 MONTHS_PAT, TIME_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n+3,
-                hms=n+5, tz=n+8)
+            self._type_conversions[group] = partial(date_convert, dmy=n + 3,
+                hms=n + 5, tz=n + 8)
             self._group_index += 8
         elif type == 'th':
             # slight flexibility here from the stock Apache format
             s = r'(\d{1,2}[-/]%s[-/]\d{4}):%s%s' % (MONTHS_PAT, TIME_PAT,
                 TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n+1,
-                hms=n+3, tz=n+6)
+            self._type_conversions[group] = partial(date_convert, dmy=n + 1,
+                hms=n + 3, tz=n + 6)
             self._group_index += 6
         elif type == 'tc':
             s = r'(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})' % (
                 DAYS_PAT, MONTHS_PAT, TIME_PAT)
             n = self._group_index
             self._type_conversions[group] = partial(date_convert,
-                d_m_y=(n+4,n+3,n+8), hms=n+5)
+                d_m_y=(n + 4, n + 3, n + 8), hms=n + 5)
             self._group_index += 8
         elif type == 'tt':
             s = r'%s?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, hms=n+1,
-                am=n+4, tz=n+5)
+            self._type_conversions[group] = partial(date_convert, hms=n + 1,
+                am=n + 4, tz=n + 5)
             self._group_index += 5
         elif type:
             s = r'\%s+' % type
@@ -877,8 +896,8 @@ class Parser(object):
 
         if format['width']:
             # all we really care about is that if the format originally
-            # specified a width then there will probably be padding - without an
-            # explicit alignment that'll mean right alignment with spaces
+            # specified a width then there will probably be padding - without
+            # an explicit alignment that'll mean right alignment with spaces
             # padding
             if not align:
                 align = '>'
@@ -971,8 +990,8 @@ def search(format, string, pos=0, endpos=None, extra_types={}):
     instead you wish for the format to exactly match the string
     use parse().
 
-    Optionally start the search at "pos" character index and limit the search to
-    a maximum index of endpos - equivalent to search(string[:endpos]).
+    Optionally start the search at "pos" character index and limit the search
+    to a maximum index of endpos - equivalent to search(string[:endpos]).
 
     The return value will be an Result instance with two attributes:
 
@@ -994,8 +1013,8 @@ def findall(format, string, pos=0, endpos=None, extra_types={}):
     You will be returned an iterator that holds Result instances
     for each format match found.
 
-    Optionally start the search at "pos" character index and limit the search to
-    a maximum index of endpos - equivalent to search(string[:endpos]).
+    Optionally start the search at "pos" character index and limit the search
+    to a maximum index of endpos - equivalent to search(string[:endpos]).
 
     Each Result instance has two attributes:
 
