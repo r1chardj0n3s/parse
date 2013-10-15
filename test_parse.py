@@ -51,7 +51,7 @@ class TestPattern(unittest.TestCase):
         # skip some surrounding whitespace
         self._test_expression('{:^}', ' *(.+?) *')
 
-    def test_format(self):
+    def test_format_variety(self):
         def _(fmt, matches):
             d = parse.extract_format(fmt, {'spam': 'spam'})
             for k in matches:
@@ -184,6 +184,31 @@ class TestParse(unittest.TestCase):
         # pull a named value out of string
         r = parse.parse('hello {name}', 'hello world')
         self.assertEqual(r.named, {'name': 'world'})
+
+    def test_named_repeated(self):
+        # test a name may be repeated
+        r = parse.parse('{n} {n}', 'x x')
+        self.assertEqual(r.named, {'n': 'x'})
+
+    def test_named_repeated_type(self):
+        # test a name may be repeated with type conversion
+        r = parse.parse('{n:d} {n:d}', '1 1')
+        self.assertEqual(r.named, {'n': 1})
+
+    def test_named_repeated_fail_value(self):
+        # test repeated name fails if value mismatches
+        r = parse.parse('{n} {n}', 'x y')
+        self.assertEqual(r, None)
+
+    def test_named_repeated_type_fail_value(self):
+        # test repeated name with type conversion fails if value mismatches
+        r = parse.parse('{n:d} {n:d}', '1 2')
+        self.assertEqual(r, None)
+
+    def test_named_repeated_type_fail_value(self):
+        # test repeated name with mismatched type
+        self.assertRaises(parse.RepeatedNameError, parse.compile,
+            '{n:d} {n:w}')
 
     def test_mixed(self):
         # pull a fixed and named values out of string
@@ -323,6 +348,7 @@ class TestParse(unittest.TestCase):
         y('a {:=d} b', 'a 000012 b', 12)
         y('a {:x=5d} b', 'a xxx12 b', 12)
         y('a {:x=5d} b', 'a -xxx12 b', -12)
+
 
     def test_two_datetimes(self):
         r = parse.parse('a {:ti} {:ti} b', 'a 1997-07-16 2012-08-01 b')

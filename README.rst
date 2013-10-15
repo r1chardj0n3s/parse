@@ -21,8 +21,8 @@ Or to search a string for some pattern:
 
 Or find all the occurrances of some pattern in a string:
 
->>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>"))
-'some bold text'
+>>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
+'the bold text'
 
 If you're going to use the same pattern to match lots of strings you can
 compile it once:
@@ -196,8 +196,10 @@ currently result in a resource allocation issue. A TooManyFields exception
 will be raised in this instance. The current limit is about 15. It is hoped
 that this limit will be removed one day.
 
-.. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
-.. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
+.. _`Format String Syntax`:
+  http://docs.python.org/library/string.html#format-string-syntax
+.. _`Format Specification Mini-Language`:
+  http://docs.python.org/library/string.html#format-specification-mini-language
 
 
 Result Objects
@@ -274,6 +276,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.2 fix logging to use local, not root logger (thanks Necku)
 - 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
   general, fix bug in timezones without ":" and improve docs
 - 1.6.0 add support for optional ``pattern`` attribute in user-defined types

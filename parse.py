@@ -276,6 +276,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.3 handle repeated instances of named fields
 - 1.6.2 fix logging to use local, not root logger (thanks Necku)
 - 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
   general, fix bug in timezones without ":" and improve docs
@@ -314,10 +315,10 @@ A more complete example of a custom type might be:
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012 Richard Jones <richard@python.org>
+This code is copyright 2012-2013 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.6.2'
+__version__ = '1.6.3'
 
 # yes, I now have two problems
 import re
@@ -523,13 +524,18 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
 class TooManyFields(ValueError):
     pass
 
+
+class RepeatedNameError(ValueError):
+    pass
+
+
 # note: {} are handled separately
 # note: I don't use r'' here because Sublime Text 2 syntax highlight has a fit
 REGEX_SAFETY = re.compile('([?\\\\.[\]()*+\^$!])')
 
 # allowed field types
 ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
-   ['t' + c for c in 'ieahgct'])
+    ['t' + c for c in 'ieahgct'])
 
 
 def extract_format(format, extra_types):
@@ -577,6 +583,13 @@ class Parser(object):
         # name-to-group and group to name to fail subtly, such as in:
         # hello_.world-> hello___world->hello._world
         self._group_to_name_map = {}
+        # also store the original field name to group name mapping to allow
+        # multiple instances of a name in the format string
+        self._name_to_group_map = {}
+        # and to sanity check the repeated instances store away the first
+        # field type specification for the named field
+        self._name_types = {}
+
         self._format = format
         self._extra_types = extra_types
         self._fixed_fields = []
@@ -725,17 +738,20 @@ class Parser(object):
         # though it might contain '.'
         group = field.replace('.', '_')
 
-        # make sure we don't collide
+        # make sure we don't collide ("a.b" colliding with "a_b")
         n = 1
         while group in self._group_to_name_map:
             n += 1
             if '.' in field:
                 group = field.replace('.', '_' * n)
-            else:
+            elif '_' in field:
                 group = field.replace('_', '_' * n)
+            else:
+                raise KeyError('duplicated group name %r' % (field, ))
 
         # save off the mapping
         self._group_to_name_map[group] = field
+        self._name_to_group_map[field] = group
         return group
 
     def _handle_field(self, field):
@@ -750,7 +766,17 @@ class Parser(object):
                 name, format = field.split(':')
             else:
                 name = field
-            group = self._to_group_name(name)
+            if name in self._name_to_group_map:
+                if self._name_types[name] != format:
+                    raise RepeatedNameError('field type %r for field "%s" '
+                        'does not match previous seen type %r' % (format,
+                        name, self._name_types[name]))
+                group = self._name_to_group_map[name]
+                # match previously-seen value
+                return '(?P=%s)' % group
+            else:
+                group = self._to_group_name(name)
+                self._name_types[name] = format
             self._named_fields.append(group)
             # this will become a group, which must not contain dots
             wrap = '(?P<%s>%%s)' % group
@@ -1044,7 +1070,7 @@ def compile(format, extra_types={}):
     return Parser(format, extra_types=extra_types)
 
 
-# Copyright (c) 2012 Richard Jones <richard@python.org>
+# Copyright (c) 2012-2013 Richard Jones <richard@python.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
