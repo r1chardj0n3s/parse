@@ -104,7 +104,7 @@ The differences between `parse()` and `format()` are:
   That is, the "#" format character is handled automatically by d, b, o
   and x formats. For "d" any will be accepted, but for the others the correct
   prefix must be present if at all.
-- Numberic sign is handled automatically.
+- Numeric sign is handled automatically.
 - The thousands separator is handled automatically if the "n" type is used.
 - The types supported are a slightly different mix to the format() types.  Some
   format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".

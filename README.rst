@@ -104,7 +104,7 @@ The differences between `parse()` and `format()` are:
   That is, the "#" format character is handled automatically by d, b, o
   and x formats. For "d" any will be accepted, but for the others the correct
   prefix must be present if at all.
-- Numberic sign is handled automatically.
+- Numeric sign is handled automatically.
 - The thousands separator is handled automatically if the "n" type is used.
 - The types supported are a slightly different mix to the format() types.  Some
   format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
@@ -276,6 +276,8 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.3 handle repeated instances of named fields, fix bug in PM time
+  overflow
 - 1.6.2 fix logging to use local, not root logger (thanks Necku)
 - 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
   general, fix bug in timezones without ":" and improve docs
@@ -314,5 +316,5 @@ A more complete example of a custom type might be:
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012 Richard Jones <richard@python.org>
+This code is copyright 2012-2013 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
