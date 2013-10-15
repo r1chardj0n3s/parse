@@ -276,7 +276,8 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
-- 1.6.3 handle repeated instances of named fields
+- 1.6.3 handle repeated instances of named fields, fix bug in PM time
+  overflow
 - 1.6.2 fix logging to use local, not root logger (thanks Necku)
 - 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
   general, fix bug in timezones without ":" and improve docs
@@ -480,10 +481,14 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         H = int(H)
         M = int(M)
 
+    day_incr = False
     if am is not None:
         am = groups[am]
         if am and am.strip() == 'PM':
             H += 12
+            if H > 23:
+                day_incr = True
+                H -= 24
 
     if tz is not None:
         tz = groups[tz]
@@ -517,6 +522,9 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
             m = MONTHS_MAP[m]
         d = int(d)
         d = datetime(y, m, d, H, M, S, u, tzinfo=tz)
+
+    if day_incr:
+        d = d + timedelta(days=1)
 
     return d
 

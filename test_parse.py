@@ -651,6 +651,11 @@ class TestBugs(unittest.TestCase):
         self.assertEqual(r['a_b'], '1')
         self.assertEqual(r['a.b'], 2)
 
+    def test_pm_overflow_issue16(self):
+        r = parse.parse('Meet at {:tg}', 'Meet at 1/2/2011 12:45 PM')
+        self.assertEqual(r[0], datetime(2011, 2, 2, 0, 45))
+
+
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
 # -----------------------------------------------------------------------------
