@@ -276,6 +276,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.4 handle pipe "|" characters in parse string (thanks Martijn Pieters)
 - 1.6.3 handle repeated instances of named fields, fix bug in PM time
   overflow
 - 1.6.2 fix logging to use local, not root logger (thanks Necku)
