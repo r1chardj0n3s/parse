@@ -93,7 +93,7 @@ format specification might have been used.
 
 Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
-   [[fill]align][0][width][type]
+   [[fill]align][0][width][.precision][type]
 
 The differences between `parse()` and `format()` are:
 
@@ -570,6 +570,17 @@ def extract_format(format, extra_types):
             break
         width += format[0]
         format = format[1:]
+
+    if format.startswith('.'):
+        # Precision isn't needed but we need to capture it so that
+        # the ValueError isn't raised.
+        format = format[1:]  # drop the '.'
+        precision = ''
+        while format:
+            if not format[0].isdigit():
+                break
+            precision += format[0]
+            format = format[1:]
 
     # the rest is the type, if present
     type = format

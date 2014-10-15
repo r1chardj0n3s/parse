@@ -75,6 +75,7 @@ class TestPattern(unittest.TestCase):
 
         _('.^010d', dict(type='d', width='10', align='^', fill='.',
             zero=True))
+        _('10.2f', dict(type='f', width='10', precision='2'))
 
     def test_dot_separated_fields(self):
         # this should just work and provide the named value
