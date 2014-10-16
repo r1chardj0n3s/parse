@@ -75,6 +75,7 @@ class TestPattern(unittest.TestCase):
 
         _('.^010d', dict(type='d', width='10', align='^', fill='.',
             zero=True))
+        _('.2f', dict(type='f', precision='2'))
         _('10.2f', dict(type='f', width='10', precision='2'))
 
     def test_dot_separated_fields(self):
@@ -169,6 +170,19 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.fixed, (12, 'people'))
         r = parse.parse('hello {:w} {:w}', 'hello 12 people')
         self.assertEqual(r.fixed, ('12', 'people'))
+
+    def test_precision(self):
+        # pull a float out of a string
+        r = parse.parse('Pi = {:.7f}', 'Pi = 3.1415926')
+        self.assertEqual(r.fixed, (3.1415926, ))
+        r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 =  0.31415')
+        self.assertEqual(r.fixed, (0.31415, ))
+
+    def test_precision_fail(self):
+        # floats must have a leading zero
+        # IS THIS CORRECT?
+        r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 = .31415')
+        self.assertEqual(r, None)
 
     def test_custom_type(self):
         # use a custom type

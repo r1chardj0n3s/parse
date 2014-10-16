@@ -548,7 +548,7 @@ ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
 
 
 def extract_format(format, extra_types):
-    '''Pull apart the format [[fill]align][0][width][type]
+    '''Pull apart the format [[fill]align][0][width][.precision][type]
     '''
     fill = align = None
     if format[0] in '<>=^':
