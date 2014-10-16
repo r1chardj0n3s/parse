@@ -210,7 +210,7 @@ class TestParse(unittest.TestCase):
         r = parse.parse('{n:d} {n:d}', '1 2')
         self.assertEqual(r, None)
 
-    def test_named_repeated_type_fail_value(self):
+    def test_named_repeated_type_mismatch(self):
         # test repeated name with mismatched type
         self.assertRaises(parse.RepeatedNameError, parse.compile,
             '{n:d} {n:w}')
