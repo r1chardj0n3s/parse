@@ -93,7 +93,7 @@ format specification might have been used.
 
 Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
-   [[fill]align][0][width][type]
+   [[fill]align][0][width][.precision][type]
 
 The differences between `parse()` and `format()` are:
 
