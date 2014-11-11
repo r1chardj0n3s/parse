@@ -449,13 +449,17 @@ TZ_PAT = r'(\s+[-+]\d\d?:?\d\d)'
 
 
 def date_convert(string, match, ymd=None, mdy=None, dmy=None,
-        d_m_y=None, hms=None, am=None, tz=None):
+        d_m_y=None, hms=None, am=None, tz=None, mm=None, dd=None):
     '''Convert the incoming string containing some date / time info into a
     datetime instance.
     '''
     groups = match.groups()
     time_only = False
-    if ymd is not None:
+    if mm and dd:
+        y=datetime.today().year
+        m=groups[mm]
+        d=groups[dd]
+    elif ymd is not None:
         y, m, d = re.split('[-/\s]', groups[ymd])
     elif mdy is not None:
         m, d, y = re.split('[-/\s]', groups[mdy])
@@ -545,7 +549,7 @@ REGEX_SAFETY = re.compile('([?\\\\.[\]()*+\^$!\|])')
 
 # allowed field types
 ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
-    ['t' + c for c in 'ieahgct'])
+    ['t' + c for c in 'ieahgcts'])
 
 
 def extract_format(format, extra_types):
@@ -909,6 +913,13 @@ class Parser(object):
             self._type_conversions[group] = partial(date_convert, hms=n + 1,
                 am=n + 4, tz=n + 5)
             self._group_index += 5
+        elif type == 'ts':
+            s = r'%s(\s+)(\d+)(\s+)(\d{1,2}:\d{1,2}:\d{1,2})?' % (MONTHS_PAT)
+            n = self._group_index
+            self._type_conversions[group] = partial(date_convert, mm=n+1, dd=n+3,
+                hms=n + 5)
+            self._group_index += 5
+
         elif type:
             s = r'\%s+' % type
         else:
