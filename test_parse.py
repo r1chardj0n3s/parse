@@ -477,6 +477,7 @@ class TestParse(unittest.TestCase):
         # ts   Linux System log format        datetime
         y('a {:ts} b', 'a Nov 21 10:21:36 b',  datetime(datetime.today().year, 11, 21, 10, 21, 36))
         y('a {:ts} b', 'a Nov  1 10:21:36 b',  datetime(datetime.today().year, 11, 1, 10, 21, 36))
+        y('a {:ts} b', 'a Nov  1 03:21:36 b',  datetime(datetime.today().year, 11, 1, 3, 21, 36))
 
         # th   HTTP log format date/time                   datetime
         y('a {:th} b', 'a 21/Nov/2011:10:21:36 +1000 b', aest_d)
