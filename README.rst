@@ -144,6 +144,8 @@ Type  Characters Matched                          Output
       e.g. Sun Sep 16 01:03:52 1973
  th   HTTP log format date/time                   datetime
       e.g. 21/Nov/2011:00:07:11 +0000
+ ts   Linux system log format date/time           datetime
+      e.g. Nov  9 03:37:44
  tt   Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
