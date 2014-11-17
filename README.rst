@@ -278,6 +278,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.6 parse Linux system log dates (thanks Alex Cowan)
 - 1.6.5 handle precision in float format (thanks Levi Kilcher)
 - 1.6.4 handle pipe "|" characters in parse string (thanks Martijn Pieters)
 - 1.6.3 handle repeated instances of named fields, fix bug in PM time

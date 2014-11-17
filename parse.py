@@ -144,6 +144,8 @@ Type  Characters Matched                          Output
       e.g. Sun Sep 16 01:03:52 1973
  th   HTTP log format date/time                   datetime
       e.g. 21/Nov/2011:00:07:11 +0000
+ ts   Linux system log format date/time           datetime
+      e.g. Nov  9 03:37:44
  tt   Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
@@ -276,6 +278,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.6.6 parse Linux system log dates (thanks Alex Cowan)
 - 1.6.5 handle precision in float format (thanks Levi Kilcher)
 - 1.6.4 handle pipe "|" characters in parse string (thanks Martijn Pieters)
 - 1.6.3 handle repeated instances of named fields, fix bug in PM time
@@ -321,7 +324,7 @@ A more complete example of a custom type might be:
 This code is copyright 2012-2013 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.6.5'
+__version__ = '1.6.6'
 
 # yes, I now have two problems
 import re
