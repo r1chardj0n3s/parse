@@ -595,7 +595,7 @@ def extract_format(format, extra_types):
     return locals()
 
 
-PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*}|'
+PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*(?:\[\w+?\])*}|'
     r'{\w+?(?:\.\w+?)*:[^}]+?})')
 
 
@@ -761,7 +761,7 @@ class Parser(object):
     def _to_group_name(self, field):
         # return a version of field which can be used as capture group, even
         # though it might contain '.'
-        group = field.replace('.', '_')
+        group = re.sub('[\[\]\.]', '_', field)
 
         # make sure we don't collide ("a.b" colliding with "a_b")
         n = 1
