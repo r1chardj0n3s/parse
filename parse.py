@@ -19,7 +19,7 @@ Or to search a string for some pattern:
 >>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
 <Result (42,) {}>
 
-Or find all the occurrances of some pattern in a string:
+Or find all the occurrences of some pattern in a string:
 
 >>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
 'the bold text'
