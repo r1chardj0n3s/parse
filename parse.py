@@ -595,8 +595,7 @@ def extract_format(format, extra_types):
     return locals()
 
 
-PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*}|'
-    r'{\w+?(?:\.\w+?)*:[^}]+?})')
+PARSE_RE = re.compile(r"""({{|}}|{\w*(?:(?:\.\w+)|(?:\[[^\]]+\]))*(?::[^}]+)?})""")
 
 
 class Parser(object):
@@ -708,6 +707,26 @@ class Parser(object):
             endpos = len(string)
         return ResultIterator(self, string, pos, endpos)
 
+    def _expand_named_fields(self, named_fields):
+        result = {}
+        for field, value in named_fields.items():
+            # split 'aaa[bbb][ccc]...' into 'aaa' and '[bbb][ccc]...'
+            basename, subkeys = re.match(r'([^\[]+)(.*)', field).groups()
+            
+            # create nested dictionaries {'aaa': {'bbb': {'ccc': ...}}}
+            d = result
+            k = basename
+            
+            if subkeys:
+                for subkey in re.findall(r'\[[^\]]+\]', subkeys):
+                    d = d.setdefault(k,{})
+                    k = subkey[1:-1]
+            
+            # assign the value to the last key
+            d[k] = value
+            
+        return result
+
     def _generate_result(self, m):
         # ok, figure the fixed fields we've pulled out and type convert them
         fixed_fields = list(m.groups())
@@ -724,10 +743,11 @@ class Parser(object):
             korig = self._group_to_name_map[k]
             name_map[korig] = k
             if k in self._type_conversions:
-                named_fields[korig] = self._type_conversions[k](groupdict[k],
-                    m)
+                value = self._type_conversions[k](groupdict[k], m)
             else:
-                named_fields[korig] = groupdict[k]
+                value = groupdict[k]
+            
+            named_fields[korig] = value
 
         # now figure the match spans
         spans = dict((n, m.span(name_map[n])) for n in named_fields)
@@ -735,7 +755,7 @@ class Parser(object):
             for i, n in enumerate(self._fixed_fields))
 
         # and that's our result
-        return Result(fixed_fields, named_fields, spans)
+        return Result(fixed_fields, self._expand_named_fields(named_fields), spans)
 
     def _regex_replace(self, match):
         return '\\' + match.group(1)
@@ -761,8 +781,8 @@ class Parser(object):
     def _to_group_name(self, field):
         # return a version of field which can be used as capture group, even
         # though it might contain '.'
-        group = field.replace('.', '_')
-
+        group = field.replace('.', '_').replace('[', '_').replace(']', '_')
+        
         # make sure we don't collide ("a.b" colliding with "a_b")
         n = 1
         while group in self._group_to_name_map:
