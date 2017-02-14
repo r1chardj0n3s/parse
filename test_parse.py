@@ -131,6 +131,12 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.fixed, ())
         self.assertEqual(r.named, {})
 
+    def test_no_evaluate_result(self):
+        # pull a fixed value out of string
+        match = parse.parse('hello {}', 'hello world', evaluate_result=False)
+        r = match.evaluate_result()
+        self.assertEqual(r.fixed, ('world', ))
+
     def test_regular_expression(self):
         # match an actual regular expression
         s = r'^(hello\s[wW]{}!+.*)$'
@@ -656,12 +662,24 @@ class TestSearch(unittest.TestCase):
         r = parse.search('a {} c', ' a b c ', 2)
         self.assertEqual(r, None)
 
+    def test_no_evaluate_result(self):
+        match = parse.search('age: {:d}\n', 'name: Rufus\nage: 42\ncolor: red\n', evaluate_result=False)
+        r = match.evaluate_result()
+        self.assertEqual(r.fixed, (42,))
+
+
 
 class TestFindall(unittest.TestCase):
     def test_findall(self):
         # basic findall() test
         s = ''.join(r.fixed[0] for r in parse.findall(">{}<",
             "<p>some <b>bold</b> text</p>"))
+        self.assertEqual(s, "some bold text")
+
+    def test_no_evaluate_result(self):
+        # basic findall() test
+        s = ''.join(m.evaluate_result().fixed[0] for m in parse.findall(">{}<",
+            "<p>some <b>bold</b> text</p>", evaluate_result=False))
         self.assertEqual(s, "some bold text")
 
 
