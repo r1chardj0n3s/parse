@@ -98,6 +98,9 @@ class TestPattern(unittest.TestCase):
         self.assertRaises(NotImplementedError, parse.parse,
             "{hello['world']}", "doesn't work")
 
+    def test_element_index(self):
+        self._test_expression('{d[a]}', '(?P<d_a_>.+?)')
+
 
 class TestResult(unittest.TestCase):
     def test_fixed_access(self):
@@ -632,6 +635,11 @@ class TestParse(unittest.TestCase):
         except AssertionError:
             p = parse.compile('{:ti}' * 15)
             self.assertRaises(parse.TooManyFields, p.parse, '')
+
+    def test_element_index(self):
+        r = parse.parse('{d[a]}_something', 'spam_something')
+        self.assertNotEqual(r, None)
+        self.assertEqual(r['d[a]'], 'spam')
 
 
 class TestSearch(unittest.TestCase):
