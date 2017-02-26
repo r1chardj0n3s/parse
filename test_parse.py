@@ -86,6 +86,12 @@ class TestPattern(unittest.TestCase):
         assert res.named['jojo.foo.baz'] == 'b'
         assert res.named['simple'] == 'c'
 
+    def test_dict_style_fields(self):
+        res = parse.parse('{hello[world]}_{hello[foo][baz]}_{simple}', 'a_b_c')
+        assert res.named['hello']['world'] == 'a'
+        assert res.named['hello']['foo']['baz'] == 'b'
+        assert res.named['simple'] == 'c'
+
     def test_dot_separated_fields_name_collisions(self):
         # this should just work and provide the named value
         res = parse.parse('{a_.b}_{a__b}_{a._b}_{a___b}', 'a_b_c_d')
