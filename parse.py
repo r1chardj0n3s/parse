@@ -47,7 +47,7 @@ A basic version of the `Format String Syntax`_ is supported with anonymous
    {[field name]:[format spec]}
 
 Field names must be a valid Python identifiers, including dotted names;
-element indexes are supported (as they would make no sense.)
+element indexes are not supported (as they would make no sense.)
 
 Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
