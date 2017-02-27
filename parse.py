@@ -47,7 +47,7 @@ A basic version of the `Format String Syntax`_ is supported with anonymous
    {[field name]:[format spec]}
 
 Field names must be a valid Python identifiers, including dotted names;
-element indexes are not supported (as they would make no sense.)
+element indexes imply dictionaries (see below for example).
 
 Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
@@ -73,8 +73,8 @@ Some simple parse() format string examples:
 >>> print(r['item'])
 hand grenade
 
-Dotted names are possible though the application must make additional sense of
-the result:
+Dotted names and indexes are possible though the application must make
+additional sense of the result:
 
 >>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
 >>> print(r)
@@ -83,6 +83,13 @@ the result:
 {'food.type': 'spam'}
 >>> print(r['food.type'])
 spam
+>>> r = parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
+>>> print r
+<Result () {'quest': {'name': 'to seek the holy grail!'}}>
+>>> print r['quest']
+{'name': 'to seek the holy grail!'}
+>>> print r['quest']['name']
+to seek the holy grail!
 
 
 Format Specification
@@ -278,6 +285,8 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
+  more than 100 re groups in Python 3.5+ (thanks David King)
 - 1.6.6 parse Linux system log dates (thanks Alex Cowan)
 - 1.6.5 handle precision in float format (thanks Levi Kilcher)
 - 1.6.4 handle pipe "|" characters in parse string (thanks Martijn Pieters)
@@ -321,10 +330,10 @@ A more complete example of a custom type might be:
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012-2013 Richard Jones <richard@python.org>
+This code is copyright 2012-2017 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.6.6'
+__version__ = '1.7.0'
 
 # yes, I now have two problems
 import re
