@@ -84,11 +84,11 @@ additional sense of the result:
 >>> print(r['food.type'])
 spam
 >>> r = parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
->>> print r
+>>> print(r)
 <Result () {'quest': {'name': 'to seek the holy grail!'}}>
->>> print r['quest']
+>>> print(r['quest'])
 {'name': 'to seek the holy grail!'}
->>> print r['quest']['name']
+>>> print(r['quest']['name'])
 to seek the holy grail!
 
 
@@ -282,7 +282,7 @@ A more complete example of a custom type might be:
 ...     "on":   True,   "off":   False,
 ...     "true": True,   "false": False,
 ... }
-... @with_pattern(r"|".join(yesno_mapping))
+>>> @with_pattern(r"|".join(yesno_mapping))
 ... def parse_yesno(text):
 ...     return yesno_mapping[text.lower()]
 
