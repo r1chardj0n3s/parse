@@ -84,11 +84,11 @@ additional sense of the result:
 >>> print(r['food.type'])
 spam
 >>> r = parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
->>> print r
+>>> print(r)
 <Result () {'quest': {'name': 'to seek the holy grail!'}}>
->>> print r['quest']
+>>> print(r['quest'])
 {'name': 'to seek the holy grail!'}
->>> print r['quest']['name']
+>>> print(r['quest']['name'])
 to seek the holy grail!
 
 
@@ -211,11 +211,11 @@ that this limit will be removed one day.
   http://docs.python.org/library/string.html#format-specification-mini-language
 
 
-Result Objects
---------------
+Result and Match Objects
+------------------------
 
-The result of a ``parse()`` operation is either ``None`` (no match) or a
-``Result`` instance.
+The result of a ``parse()`` and ``search()`` operation is either ``None`` (no match), a
+``Result`` instance or a ``Match`` instance if ``evaluate_result`` is False.
 
 The ``Result`` instance has three attributes:
 
@@ -227,6 +227,12 @@ spans
    A dictionary mapping the names and fixed position indices matched to a
    2-tuple slice range of where the match occurred in the input.
    The span does not include any stripped padding (alignment or width).
+
+The ``Match`` instance has one method:
+
+evaluate_result()
+   Generates and returns a ``Result`` instance for this ``Match`` object.
+
 
 
 Custom Type Conversions
@@ -276,7 +282,7 @@ A more complete example of a custom type might be:
 ...     "on":   True,   "off":   False,
 ...     "true": True,   "false": False,
 ... }
-... @with_pattern(r"|".join(yesno_mapping))
+>>> @with_pattern(r"|".join(yesno_mapping))
 ... def parse_yesno(text):
 ...     return yesno_mapping[text.lower()]
 
@@ -677,23 +683,29 @@ class Parser(object):
                     expression)
         return self.__match_re
 
-    def parse(self, string):
+    def parse(self, string, evaluate_result=True):
         '''Match my format to the string exactly.
 
-        Return either a Result instance or None if there's no match.
+        Return a Result or Match instance or None if there's no match.
         '''
         m = self._match_re.match(string)
         if m is None:
             return None
 
-        return self._generate_result(m)
+        if evaluate_result:
+            return self.evaluate_result(m)
+        else:
+            return Match(self, m)
 
-    def search(self, string, pos=0, endpos=None):
+    def search(self, string, pos=0, endpos=None, evaluate_result=True):
         '''Search the string for my format.
 
         Optionally start the search at "pos" character index and limit the
         search to a maximum index of endpos - equivalent to
         search(string[:endpos]).
+
+        If the ``evaluate_result`` argument is set to ``False`` a
+        Match instance is returned instead of the actual Result instance.
 
         Return either a Result instance or None if there's no match.
         '''
@@ -703,43 +715,47 @@ class Parser(object):
         if m is None:
             return None
 
-        return self._generate_result(m)
+        if evaluate_result:
+            return self.evaluate_result(m)
+        else:
+            return Match(self, m)
 
-    def findall(self, string, pos=0, endpos=None, extra_types={}):
+    def findall(self, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
         '''Search "string" for the all occurrances of "format".
 
         Optionally start the search at "pos" character index and limit the
         search to a maximum index of endpos - equivalent to
         search(string[:endpos]).
 
-        Returns an iterator that holds Result instances for each format match
+        Returns an iterator that holds Result or Match instances for each format match
         found.
         '''
         if endpos is None:
             endpos = len(string)
-        return ResultIterator(self, string, pos, endpos)
+        return ResultIterator(self, string, pos, endpos, evaluate_result=evaluate_result)
 
     def _expand_named_fields(self, named_fields):
         result = {}
         for field, value in named_fields.items():
             # split 'aaa[bbb][ccc]...' into 'aaa' and '[bbb][ccc]...'
             basename, subkeys = re.match(r'([^\[]+)(.*)', field).groups()
-            
+
             # create nested dictionaries {'aaa': {'bbb': {'ccc': ...}}}
             d = result
             k = basename
-            
+
             if subkeys:
                 for subkey in re.findall(r'\[[^\]]+\]', subkeys):
                     d = d.setdefault(k,{})
                     k = subkey[1:-1]
-            
+
             # assign the value to the last key
             d[k] = value
-            
+
         return result
 
-    def _generate_result(self, m):
+    def evaluate_result(self, m):
+        '''Generate a Result instance for the given regex match object'''
         # ok, figure the fixed fields we've pulled out and type convert them
         fixed_fields = list(m.groups())
         for n in self._fixed_fields:
@@ -758,7 +774,7 @@ class Parser(object):
                 value = self._type_conversions[k](groupdict[k], m)
             else:
                 value = groupdict[k]
-            
+
             named_fields[korig] = value
 
         # now figure the match spans
@@ -794,7 +810,7 @@ class Parser(object):
         # return a version of field which can be used as capture group, even
         # though it might contain '.'
         group = field.replace('.', '_').replace('[', '_').replace(']', '_')
-        
+
         # make sure we don't collide ("a.b" colliding with "a_b")
         n = 1
         while group in self._group_to_name_map:
@@ -1027,16 +1043,32 @@ class Result(object):
             self.named)
 
 
+class Match(object):
+    '''The result of a parse() or search() if no results are generated.
+
+    This class is only used to expose internal used regex match objects
+    to the user and use them for external Parser.evaluate_result calls.
+    '''
+    def __init__(self, parser, match):
+        self.parser = parser
+        self.match = match
+
+    def evaluate_result(self):
+        '''Generate results for this Match'''
+        return self.parser.evaluate_result(self.match)
+
+
 class ResultIterator(object):
     '''The result of a findall() operation.
 
     Each element is a Result instance.
     '''
-    def __init__(self, parser, string, pos, endpos):
+    def __init__(self, parser, string, pos, endpos, evaluate_result=True):
         self.parser = parser
         self.string = string
         self.pos = pos
         self.endpos = endpos
+        self.evaluate_result = evaluate_result
 
     def __iter__(self):
         return self
@@ -1046,23 +1078,32 @@ class ResultIterator(object):
         if m is None:
             raise StopIteration()
         self.pos = m.end()
-        return self.parser._generate_result(m)
+
+        if self.evaluate_result:
+            return self.parser.evaluate_result(m)
+        else:
+            return Match(self.parser, m)
 
     # pre-py3k compat
     next = __next__
 
 
-def parse(format, string, extra_types={}):
+def parse(format, string, extra_types={}, evaluate_result=True):
     '''Using "format" attempt to pull values from "string".
 
     The format must match the string contents exactly. If the value
     you're looking for is instead just a part of the string use
     search().
 
-    The return value will be an Result instance with two attributes:
+    If ``evaluate_result`` is True the return value will be an Result instance with two attributes:
 
      .fixed - tuple of fixed-position values from the string
      .named - dict of named values from the string
+
+    If ``evaluate_result`` is False the return value will be a Match instance with one method:
+
+     .evaluate_result() - This will return a Result instance like you would get
+                          with ``evaluate_result`` set to True
 
     If the format is invalid a ValueError will be raised.
 
@@ -1070,10 +1111,10 @@ def parse(format, string, extra_types={}):
 
     In the case there is no match parse() will return None.
     '''
-    return Parser(format, extra_types=extra_types).parse(string)
+    return Parser(format, extra_types=extra_types).parse(string, evaluate_result=evaluate_result)
 
 
-def search(format, string, pos=0, endpos=None, extra_types={}):
+def search(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
     '''Search "string" for the first occurance of "format".
 
     The format may occur anywhere within the string. If
@@ -1083,10 +1124,15 @@ def search(format, string, pos=0, endpos=None, extra_types={}):
     Optionally start the search at "pos" character index and limit the search
     to a maximum index of endpos - equivalent to search(string[:endpos]).
 
-    The return value will be an Result instance with two attributes:
+    If ``evaluate_result`` is True the return value will be an Result instance with two attributes:
 
      .fixed - tuple of fixed-position values from the string
      .named - dict of named values from the string
+
+    If ``evaluate_result`` is False the return value will be a Match instance with one method:
+
+     .evaluate_result() - This will return a Result instance like you would get
+                          with ``evaluate_result`` set to True
 
     If the format is invalid a ValueError will be raised.
 
@@ -1094,10 +1140,10 @@ def search(format, string, pos=0, endpos=None, extra_types={}):
 
     In the case there is no match parse() will return None.
     '''
-    return Parser(format, extra_types=extra_types).search(string, pos, endpos)
+    return Parser(format, extra_types=extra_types).search(string, pos, endpos, evaluate_result=evaluate_result)
 
 
-def findall(format, string, pos=0, endpos=None, extra_types={}):
+def findall(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
     '''Search "string" for the all occurrances of "format".
 
     You will be returned an iterator that holds Result instances
@@ -1106,16 +1152,21 @@ def findall(format, string, pos=0, endpos=None, extra_types={}):
     Optionally start the search at "pos" character index and limit the search
     to a maximum index of endpos - equivalent to search(string[:endpos]).
 
-    Each Result instance has two attributes:
+    If ``evaluate_result`` is True each returned Result instance has two attributes:
 
      .fixed - tuple of fixed-position values from the string
      .named - dict of named values from the string
+
+    If ``evaluate_result`` is False each returned value is a Match instance with one method:
+
+     .evaluate_result() - This will return a Result instance like you would get
+                          with ``evaluate_result`` set to True
 
     If the format is invalid a ValueError will be raised.
 
     See the module documentation for the use of "extra_types".
     '''
-    return Parser(format, extra_types=extra_types).findall(string, pos, endpos)
+    return Parser(format, extra_types=extra_types).findall(string, pos, endpos, evaluate_result=evaluate_result)
 
 
 def compile(format, extra_types={}):

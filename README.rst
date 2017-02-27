@@ -84,11 +84,11 @@ additional sense of the result:
 >>> print(r['food.type'])
 spam
 >>> r = parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
->>> print r
+>>> print(r)
 <Result () {'quest': {'name': 'to seek the holy grail!'}}>
->>> print r['quest']
+>>> print(r['quest'])
 {'name': 'to seek the holy grail!'}
->>> print r['quest']['name']
+>>> print(r['quest']['name'])
 to seek the holy grail!
 
 
@@ -211,11 +211,11 @@ that this limit will be removed one day.
   http://docs.python.org/library/string.html#format-specification-mini-language
 
 
-Result Objects
---------------
+Result and Match Objects
+------------------------
 
-The result of a ``parse()`` operation is either ``None`` (no match) or a
-``Result`` instance.
+The result of a ``parse()`` and ``search()`` operation is either ``None`` (no match), a
+``Result`` instance or a ``Match`` instance if ``evaluate_result`` is False.
 
 The ``Result`` instance has three attributes:
 
@@ -227,6 +227,12 @@ spans
    A dictionary mapping the names and fixed position indices matched to a
    2-tuple slice range of where the match occurred in the input.
    The span does not include any stripped padding (alignment or width).
+
+The ``Match`` instance has one method:
+
+evaluate_result()
+   Generates and returns a ``Result`` instance for this ``Match`` object.
+
 
 
 Custom Type Conversions
@@ -276,7 +282,7 @@ A more complete example of a custom type might be:
 ...     "on":   True,   "off":   False,
 ...     "true": True,   "false": False,
 ... }
-... @with_pattern(r"|".join(yesno_mapping))
+>>> @with_pattern(r"|".join(yesno_mapping))
 ... def parse_yesno(text):
 ...     return yesno_mapping[text.lower()]
 
