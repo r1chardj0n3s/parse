@@ -291,6 +291,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
 - 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
   more than 100 re groups in Python 3.5+ (thanks David King)
 - 1.6.6 parse Linux system log dates (thanks Alex Cowan)
