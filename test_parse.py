@@ -1,3 +1,4 @@
+# -*- encoding: utf8 -*-
 '''Test suite for parse.py
 
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
@@ -156,6 +157,11 @@ class TestParse(unittest.TestCase):
         # issue22: make sure a | in the parse string is handled correctly
         r = parse.parse('| {}', '| teststr')
         self.assertEqual(r[0], 'teststr')
+
+    def test_unicode(self):
+        # issue29: make sure unicode is parseable
+        r = parse.parse('{}', u't€ststr')
+        self.assertEqual(r[0], u't€ststr')
 
     def test_fixed(self):
         # pull a fixed value out of string
