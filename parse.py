@@ -609,7 +609,7 @@ def extract_format(format, extra_types):
     # the rest is the type, if present
     type = format
     if type and type not in ALLOWED_TYPES and type not in extra_types:
-        raise ValueError('type %r not recognised' % type)
+        raise ValueError('format spec %r not recognised' % type)
 
     return locals()
 
