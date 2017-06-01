@@ -724,7 +724,7 @@ class Parser(object):
             return Match(self, m)
 
     def findall(self, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
-        '''Search "string" for the all occurrances of "format".
+        '''Search "string" for the all occurrences of "format".
 
         Optionally start the search at "pos" character index and limit the
         search to a maximum index of endpos - equivalent to
@@ -1118,7 +1118,7 @@ def parse(format, string, extra_types={}, evaluate_result=True):
 
 
 def search(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
-    '''Search "string" for the first occurance of "format".
+    '''Search "string" for the first occurrence of "format".
 
     The format may occur anywhere within the string. If
     instead you wish for the format to exactly match the string
@@ -1147,7 +1147,7 @@ def search(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=T
 
 
 def findall(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
-    '''Search "string" for the all occurrances of "format".
+    '''Search "string" for the all occurrences of "format".
 
     You will be returned an iterator that holds Result instances
     for each format match found.
