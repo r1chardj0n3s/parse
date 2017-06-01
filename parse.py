@@ -726,7 +726,7 @@ class Parser(object):
             return Match(self, m)
 
     def findall(self, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
-        '''Search "string" for the all occurrences of "format".
+        '''Search "string" for all occurrences of "format".
 
         Optionally start the search at "pos" character index and limit the
         search to a maximum index of endpos - equivalent to
@@ -967,7 +967,7 @@ class Parser(object):
                 am=n + 4, tz=n + 5)
             self._group_index += 5
         elif type == 'ts':
-            s = r'%s(\s+)(\d+)(\s+)(\d{1,2}:\d{1,2}:\d{1,2})?' % (MONTHS_PAT)
+            s = r'%s(\s+)(\d+)(\s+)(\d{1,2}:\d{1,2}:\d{1,2})?' % MONTHS_PAT
             n = self._group_index
             self._type_conversions[group] = partial(date_convert, mm=n+1, dd=n+3,
                 hms=n + 5)
@@ -1149,7 +1149,7 @@ def search(format, string, pos=0, endpos=None, extra_types=None, evaluate_result
 
 
 def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
-    '''Search "string" for the all occurrences of "format".
+    '''Search "string" for all occurrences of "format".
 
     You will be returned an iterator that holds Result instances
     for each format match found.
