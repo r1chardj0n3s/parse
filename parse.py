@@ -291,6 +291,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.8.2 clarify message on invalid format specs (thanks Rick Teachey)
 - 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
 - 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
@@ -341,7 +342,7 @@ A more complete example of a custom type might be:
 This code is copyright 2012-2017 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.8.1'
+__version__ = '1.8.2'
 
 # yes, I now have two problems
 import re
