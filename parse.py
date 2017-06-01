@@ -912,7 +912,7 @@ class Parser(object):
             self._group_index += 2
             self._type_conversions[group] = lambda s, m: float(s)
         elif type == 'd':
-            s = r'\d+|0[xX][0-9a-fA-F]+|\d+|0[bB][01]+|0[oO][0-7]+'
+            s = r'\d+|0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
             self._type_conversions[group] = int_convert(10)
         elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \
