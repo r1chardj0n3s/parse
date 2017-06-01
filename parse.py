@@ -645,7 +645,7 @@ class Parser(object):
         self.__search_re = None
         self.__match_re = None
 
-        log.debug('format %r -> %r' % (format, self._expression))
+        log.debug('format %r -> %r', format, self._expression)
 
     def __repr__(self):
         if len(self._format) > 20:
