@@ -1079,7 +1079,7 @@ class ResultIterator(object):
     def __next__(self):
         m = self.parser._search_re.search(self.string, self.pos, self.endpos)
         if m is None:
-            raise StopIteration()
+            raise StopIteration
         self.pos = m.end()
 
         if self.evaluate_result:
