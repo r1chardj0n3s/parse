@@ -622,7 +622,7 @@ PARSE_RE = re.compile(r"""({{|}}|{\w*(?:(?:\.\w+)|(?:\[[^\]]+\]))*(?::[^}]+)?})"
 class Parser(object):
     '''Encapsulate a format string that may be used to parse other strings.
     '''
-    def __init__(self, format, extra_types={}):
+    def __init__(self, format, extra_types=None):
         # a mapping of a name as in {hello.world} to a regex-group compatible
         # name, like hello__world Its used to prevent the transformation of
         # name-to-group and group to name to fail subtly, such as in:
@@ -636,6 +636,8 @@ class Parser(object):
         self._name_types = {}
 
         self._format = format
+        if extra_types is None:
+            extra_types = {}
         self._extra_types = extra_types
         self._fixed_fields = []
         self._named_fields = []
@@ -723,7 +725,7 @@ class Parser(object):
         else:
             return Match(self, m)
 
-    def findall(self, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
+    def findall(self, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
         '''Search "string" for the all occurrences of "format".
 
         Optionally start the search at "pos" character index and limit the
@@ -1091,7 +1093,7 @@ class ResultIterator(object):
     next = __next__
 
 
-def parse(format, string, extra_types={}, evaluate_result=True):
+def parse(format, string, extra_types=None, evaluate_result=True):
     '''Using "format" attempt to pull values from "string".
 
     The format must match the string contents exactly. If the value
@@ -1117,7 +1119,7 @@ def parse(format, string, extra_types={}, evaluate_result=True):
     return Parser(format, extra_types=extra_types).parse(string, evaluate_result=evaluate_result)
 
 
-def search(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
+def search(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
     '''Search "string" for the first occurrence of "format".
 
     The format may occur anywhere within the string. If
@@ -1146,7 +1148,7 @@ def search(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=T
     return Parser(format, extra_types=extra_types).search(string, pos, endpos, evaluate_result=evaluate_result)
 
 
-def findall(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=True):
+def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
     '''Search "string" for the all occurrences of "format".
 
     You will be returned an iterator that holds Result instances
@@ -1172,7 +1174,7 @@ def findall(format, string, pos=0, endpos=None, extra_types={}, evaluate_result=
     return Parser(format, extra_types=extra_types).findall(string, pos, endpos, evaluate_result=evaluate_result)
 
 
-def compile(format, extra_types={}):
+def compile(format, extra_types=None):
     '''Create a Parser instance to parse "format".
 
     The resultant Parser has a method .parse(string) which
