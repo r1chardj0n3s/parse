@@ -291,6 +291,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
 - 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
   more than 100 re groups in Python 3.5+ (thanks David King)
@@ -340,7 +341,7 @@ A more complete example of a custom type might be:
 This code is copyright 2012-2017 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.8.0'
+__version__ = '1.8.1'
 
 # yes, I now have two problems
 import re
@@ -910,7 +911,7 @@ class Parser(object):
             self._group_index += 2
             self._type_conversions[group] = lambda s, m: float(s)
         elif type == 'd':
-            s = r'\d+|0[xX][0-9a-fA-F]+|[0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
+            s = r'\d+|0[xX][0-9a-fA-F]+|\d+|0[bB][01]+|0[oO][0-7]+'
             self._type_conversions[group] = int_convert(10)
         elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \

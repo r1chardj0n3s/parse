@@ -163,6 +163,11 @@ class TestParse(unittest.TestCase):
         r = parse.parse('{}', u't€ststr')
         self.assertEqual(r[0], u't€ststr')
 
+    def test_hexadecimal(self):
+        # issue42: make sure bare hexadecimal isn't matched as "digits"
+        r = parse.parse('{:d}', 'abcdef')
+        self.assertIsNone(r)
+
     def test_fixed(self):
         # pull a fixed value out of string
         r = parse.parse('hello {}', 'hello world')
