@@ -2,8 +2,8 @@ r'''Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
 
-The module is set up to only export ``parse()``, ``search()`` and
-``findall()`` when ``import *`` is used:
+The module is set up to only export ``parse()``, ``search()``, ``findall()``,
+and ``with_pattern()`` when ``import *`` is used:
 
 >>> from parse import *
 
