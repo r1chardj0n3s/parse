@@ -825,7 +825,7 @@ class Parser(object):
             elif '_' in field:
                 group = field.replace('_', '_' * n)
             else:
-                raise KeyError('duplicated group name %r' % field)
+                raise KeyError('duplicated group name %r' % (field,))
 
         # save off the mapping
         self._group_to_name_map[group] = field
