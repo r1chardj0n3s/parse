@@ -159,7 +159,7 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r[0], 'teststr')
 
     def test_unicode(self):
-        # issue29: make sure unicode is parseable
+        # issue29: make sure unicode is parsable
         r = parse.parse('{}', u't€ststr')
         self.assertEqual(r[0], u't€ststr')
 
