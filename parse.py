@@ -348,6 +348,7 @@ __version__ = '1.8.2'
 import re
 import sys
 from datetime import datetime, time, tzinfo, timedelta
+from decimal import Decimal
 from functools import partial
 import logging
 
@@ -569,7 +570,7 @@ class RepeatedNameError(ValueError):
 REGEX_SAFETY = re.compile('([?\\\\.[\]()*+\^$!\|])')
 
 # allowed field types
-ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
+ALLOWED_TYPES = set(list('nbox%fFegwWdDsS') +
     ['t' + c for c in 'ieahgcts'])
 
 
@@ -906,6 +907,9 @@ class Parser(object):
         elif type == 'f':
             s = r'\d+\.\d+'
             self._type_conversions[group] = lambda s, m: float(s)
+        elif type == 'F':
+            s = r'\d+\.\d+'
+            self._type_conversions[group] = lambda s, m: Decimal(s)
         elif type == 'e':
             s = r'\d+\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
             self._type_conversions[group] = lambda s, m: float(s)
