@@ -788,6 +788,15 @@ class TestParseType(unittest.TestCase):
         self.assert_match(parser, 'test b', 'result', 2)
         self.assert_mismatch(parser, "test c", "result")
 
+    def test_decimal_value(self):
+        from decimal import Decimal
+
+        value = Decimal('5.5')
+        str_ = 'test {}'.format(value)
+
+        parser = parse.Parser('test {:F}')
+        self.assertEqual(parser.parse(str_)[0], value)
+
 
 if __name__ == '__main__':
     unittest.main()
