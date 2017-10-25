@@ -132,6 +132,7 @@ Type  Characters Matched                          Output
  n    Numbers with thousands separators (, or .)  int
  %    Percentage (converted to value/100.0)       float
  f    Fixed-point numbers                         float
+ F    Decimal numbers                             Decimal
  e    Floating-point numbers with exponent        float
       e.g. 1.1e-10, NAN (all case insensitive)
  g    General number format (either d, f or e)    float
