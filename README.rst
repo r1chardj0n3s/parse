@@ -91,6 +91,9 @@ spam
 >>> print(r['quest']['name'])
 to seek the holy grail!
 
+If the text you're matching has braces in it you can match those by including
+a double-brace ``{{`` or ``}}`` in your format string, just like format() does.
+
 
 Format Specification
 --------------------
@@ -101,9 +104,6 @@ format specification might have been used.
 Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
    [[fill]align][0][width][.precision][type]
-
-If the text you're matching has braces in it you can match those by including
-a double-brace ``{{`` or ``}}`` in your format string, just like format() does.
 
 The differences between `parse()` and `format()` are:
 
