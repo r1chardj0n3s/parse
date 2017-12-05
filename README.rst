@@ -102,6 +102,9 @@ Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
    [[fill]align][0][width][.precision][type]
 
+If the text you're matching has braces in it you can match those by including
+a double-brace ``{{`` or ``}}`` in your format string, just like format() does.
+
 The differences between `parse()` and `format()` are:
 
 - The align operators will cause spaces (or specified fill character) to be
@@ -291,6 +294,7 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
+- 1.8.2 add documentation for including braces in format string
 - 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
 - 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
