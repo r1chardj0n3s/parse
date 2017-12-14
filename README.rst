@@ -290,6 +290,21 @@ A more complete example of a custom type might be:
 ...     return yesno_mapping[text.lower()]
 
 
+Potential Gotchas
+-----------------
+
+`parse()` will always match the shortest text necessary (from left to right)
+to fulfil the parse pattern, so for example:
+
+>>> pattern = '{dir1}/{dir2}'
+>>> data = 'root/parent/subdir'
+>>> parse(pattern, data).named
+{'dir1': 'root', 'dir2': 'parent/subdir'}
+
+So, even though `{'dir1': 'root/parent', 'dir2': 'subdir'}` would also fit
+the pattern, the actual match represents the shortest successful match for
+`dir1`.
+
 ----
 
 **Version history (in brief)**:
