@@ -190,7 +190,9 @@ Some notes for the date and time types:
 - as per RFC 2822 the e-mail format may omit the day (and comma), and the
   seconds but nothing else.
 - hours greater than 12 will be happily accepted.
-- the AM/PM are optional, and if PM is found then 12 hours will be added
+- the AM/PM are optional
+  * if either are present "12th hour" values are corrected to "0th hour". Midnight becomes 00:00:00.
+  * if PM is found then 12 hours will be added
   to the datetime object's hours amount - even if the hour is greater
   than 12 (for consistency.)
 - in ISO 8601 the "Z" (UTC) timezone part may be a numeric offset
@@ -290,7 +292,7 @@ A more complete example of a custom type might be:
 ----
 
 **Version history (in brief)**:
-
+- 1.8.2MP Adjustment for 12th hour in AM/PM system
 - 1.8.2 clarify message on invalid format specs (thanks Rick Teachey)
 - 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
@@ -342,7 +344,7 @@ A more complete example of a custom type might be:
 This code is copyright 2012-2017 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.8.2'
+__version__ = '1.8.2MP'
 
 # yes, I now have two problems
 import re
@@ -509,13 +511,18 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         M = int(M)
 
     day_incr = False
+    # replace with day_incr = 0 to handle multi-days, as theoretically values up to 99 can be input for hours? If PM, actual value up to 111.
+    # alternate: use more strict value checking.
     if am is not None:
         am = groups[am]
-        if am and am.strip() == 'PM':
+        if am and (am.strip() == 'AM' or am.strip() == 'PM') and (H == 12): # last part of conditional is probably the only needed.
+            # correction for "12" hour functioning as "0" hour. E.g. 12:15 AM = 00:15 by 24 hr clock and 12:31 PM = 12:31
+            H -= 12
+        if am and am.strip() == 'PM': # due to correction above, 12 PM can still have 12 added (12:00) and resolve to before 1 PM (13:00)
             H += 12
             if H > 23:
-                day_incr = True
-                H -= 24
+                day_incr = True # replace with day_incr = H // 24 (see above)?
+                H %= 24 # remainder when dividing by 24
 
     if tz is not None:
         tz = groups[tz]
