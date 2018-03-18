@@ -254,26 +254,16 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
-<<<<<<< HEAD
-
-If the type-converter has the optional ``pattern`` attribute, it is used as
-=======
 If the type converter has the optional ``pattern`` attribute, it is used as
->>>>>>> master
 regular expression for better pattern matching (instead of the default one).
-You can also use the ``with_pattern(pattern)`` decorator to add this
-information to a type-converter function:
 
->>> import parse
->>> @parse.with_pattern(r'\d+')
-... def parse_number(text):
+>>> def parse_number(text):
 ...    return int(text)
->>> assert parse_number.pattern == r'\d+'
->>> schema = 'Answer: {number:Number}'
->>> parse.parse(schema, 'Answer: 42', dict(Number=parse_number))
+>>> parse_number.pattern = r'\d+'
+>>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
 <Result () {'number': 42}>
->>> _ = parse.parse(schema, 'Answer: Alice', dict(Number=parse_number))
->>> assert _ is None, "EXPECT MISMATCH"
+>>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
+>>> assert _ is None, "MISMATCH"
 
 You can also use the ``with_pattern(pattern)`` decorator to add this
 information to a type converter function:
@@ -309,8 +299,6 @@ A more complete example of a custom type might be:
 
 **Version history (in brief)**:
 
-<<<<<<< HEAD
-=======
 - 1.8.2 clarify message on invalid format specs (thanks Rick Teachey)
 - 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
@@ -326,7 +314,6 @@ A more complete example of a custom type might be:
   general, fix bug in timezones without ":" and improve docs
 - 1.6.0 add support for optional ``pattern`` attribute in user-defined types
   (thanks Jens Engel)
->>>>>>> master
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
@@ -363,7 +350,6 @@ A more complete example of a custom type might be:
 This code is copyright 2012-2017 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-
 __version__ = '1.8.2'
 
 # yes, I now have two problems
