@@ -717,7 +717,6 @@ class TestBugs(unittest.TestCase):
         self.assertEqual(r['a_b'], '1')
         self.assertEqual(r['a.b'], 2)
 
-
     def test_pm_overflow_issue16(self):
         r = parse.parse('Meet at {:tg}', 'Meet at 1/2/2011 12:45 PM')
         self.assertEqual(r[0], datetime(2011, 2, 2, 0, 45))
@@ -726,28 +725,8 @@ class TestBugs(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
 # -----------------------------------------------------------------------------
-# # -- PROOF-OF-CONCEPT DATATYPE:
-# def parse_number(text):
-#     return int(text)
-#
-# parse_number.pattern = r"\d+"   # Provide better regexp pattern than default.
-# parse_number.name = "Number"    # For testing only.
-#
-# # -- ENUM DATATYPE:
-# def parse_yesno(text):
-#     return parse_yesno.mapping[text.lower()]
-#
-# parse_yesno.mapping = {
-#     "yes":  True,   "no":  False,
-#     "on":   True,   "off": False,
-#     "true": True,   "false": False,
-# }
-# parse_yesno.pattern = r"|".join(parse_yesno.mapping.keys())
-# parse_yesno.name = "YesNo"      # For testing only.
-#
-# -----------------------------------------------------------------------------
-# TEST SUPPORT FOR: TestParseType
-# -----------------------------------------------------------------------------
+
+
 class TestParseType(unittest.TestCase):
 
     def assert_match(self, parser, text, param_name, expected):

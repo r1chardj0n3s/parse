@@ -5,7 +5,6 @@
 .idea/
 .tox/
 __pycache__/
-downloads/
 .coverage
 .pytest_cache
 parse.egg-info

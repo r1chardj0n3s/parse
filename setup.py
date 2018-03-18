@@ -17,7 +17,7 @@ setup(
     long_description = __doc__,
     author = "Richard Jones",
     author_email = "rjones@ekit-inc.com",
-    py_modules = ['parse', 'parse_type' ], # EXPERIMENTAL: parse_type
+    py_modules = ['parse'],
     url = 'https://github.com/r1chardj0n3s/parse',
     classifiers = [
         'Environment :: Web Environment',
