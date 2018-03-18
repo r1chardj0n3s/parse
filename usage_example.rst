@@ -19,17 +19,17 @@ Or to search a string for some pattern:
 >>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
 <Result (42,) {}>
 
-Or find all the occurrences of some pattern in a string:
+Or find all the occurrances of some pattern in a string:
 
->>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
-'the bold text'
+>>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>"))
+'some bold text'
 
 If you're going to use the same pattern to match lots of strings you can
 compile it once:
 
 >>> from parse import compile
 >>> p = compile("It's {}, I love it!")
->>> print(p)
+>>> print p
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
 <Result ('spam',) {}>
@@ -47,7 +47,7 @@ A basic version of the `Format String Syntax`_ is supported with anonymous
    {[field name]:[format spec]}
 
 Field names must be a valid Python identifiers, including dotted names;
-element indexes imply dictionaries (see below for example).
+element indexes are supported (as they would make no sense.)
 
 Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
@@ -61,67 +61,57 @@ Some simple parse() format string examples:
 >>> parse("Bring me a {}", "Bring me a shrubbery")
 <Result ('shrubbery',) {}>
 >>> r = parse("The {} who say {}", "The knights who say Ni!")
->>> print(r)
+>>> print r
 <Result ('knights', 'Ni!') {}>
->>> print(r.fixed)
+>>> print r.fixed
 ('knights', 'Ni!')
 >>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
->>> print(r)
+>>> print r
 <Result () {'item': 'hand grenade'}>
->>> print(r.named)
+>>> print r.named
 {'item': 'hand grenade'}
->>> print(r['item'])
+>>> print r['item']
 hand grenade
 
-Dotted names and indexes are possible though the application must make
-additional sense of the result:
+Dotted names are possible though the application must make additional sense of
+the result:
 
 >>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
->>> print(r)
+>>> print r
 <Result () {'food.type': 'spam'}>
->>> print(r.named)
+>>> print r.named
 {'food.type': 'spam'}
->>> print(r['food.type'])
+>>> print r['food.type']
 spam
->>> r = parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
->>> print(r)
-<Result () {'quest': {'name': 'to seek the holy grail!'}}>
->>> print(r['quest'])
-{'name': 'to seek the holy grail!'}
->>> print(r['quest']['name'])
-to seek the holy grail!
-
-If the text you're matching has braces in it you can match those by including
-a double-brace ``{{`` or ``}}`` in your format string, just like format() does.
 
 
 Format Specification
 --------------------
 
-Most often a straight format-less ``{}`` will suffice where a more complex
-format specification might have been used.
+Do remember that most often a straight format-less "{}" will suffice
+where a more complex format specification might have been used.
 
-Most of `format()`'s `Format Specification Mini-Language`_ is supported:
+Most of the `Format Specification Mini-Language`_ is supported::
 
-   [[fill]align][0][width][.precision][type]
+   [[fill]align][0][width][type]
 
-The differences between `parse()` and `format()` are:
+The align operators will cause spaces (or specified fill character)
+to be stripped from the value. Similarly width is not enforced; it
+just indicates there may be whitespace or "0"s to strip.
 
-- The align operators will cause spaces (or specified fill character) to be
-  stripped from the parsed value. The width is not enforced; it just indicates
-  there may be whitespace or "0"s to strip.
-- Numeric parsing will automatically handle a "0b", "0o" or "0x" prefix.
-  That is, the "#" format character is handled automatically by d, b, o
-  and x formats. For "d" any will be accepted, but for the others the correct
-  prefix must be present if at all.
-- Numeric sign is handled automatically.
-- The thousands separator is handled automatically if the "n" type is used.
-- The types supported are a slightly different mix to the format() types.  Some
-  format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
-  In addition some regular expression character group types "D", "w", "W", "s"
-  and "S" are also available.
-- The "e" and "g" types are case-insensitive so there is not need for
-  the "E" or "G" types.
+The "#" format character is handled automatically by d, b, o and x -
+that is: if there is a "0b", "0o" or "0x" prefix respectively, it's
+handled. For "d" any will be accepted, but for the others the correct
+prefix must be present if at all. Similarly number sign is handled
+automatically.
+
+The types supported are a slightly different mix to the format() types.  Some
+format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
+In addition some regular expression character group types "D", "w", "W", "s" and
+"S" are also available.
+
+The "e" and "g" types are case-insensitive so there is not need for
+the "E" or "G" types.
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
@@ -142,8 +132,7 @@ Type  Characters Matched                          Output
  o    Octal numbers                               int
  x    Hexadecimal numbers (lower and upper case)  int
  ti   ISO 8601 format date/time                   datetime
-      e.g. 1972-01-20T10:21:36Z ("T" and "Z"
-      optional)
+      e.g. 1972-01-20T10:21:36Z
  te   RFC2822 e-mail format date/time             datetime
       e.g. Mon, 20 Jan 1972 10:21:36 +1000
  tg   Global (day/month) format date/time         datetime
@@ -154,8 +143,6 @@ Type  Characters Matched                          Output
       e.g. Sun Sep 16 01:03:52 1973
  th   HTTP log format date/time                   datetime
       e.g. 21/Nov/2011:00:07:11 +0000
- ts   Linux system log format date/time           datetime
-      e.g. Nov  9 03:37:44
  tt   Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
@@ -196,11 +183,7 @@ Some notes for the date and time types:
 - the AM/PM are optional, and if PM is found then 12 hours will be added
   to the datetime object's hours amount - even if the hour is greater
   than 12 (for consistency.)
-- in ISO 8601 the "Z" (UTC) timezone part may be a numeric offset
-- timezones are specified as "+HH:MM" or "-HH:MM". The hour may be one or two
-  digits (0-padded is OK.) Also, the ":" is optional.
-- the timezone is optional in all except the e-mail format (it defaults to
-  UTC.)
+- except in ISO 8601 and e-mail format the timezone is optional.
 - named timezones are not handled yet.
 
 Note: attempting to match too many datetime fields in a single parse() will
@@ -208,17 +191,15 @@ currently result in a resource allocation issue. A TooManyFields exception
 will be raised in this instance. The current limit is about 15. It is hoped
 that this limit will be removed one day.
 
-.. _`Format String Syntax`:
-  http://docs.python.org/library/string.html#format-string-syntax
-.. _`Format Specification Mini-Language`:
-  http://docs.python.org/library/string.html#format-specification-mini-language
+.. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
+.. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
 
 
-Result and Match Objects
-------------------------
+Result Objects
+--------------
 
-The result of a ``parse()`` and ``search()`` operation is either ``None`` (no match), a
-``Result`` instance or a ``Match`` instance if ``evaluate_result`` is False.
+The result of a ``parse()`` operation is either ``None`` (no match) or a
+``Result`` instance.
 
 The ``Result`` instance has three attributes:
 
@@ -230,12 +211,6 @@ spans
    A dictionary mapping the names and fixed position indices matched to a
    2-tuple slice range of where the match occurred in the input.
    The span does not include any stripped padding (alignment or width).
-
-The ``Match`` instance has one method:
-
-evaluate_result()
-   Generates and returns a ``Result`` instance for this ``Match`` object.
-
 
 
 Custom Type Conversions
@@ -257,53 +232,22 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
-If the type converter has the optional ``pattern`` attribute, it is used as
+
+If the type-converter has the optional ``pattern`` attribute, it is used as
 regular expression for better pattern matching (instead of the default one).
-
->>> def parse_number(text):
-...    return int(text)
->>> parse_number.pattern = r'\d+'
->>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
-<Result () {'number': 42}>
->>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
->>> assert _ is None, "MISMATCH"
-
 You can also use the ``with_pattern(pattern)`` decorator to add this
-information to a type converter function:
+information to a type-converter function:
 
->>> from parse import with_pattern
->>> @with_pattern(r'\d+')
+>>> import parse
+>>> @parse.with_pattern(r'\d+')
 ... def parse_number(text):
 ...    return int(text)
->>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+>>> assert parse_number.pattern == r'\d+'
+>>> schema = 'Answer: {number:Number}'
+>>> parse.parse(schema, 'Answer: 42', dict(Number=parse_number))
 <Result () {'number': 42}>
-
-A more complete example of a custom type might be:
-
->>> yesno_mapping = {
-...     "yes":  True,   "no":    False,
-...     "on":   True,   "off":   False,
-...     "true": True,   "false": False,
-... }
->>> @with_pattern(r"|".join(yesno_mapping))
-... def parse_yesno(text):
-...     return yesno_mapping[text.lower()]
-
-
-Potential Gotchas
------------------
-
-`parse()` will always match the shortest text necessary (from left to right)
-to fulfil the parse pattern, so for example:
-
->>> pattern = '{dir1}/{dir2}'
->>> data = 'root/parent/subdir'
->>> parse(pattern, data).named
-{'dir1': 'root', 'dir2': 'parent/subdir'}
-
-So, even though `{'dir1': 'root/parent', 'dir2': 'subdir'}` would also fit
-the pattern, the actual match represents the shortest successful match for
-`dir1`.
+>>> _ = parse.parse(schema, 'Answer: Alice', dict(Number=parse_number))
+>>> assert _ is None, "EXPECT MISMATCH"
 
 ----
 
@@ -317,21 +261,6 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
-- 1.8.2 add documentation for including braces in format string
-- 1.8.1 ensure bare hexadecimal digits are not matched
-- 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
-- 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
-  more than 100 re groups in Python 3.5+ (thanks David King)
-- 1.6.6 parse Linux system log dates (thanks Alex Cowan)
-- 1.6.5 handle precision in float format (thanks Levi Kilcher)
-- 1.6.4 handle pipe "|" characters in parse string (thanks Martijn Pieters)
-- 1.6.3 handle repeated instances of named fields, fix bug in PM time
-  overflow
-- 1.6.2 fix logging to use local, not root logger (thanks Necku)
-- 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
-  general, fix bug in timezones without ":" and improve docs
-- 1.6.0 add support for optional ``pattern`` attribute in user-defined types
-  (thanks Jens Engel)
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
@@ -365,5 +294,5 @@ the pattern, the actual match represents the shortest successful match for
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012-2017 Richard Jones <richard@python.org>
+This code is copyright 2012 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.

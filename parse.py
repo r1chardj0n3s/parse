@@ -2,8 +2,8 @@ r'''Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
 
-The module is set up to only export ``parse()``, ``search()`` and
-``findall()`` when ``import *`` is used:
+The module is set up to only export ``parse()``, ``search()``, ``findall()``,
+and ``with_pattern()`` when ``import *`` is used:
 
 >>> from parse import *
 
@@ -19,17 +19,17 @@ Or to search a string for some pattern:
 >>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
 <Result (42,) {}>
 
-Or find all the occurrances of some pattern in a string:
+Or find all the occurrences of some pattern in a string:
 
->>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>some <b>bold</b> text</p>"))
-'some bold text'
+>>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
+'the bold text'
 
 If you're going to use the same pattern to match lots of strings you can
 compile it once:
 
 >>> from parse import compile
 >>> p = compile("It's {}, I love it!")
->>> print p
+>>> print(p)
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
 <Result ('spam',) {}>
@@ -47,7 +47,7 @@ A basic version of the `Format String Syntax`_ is supported with anonymous
    {[field name]:[format spec]}
 
 Field names must be a valid Python identifiers, including dotted names;
-element indexes are supported (as they would make no sense.)
+element indexes imply dictionaries (see below for example).
 
 Numbered fields are also not supported: the result of parsing will include
 the parsed fields in the order they are parsed.
@@ -61,57 +61,64 @@ Some simple parse() format string examples:
 >>> parse("Bring me a {}", "Bring me a shrubbery")
 <Result ('shrubbery',) {}>
 >>> r = parse("The {} who say {}", "The knights who say Ni!")
->>> print r
+>>> print(r)
 <Result ('knights', 'Ni!') {}>
->>> print r.fixed
+>>> print(r.fixed)
 ('knights', 'Ni!')
 >>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
->>> print r
+>>> print(r)
 <Result () {'item': 'hand grenade'}>
->>> print r.named
+>>> print(r.named)
 {'item': 'hand grenade'}
->>> print r['item']
+>>> print(r['item'])
 hand grenade
 
-Dotted names are possible though the application must make additional sense of
-the result:
+Dotted names and indexes are possible though the application must make
+additional sense of the result:
 
 >>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
->>> print r
+>>> print(r)
 <Result () {'food.type': 'spam'}>
->>> print r.named
+>>> print(r.named)
 {'food.type': 'spam'}
->>> print r['food.type']
+>>> print(r['food.type'])
 spam
+>>> r = parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
+>>> print(r)
+<Result () {'quest': {'name': 'to seek the holy grail!'}}>
+>>> print(r['quest'])
+{'name': 'to seek the holy grail!'}
+>>> print(r['quest']['name'])
+to seek the holy grail!
 
 
 Format Specification
 --------------------
 
-Do remember that most often a straight format-less "{}" will suffice
-where a more complex format specification might have been used.
+Most often a straight format-less ``{}`` will suffice where a more complex
+format specification might have been used.
 
-Most of the `Format Specification Mini-Language`_ is supported::
+Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
-   [[fill]align][0][width][type]
+   [[fill]align][0][width][.precision][type]
 
-The align operators will cause spaces (or specified fill character)
-to be stripped from the value. Similarly width is not enforced; it
-just indicates there may be whitespace or "0"s to strip.
+The differences between `parse()` and `format()` are:
 
-The "#" format character is handled automatically by d, b, o and x -
-that is: if there is a "0b", "0o" or "0x" prefix respectively, it's
-handled. For "d" any will be accepted, but for the others the correct
-prefix must be present if at all. Similarly number sign is handled
-automatically.
-
-The types supported are a slightly different mix to the format() types.  Some
-format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
-In addition some regular expression character group types "D", "w", "W", "s" and
-"S" are also available.
-
-The "e" and "g" types are case-insensitive so there is not need for
-the "E" or "G" types.
+- The align operators will cause spaces (or specified fill character) to be
+  stripped from the parsed value. The width is not enforced; it just indicates
+  there may be whitespace or "0"s to strip.
+- Numeric parsing will automatically handle a "0b", "0o" or "0x" prefix.
+  That is, the "#" format character is handled automatically by d, b, o
+  and x formats. For "d" any will be accepted, but for the others the correct
+  prefix must be present if at all.
+- Numeric sign is handled automatically.
+- The thousands separator is handled automatically if the "n" type is used.
+- The types supported are a slightly different mix to the format() types.  Some
+  format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
+  In addition some regular expression character group types "D", "w", "W", "s"
+  and "S" are also available.
+- The "e" and "g" types are case-insensitive so there is not need for
+  the "E" or "G" types.
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
@@ -132,7 +139,8 @@ Type  Characters Matched                          Output
  o    Octal numbers                               int
  x    Hexadecimal numbers (lower and upper case)  int
  ti   ISO 8601 format date/time                   datetime
-      e.g. 1972-01-20T10:21:36Z
+      e.g. 1972-01-20T10:21:36Z ("T" and "Z"
+      optional)
  te   RFC2822 e-mail format date/time             datetime
       e.g. Mon, 20 Jan 1972 10:21:36 +1000
  tg   Global (day/month) format date/time         datetime
@@ -143,6 +151,8 @@ Type  Characters Matched                          Output
       e.g. Sun Sep 16 01:03:52 1973
  th   HTTP log format date/time                   datetime
       e.g. 21/Nov/2011:00:07:11 +0000
+ ts   Linux system log format date/time           datetime
+      e.g. Nov  9 03:37:44
  tt   Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
@@ -183,7 +193,11 @@ Some notes for the date and time types:
 - the AM/PM are optional, and if PM is found then 12 hours will be added
   to the datetime object's hours amount - even if the hour is greater
   than 12 (for consistency.)
-- except in ISO 8601 and e-mail format the timezone is optional.
+- in ISO 8601 the "Z" (UTC) timezone part may be a numeric offset
+- timezones are specified as "+HH:MM" or "-HH:MM". The hour may be one or two
+  digits (0-padded is OK.) Also, the ":" is optional.
+- the timezone is optional in all except the e-mail format (it defaults to
+  UTC.)
 - named timezones are not handled yet.
 
 Note: attempting to match too many datetime fields in a single parse() will
@@ -191,15 +205,17 @@ currently result in a resource allocation issue. A TooManyFields exception
 will be raised in this instance. The current limit is about 15. It is hoped
 that this limit will be removed one day.
 
-.. _`Format String Syntax`: http://docs.python.org/library/string.html#format-string-syntax
-.. _`Format Specification Mini-Language`: http://docs.python.org/library/string.html#format-specification-mini-language
+.. _`Format String Syntax`:
+  http://docs.python.org/library/string.html#format-string-syntax
+.. _`Format Specification Mini-Language`:
+  http://docs.python.org/library/string.html#format-specification-mini-language
 
 
-Result Objects
---------------
+Result and Match Objects
+------------------------
 
-The result of a ``parse()`` operation is either ``None`` (no match) or a
-``Result`` instance.
+The result of a ``parse()`` and ``search()`` operation is either ``None`` (no match), a
+``Result`` instance or a ``Match`` instance if ``evaluate_result`` is False.
 
 The ``Result`` instance has three attributes:
 
@@ -211,6 +227,12 @@ spans
    A dictionary mapping the names and fixed position indices matched to a
    2-tuple slice range of where the match occurred in the input.
    The span does not include any stripped padding (alignment or width).
+
+The ``Match`` instance has one method:
+
+evaluate_result()
+   Generates and returns a ``Result`` instance for this ``Match`` object.
+
 
 
 Custom Type Conversions
@@ -232,22 +254,38 @@ with the same identifier.
 >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
-
-If the type-converter has the optional ``pattern`` attribute, it is used as
+If the type converter has the optional ``pattern`` attribute, it is used as
 regular expression for better pattern matching (instead of the default one).
-You can also use the ``with_pattern(pattern)`` decorator to add this
-information to a type-converter function:
 
->>> import parse
->>> @parse.with_pattern(r'\d+')
+>>> def parse_number(text):
+...    return int(text)
+>>> parse_number.pattern = r'\d+'
+>>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+<Result () {'number': 42}>
+>>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
+>>> assert _ is None, "MISMATCH"
+
+You can also use the ``with_pattern(pattern)`` decorator to add this
+information to a type converter function:
+
+>>> from parse import with_pattern
+>>> @with_pattern(r'\d+')
 ... def parse_number(text):
 ...    return int(text)
->>> assert parse_number.pattern == r'\d+'
->>> schema = 'Answer: {number:Number}'
->>> parse.parse(schema, 'Answer: 42', dict(Number=parse_number))
+>>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
 <Result () {'number': 42}>
->>> _ = parse.parse(schema, 'Answer: Alice', dict(Number=parse_number))
->>> assert _ is None, "EXPECT MISMATCH"
+
+A more complete example of a custom type might be:
+
+>>> yesno_mapping = {
+...     "yes":  True,   "no":    False,
+...     "on":   True,   "off":   False,
+...     "true": True,   "false": False,
+... }
+>>> @with_pattern(r"|".join(yesno_mapping))
+... def parse_yesno(text):
+...     return yesno_mapping[text.lower()]
+
 
 ----
 
@@ -261,6 +299,21 @@ information to a type-converter function:
 
 **Version history (in brief)**:
 
+- 1.8.2 clarify message on invalid format specs (thanks Rick Teachey)
+- 1.8.1 ensure bare hexadecimal digits are not matched
+- 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
+- 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
+  more than 100 re groups in Python 3.5+ (thanks David King)
+- 1.6.6 parse Linux system log dates (thanks Alex Cowan)
+- 1.6.5 handle precision in float format (thanks Levi Kilcher)
+- 1.6.4 handle pipe "|" characters in parse string (thanks Martijn Pieters)
+- 1.6.3 handle repeated instances of named fields, fix bug in PM time
+  overflow
+- 1.6.2 fix logging to use local, not root logger (thanks Necku)
+- 1.6.1 be more flexible regarding matched ISO datetimes and timezones in
+  general, fix bug in timezones without ":" and improve docs
+- 1.6.0 add support for optional ``pattern`` attribute in user-defined types
+  (thanks Jens Engel)
 - 1.5.3 fix handling of question marks
 - 1.5.2 fix type conversion error with dotted names (thanks Sebastian Thiel)
 - 1.5.1 implement handling of named datetime fields
@@ -294,11 +347,11 @@ information to a type-converter function:
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012 Richard Jones <richard@python.org>
+This code is copyright 2012-2017 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
-__version__ = '1.5.3.4'
 
+__version__ = '1.8.2'
 
 # yes, I now have two problems
 import re
@@ -307,9 +360,36 @@ from datetime import datetime, time, tzinfo, timedelta
 from functools import partial
 import logging
 
-__all__ = 'parse search findall'.split()
+__all__ = 'parse search findall with_pattern'.split()
 
 log = logging.getLogger(__name__)
+
+
+def with_pattern(pattern):
+    """Attach a regular expression pattern matcher to a custom type converter
+    function.
+
+    This annotates the type converter with the :attr:`pattern` attribute.
+
+    EXAMPLE:
+        >>> import parse
+        >>> @parse.with_pattern(r"\d+")
+        ... def parse_number(text):
+        ...     return int(text)
+
+    is equivalent to:
+
+        >>> def parse_number(text):
+        ...     return int(text)
+        >>> parse_number.pattern = r"\d+"
+
+    :param pattern: regular expression pattern (as text)
+    :return: wrapped function
+    """
+    def decorator(func):
+        func.pattern = pattern
+        return func
+    return decorator
 
 
 def int_convert(base):
@@ -322,6 +402,7 @@ def int_convert(base):
     It may also have other non-numeric characters that we can ignore.
     '''
     CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
+
     def f(string, match, base=base):
         if string[0] == '-':
             sign = -1
@@ -355,11 +436,12 @@ class FixedTzOffset(tzinfo):
     ZERO = timedelta(0)
 
     def __init__(self, offset, name):
-        self._offset = timedelta(minutes = offset)
+        self._offset = timedelta(minutes=offset)
         self._name = name
 
     def __repr__(self):
-        return '<%s %s %s>' % (self.__class__.__name__, self._name, self._offset)
+        return '<%s %s %s>' % (self.__class__.__name__, self._name,
+            self._offset)
 
     def utcoffset(self, dt):
         return self._offset
@@ -395,14 +477,19 @@ TIME_PAT = r'(\d{1,2}:\d{1,2}(:\d{1,2}(\.\d+)?)?)'
 AM_PAT = r'(\s+[AP]M)'
 TZ_PAT = r'(\s+[-+]\d\d?:?\d\d)'
 
+
 def date_convert(string, match, ymd=None, mdy=None, dmy=None,
-        d_m_y=None, hms=None, am=None, tz=None):
+        d_m_y=None, hms=None, am=None, tz=None, mm=None, dd=None):
     '''Convert the incoming string containing some date / time info into a
     datetime instance.
     '''
     groups = match.groups()
     time_only = False
-    if ymd is not None:
+    if mm and dd:
+        y=datetime.today().year
+        m=groups[mm]
+        d=groups[dd]
+    elif ymd is not None:
         y, m, d = re.split('[-/\s]', groups[ymd])
     elif mdy is not None:
         m, d, y = re.split('[-/\s]', groups[mdy])
@@ -430,10 +517,14 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         H = int(H)
         M = int(M)
 
+    day_incr = False
     if am is not None:
         am = groups[am]
         if am and am.strip() == 'PM':
             H += 12
+            if H > 23:
+                day_incr = True
+                H -= 24
 
     if tz is not None:
         tz = groups[tz]
@@ -448,6 +539,8 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
             sign = tz[0]
             if ':' in tz:
                 tzh, tzm = tz[1:].split(':')
+            elif len(tz) == 4:  # 'snnn'
+                tzh, tzm = tz[1], tz[2:4]
             else:
                 tzh, tzm = tz[1:3], tz[3:5]
             offset = int(tzm) + int(tzh) * 60
@@ -466,18 +559,27 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         d = int(d)
         d = datetime(y, m, d, H, M, S, u, tzinfo=tz)
 
+    if day_incr:
+        d = d + timedelta(days=1)
+
     return d
 
 
 class TooManyFields(ValueError):
     pass
 
+
+class RepeatedNameError(ValueError):
+    pass
+
+
 # note: {} are handled separately
-REGEX_SAFETY = re.compile(r'([?\\.[\]()*+\^$!])')
+# note: I don't use r'' here because Sublime Text 2 syntax highlight has a fit
+REGEX_SAFETY = re.compile('([?\\\\.[\]()*+\^$!\|])')
 
 # allowed field types
 ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
-   ['t'+c for c in 'ieahgct'])
+    ['t' + c for c in 'ieahgcts'])
 
 # -----------------------------------------------------------------------------
 # CLASS: Cardinality (Field Part)
@@ -674,7 +776,7 @@ def with_pattern(pattern):
 # FUNCTIONS: Parse Helpers
 # -----------------------------------------------------------------------------
 def extract_format(format, extra_types):
-    '''Pull apart the format [[fill]align][0][width][type]
+    '''Pull apart the format [[fill]align][0][width][.precision][type]
     '''
     fill = align = None
     if format[0] in '<>=^':
@@ -705,26 +807,47 @@ def extract_format(format, extra_types):
         assert format, "Type information is required for cardinality"
     # -- CARDINALITY-FIELD END.
 
+    if format.startswith('.'):
+        # Precision isn't needed but we need to capture it so that
+        # the ValueError isn't raised.
+        format = format[1:]  # drop the '.'
+        precision = ''
+        while format:
+            if not format[0].isdigit():
+                break
+            precision += format[0]
+            format = format[1:]
+
     # the rest is the type, if present
     type = format
     if type and type not in ALLOWED_TYPES and type not in extra_types:
-        raise ValueError('type %r not recognised' % type)
+        raise ValueError('format spec %r not recognised' % type)
 
     return locals()
 
 
-PARSE_RE = re.compile(r'({{|}}|{}|{:[^}]+?}|{\w+?(?:\.\w+?)*}|{\w+?(?:\.\w+?)*:[^}]+?})')
+PARSE_RE = re.compile(r"""({{|}}|{\w*(?:(?:\.\w+)|(?:\[[^\]]+\]))*(?::[^}]+)?})""")
 
 
 class Parser(object):
     '''Encapsulate a format string that may be used to parse other strings.
     '''
-    def __init__(self, format, extra_types={}):
-        # a mapping of a name as in {hello.world} to a regex-group compatible name, like hello__world
-        # Its used to prevent the transformation of name-to-group and group to name to fail subtly, such
-        # as in: hello_.world-> hello___world->hello._world
+    def __init__(self, format, extra_types=None):
+        # a mapping of a name as in {hello.world} to a regex-group compatible
+        # name, like hello__world Its used to prevent the transformation of
+        # name-to-group and group to name to fail subtly, such as in:
+        # hello_.world-> hello___world->hello._world
         self._group_to_name_map = {}
+        # also store the original field name to group name mapping to allow
+        # multiple instances of a name in the format string
+        self._name_to_group_map = {}
+        # and to sanity check the repeated instances store away the first
+        # field type specification for the named field
+        self._name_types = {}
+
         self._format = format
+        if extra_types is None:
+            extra_types = {}
         self._extra_types = extra_types
         self._fixed_fields = []
         self._named_fields = []
@@ -734,23 +857,26 @@ class Parser(object):
         self.__search_re = None
         self.__match_re = None
 
-        logging.debug('format %r -> %r' % (format, self._expression))
+        log.debug('format %r -> %r', format, self._expression)
 
     def __repr__(self):
         if len(self._format) > 20:
-            return '<%s %r>' % (self.__class__.__name__, self._format[:17] + '...')
+            return '<%s %r>' % (self.__class__.__name__,
+                self._format[:17] + '...')
         return '<%s %r>' % (self.__class__.__name__, self._format)
 
     @property
     def _search_re(self):
         if self.__search_re is None:
             try:
-                self.__search_re = re.compile(self._expression, re.IGNORECASE|re.DOTALL)
+                self.__search_re = re.compile(self._expression,
+                    re.IGNORECASE | re.DOTALL)
             except AssertionError:
-                e = sys.exc_info()[1]   # to keep py3k and backward compat
-                if str(e).endswith('this version only supports 100 named groups'):
-                    raise TooManyFields('sorry, you are attempting to parse too '
-                        'many complex fields')
+                # access error through sys to keep py3k and backward compat
+                e = str(sys.exc_info()[1])
+                if e.endswith('this version only supports 100 named groups'):
+                    raise TooManyFields('sorry, you are attempting to parse '
+                        'too many complex fields')
         return self.__search_re
 
     @property
@@ -758,33 +884,43 @@ class Parser(object):
         if self.__match_re is None:
             expression = '^%s$' % self._expression
             try:
-                self.__match_re = re.compile(expression, re.IGNORECASE|re.DOTALL)
+                self.__match_re = re.compile(expression,
+                    re.IGNORECASE | re.DOTALL)
             except AssertionError:
-                e = sys.exc_info()[1]   # to keep py3k and backward compat
-                if str(e).endswith('this version only supports 100 named groups'):
-                    raise TooManyFields('sorry, you are attempting to parse too '
-                        'many complex fields')
+                # access error through sys to keep py3k and backward compat
+                e = str(sys.exc_info()[1])
+                if e.endswith('this version only supports 100 named groups'):
+                    raise TooManyFields('sorry, you are attempting to parse '
+                        'too many complex fields')
             except re.error:
-                raise NotImplementedError("Group names (e.g. (?P<name>) can cause failure, as they are not esacped properly: '%s'" % expression)
+                raise NotImplementedError("Group names (e.g. (?P<name>) can "
+                    "cause failure, as they are not escaped properly: '%s'" %
+                    expression)
         return self.__match_re
 
-    def parse(self, string):
+    def parse(self, string, evaluate_result=True):
         '''Match my format to the string exactly.
 
-        Return either a Result instance or None if there's no match.
+        Return a Result or Match instance or None if there's no match.
         '''
         m = self._match_re.match(string)
         if m is None:
             return None
 
-        return self._generate_result(m)
+        if evaluate_result:
+            return self.evaluate_result(m)
+        else:
+            return Match(self, m)
 
-    def search(self, string, pos=0, endpos=None):
+    def search(self, string, pos=0, endpos=None, evaluate_result=True):
         '''Search the string for my format.
 
         Optionally start the search at "pos" character index and limit the
         search to a maximum index of endpos - equivalent to
         search(string[:endpos]).
+
+        If the ``evaluate_result`` argument is set to ``False`` a
+        Match instance is returned instead of the actual Result instance.
 
         Return either a Result instance or None if there's no match.
         '''
@@ -794,23 +930,47 @@ class Parser(object):
         if m is None:
             return None
 
-        return self._generate_result(m)
+        if evaluate_result:
+            return self.evaluate_result(m)
+        else:
+            return Match(self, m)
 
-    def findall(self, string, pos=0, endpos=None, extra_types={}):
-        '''Search "string" for the all occurrances of "format".
+    def findall(self, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
+        '''Search "string" for all occurrences of "format".
 
         Optionally start the search at "pos" character index and limit the
         search to a maximum index of endpos - equivalent to
         search(string[:endpos]).
 
-        Returns an iterator that holds Result instances for each format match
+        Returns an iterator that holds Result or Match instances for each format match
         found.
         '''
         if endpos is None:
             endpos = len(string)
-        return ResultIterator(self, string, pos, endpos)
+        return ResultIterator(self, string, pos, endpos, evaluate_result=evaluate_result)
 
-    def _generate_result(self, m):
+    def _expand_named_fields(self, named_fields):
+        result = {}
+        for field, value in named_fields.items():
+            # split 'aaa[bbb][ccc]...' into 'aaa' and '[bbb][ccc]...'
+            basename, subkeys = re.match(r'([^\[]+)(.*)', field).groups()
+
+            # create nested dictionaries {'aaa': {'bbb': {'ccc': ...}}}
+            d = result
+            k = basename
+
+            if subkeys:
+                for subkey in re.findall(r'\[[^\]]+\]', subkeys):
+                    d = d.setdefault(k,{})
+                    k = subkey[1:-1]
+
+            # assign the value to the last key
+            d[k] = value
+
+        return result
+
+    def evaluate_result(self, m):
+        '''Generate a Result instance for the given regex match object'''
         # ok, figure the fixed fields we've pulled out and type convert them
         fixed_fields = list(m.groups())
         for n in self._fixed_fields:
@@ -826,16 +986,19 @@ class Parser(object):
             korig = self._group_to_name_map[k]
             name_map[korig] = k
             if k in self._type_conversions:
-                named_fields[korig] = self._type_conversions[k](groupdict[k], m)
+                value = self._type_conversions[k](groupdict[k], m)
             else:
-                named_fields[korig] = groupdict[k]
+                value = groupdict[k]
+
+            named_fields[korig] = value
 
         # now figure the match spans
         spans = dict((n, m.span(name_map[n])) for n in named_fields)
-        spans.update((i, m.span(n+1)) for i, n in enumerate(self._fixed_fields))
+        spans.update((i, m.span(n + 1))
+            for i, n in enumerate(self._fixed_fields))
 
         # and that's our result
-        return Result(fixed_fields, named_fields, spans)
+        return Result(fixed_fields, self._expand_named_fields(named_fields), spans)
 
     def _regex_replace(self, match):
         return '\\' + match.group(1)
@@ -861,19 +1024,22 @@ class Parser(object):
     def _to_group_name(self, field):
         # return a version of field which can be used as capture group, even
         # though it might contain '.'
-        group = field.replace('.', '_')
+        group = field.replace('.', '_').replace('[', '_').replace(']', '_')
 
-        # make sure we don't collide
+        # make sure we don't collide ("a.b" colliding with "a_b")
         n = 1
         while group in self._group_to_name_map:
             n += 1
             if '.' in field:
-                group = field.replace('.', '_'*n)
+                group = field.replace('.', '_' * n)
+            elif '_' in field:
+                group = field.replace('_', '_' * n)
             else:
-                group = field.replace('_', '_'*n)
+                raise KeyError('duplicated group name %r' % (field,))
 
         # save off the mapping
         self._group_to_name_map[group] = field
+        self._name_to_group_map[field] = group
         return group
 
     def _handle_field(self, field):
@@ -888,7 +1054,17 @@ class Parser(object):
                 name, format = field.split(':')
             else:
                 name = field
-            group = self._to_group_name(name)
+            if name in self._name_to_group_map:
+                if self._name_types[name] != format:
+                    raise RepeatedNameError('field type %r for field "%s" '
+                        'does not match previous seen type %r' % (format,
+                        name, self._name_types[name]))
+                group = self._name_to_group_map[name]
+                # match previously-seen value
+                return '(?P=%s)' % group
+            else:
+                group = self._to_group_name(name)
+                self._name_types[name] = format
             self._named_fields.append(group)
             # this will become a group, which must not contain dots
             wrap = '(?P<%s>%%s)' % group
@@ -913,6 +1089,7 @@ class Parser(object):
         is_numeric = type and type in 'n%fegdobh'
         if type in self._extra_types:
             type_converter = self._extra_types[type]
+            # -- EXTENSION: cardinality-field
             s = getattr(type_converter, 'pattern', TypeBuilder.default_pattern)
             if cardinality == Cardinality.one_or_more:
                 # -- CASE MANY one_or_more: list<T> as comma-separated list.
@@ -931,6 +1108,12 @@ class Parser(object):
                 # -- CASE one: T
                 def f(string, m):
                     return type_converter(string)
+            # -- DISABLED ORIGINAL PART:
+            # s = getattr(type_converter, 'pattern', r'.+?')
+            #
+            # def f(string, m):
+            #    return type_converter(string)
+            # -- EXTENSION-END: cardinality-field
             self._type_conversions[group] = f
         elif type == 'n':
             s = '\d{1,3}([,.]\d{3})*'
@@ -963,57 +1146,65 @@ class Parser(object):
             self._group_index += 2
             self._type_conversions[group] = lambda s, m: float(s)
         elif type == 'd':
-            s = r'\d+|0[xX][0-9a-fA-F]+|[0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
+            s = r'\d+|0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
             self._type_conversions[group] = int_convert(10)
         elif type == 'ti':
-            s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|[-+]\d\d:\d\d)?' % TIME_PAT
+            s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \
+                TIME_PAT
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, ymd=n+1,
-                hms=n+4, tz=n+7)
+            self._type_conversions[group] = partial(date_convert, ymd=n + 1,
+                hms=n + 4, tz=n + 7)
             self._group_index += 7
         elif type == 'tg':
             s = r'(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n+1,
-                hms=n+5, am=n+8, tz=n+9)
+            self._type_conversions[group] = partial(date_convert, dmy=n + 1,
+                hms=n + 5, am=n + 8, tz=n + 9)
             self._group_index += 9
         elif type == 'ta':
             s = r'((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?' % (
                 ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, mdy=n+1,
-                hms=n+5, am=n+8, tz=n+9)
+            self._type_conversions[group] = partial(date_convert, mdy=n + 1,
+                hms=n + 5, am=n + 8, tz=n + 9)
             self._group_index += 9
         elif type == 'te':
             # this will allow microseconds through if they're present, but meh
             s = r'(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s' % (DAYS_PAT,
                 MONTHS_PAT, TIME_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n+3,
-                hms=n+5, tz=n+8)
+            self._type_conversions[group] = partial(date_convert, dmy=n + 3,
+                hms=n + 5, tz=n + 8)
             self._group_index += 8
         elif type == 'th':
             # slight flexibility here from the stock Apache format
             s = r'(\d{1,2}[-/]%s[-/]\d{4}):%s%s' % (MONTHS_PAT, TIME_PAT,
                 TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, dmy=n+1,
-                hms=n+3, tz=n+6)
+            self._type_conversions[group] = partial(date_convert, dmy=n + 1,
+                hms=n + 3, tz=n + 6)
             self._group_index += 6
         elif type == 'tc':
             s = r'(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})' % (
                 DAYS_PAT, MONTHS_PAT, TIME_PAT)
             n = self._group_index
             self._type_conversions[group] = partial(date_convert,
-                d_m_y=(n+4,n+3,n+8), hms=n+5)
+                d_m_y=(n + 4, n + 3, n + 8), hms=n + 5)
             self._group_index += 8
         elif type == 'tt':
             s = r'%s?%s?%s?' % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(date_convert, hms=n+1,
-                am=n+4, tz=n+5)
+            self._type_conversions[group] = partial(date_convert, hms=n + 1,
+                am=n + 4, tz=n + 5)
             self._group_index += 5
+        elif type == 'ts':
+            s = r'%s(\s+)(\d+)(\s+)(\d{1,2}:\d{1,2}:\d{1,2})?' % MONTHS_PAT
+            n = self._group_index
+            self._type_conversions[group] = partial(date_convert, mm=n+1, dd=n+3,
+                hms=n + 5)
+            self._group_index += 5
+
         elif type:
             s = r'\%s+' % type
         else:
@@ -1053,8 +1244,8 @@ class Parser(object):
 
         if format['width']:
             # all we really care about is that if the format originally
-            # specified a width then there will probably be padding - without an
-            # explicit alignment that'll mean right alignment with spaces
+            # specified a width then there will probably be padding - without
+            # an explicit alignment that'll mean right alignment with spaces
             # padding
             if not align:
                 align = '>'
@@ -1094,16 +1285,32 @@ class Result(object):
             self.named)
 
 
+class Match(object):
+    '''The result of a parse() or search() if no results are generated.
+
+    This class is only used to expose internal used regex match objects
+    to the user and use them for external Parser.evaluate_result calls.
+    '''
+    def __init__(self, parser, match):
+        self.parser = parser
+        self.match = match
+
+    def evaluate_result(self):
+        '''Generate results for this Match'''
+        return self.parser.evaluate_result(self.match)
+
+
 class ResultIterator(object):
     '''The result of a findall() operation.
 
     Each element is a Result instance.
     '''
-    def __init__(self, parser, string, pos, endpos):
+    def __init__(self, parser, string, pos, endpos, evaluate_result=True):
         self.parser = parser
         self.string = string
         self.pos = pos
         self.endpos = endpos
+        self.evaluate_result = evaluate_result
 
     def __iter__(self):
         return self
@@ -1111,25 +1318,34 @@ class ResultIterator(object):
     def __next__(self):
         m = self.parser._search_re.search(self.string, self.pos, self.endpos)
         if m is None:
-            raise StopIteration()
+            raise StopIteration
         self.pos = m.end()
-        return self.parser._generate_result(m)
+
+        if self.evaluate_result:
+            return self.parser.evaluate_result(m)
+        else:
+            return Match(self.parser, m)
 
     # pre-py3k compat
     next = __next__
 
 
-def parse(format, string, extra_types={}):
+def parse(format, string, extra_types=None, evaluate_result=True):
     '''Using "format" attempt to pull values from "string".
 
     The format must match the string contents exactly. If the value
     you're looking for is instead just a part of the string use
     search().
 
-    The return value will be an Result instance with two attributes:
+    If ``evaluate_result`` is True the return value will be an Result instance with two attributes:
 
      .fixed - tuple of fixed-position values from the string
      .named - dict of named values from the string
+
+    If ``evaluate_result`` is False the return value will be a Match instance with one method:
+
+     .evaluate_result() - This will return a Result instance like you would get
+                          with ``evaluate_result`` set to True
 
     If the format is invalid a ValueError will be raised.
 
@@ -1137,23 +1353,28 @@ def parse(format, string, extra_types={}):
 
     In the case there is no match parse() will return None.
     '''
-    return Parser(format, extra_types=extra_types).parse(string)
+    return Parser(format, extra_types=extra_types).parse(string, evaluate_result=evaluate_result)
 
 
-def search(format, string, pos=0, endpos=None, extra_types={}):
-    '''Search "string" for the first occurance of "format".
+def search(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
+    '''Search "string" for the first occurrence of "format".
 
     The format may occur anywhere within the string. If
     instead you wish for the format to exactly match the string
     use parse().
 
-    Optionally start the search at "pos" character index and limit the search to
-    a maximum index of endpos - equivalent to search(string[:endpos]).
+    Optionally start the search at "pos" character index and limit the search
+    to a maximum index of endpos - equivalent to search(string[:endpos]).
 
-    The return value will be an Result instance with two attributes:
+    If ``evaluate_result`` is True the return value will be an Result instance with two attributes:
 
      .fixed - tuple of fixed-position values from the string
      .named - dict of named values from the string
+
+    If ``evaluate_result`` is False the return value will be a Match instance with one method:
+
+     .evaluate_result() - This will return a Result instance like you would get
+                          with ``evaluate_result`` set to True
 
     If the format is invalid a ValueError will be raised.
 
@@ -1161,31 +1382,36 @@ def search(format, string, pos=0, endpos=None, extra_types={}):
 
     In the case there is no match parse() will return None.
     '''
-    return Parser(format, extra_types=extra_types).search(string, pos, endpos)
+    return Parser(format, extra_types=extra_types).search(string, pos, endpos, evaluate_result=evaluate_result)
 
 
-def findall(format, string, pos=0, endpos=None, extra_types={}):
-    '''Search "string" for the all occurrances of "format".
+def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
+    '''Search "string" for all occurrences of "format".
 
     You will be returned an iterator that holds Result instances
     for each format match found.
 
-    Optionally start the search at "pos" character index and limit the search to
-    a maximum index of endpos - equivalent to search(string[:endpos]).
+    Optionally start the search at "pos" character index and limit the search
+    to a maximum index of endpos - equivalent to search(string[:endpos]).
 
-    Each Result instance has two attributes:
+    If ``evaluate_result`` is True each returned Result instance has two attributes:
 
      .fixed - tuple of fixed-position values from the string
      .named - dict of named values from the string
+
+    If ``evaluate_result`` is False each returned value is a Match instance with one method:
+
+     .evaluate_result() - This will return a Result instance like you would get
+                          with ``evaluate_result`` set to True
 
     If the format is invalid a ValueError will be raised.
 
     See the module documentation for the use of "extra_types".
     '''
-    return Parser(format, extra_types=extra_types).findall(string, pos, endpos)
+    return Parser(format, extra_types=extra_types).findall(string, pos, endpos, evaluate_result=evaluate_result)
 
 
-def compile(format, extra_types={}):
+def compile(format, extra_types=None):
     '''Create a Parser instance to parse "format".
 
     The resultant Parser has a method .parse(string) which
@@ -1201,7 +1427,7 @@ def compile(format, extra_types={}):
     return Parser(format, extra_types=extra_types)
 
 
-# Copyright (c) 2012 Richard Jones <richard@python.org>
+# Copyright (c) 2012-2013 Richard Jones <richard@python.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

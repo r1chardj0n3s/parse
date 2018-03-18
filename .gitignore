@@ -5,9 +5,12 @@
 .idea/
 .tox/
 __pycache__/
-build/
-dist/
 downloads/
 .coverage
+.pytest_cache
+parse.egg-info
 
 MANIFEST
+build
+dist
+.ropeproject
