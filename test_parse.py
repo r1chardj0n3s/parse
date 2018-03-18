@@ -721,12 +721,33 @@ class TestBugs(unittest.TestCase):
         r = parse.parse('Meet at {:tg}', 'Meet at 1/2/2011 12:45 PM')
         self.assertEqual(r[0], datetime(2011, 2, 2, 0, 45))
 
+    def test_user_type_with_group_count_issue60(self):
+        @parse.with_pattern(r'((\w+))')
+        def parse_word_and_covert_to_uppercase(text):
+            return text.strip().upper()
+        parse_word_and_covert_to_uppercase.group_count = 2
+
+        @parse.with_pattern(r'\d+')
+        def parse_number(text):
+            return int(text)
+
+        # -- CASE: Use named (OK)
+        type_map = dict(Name=parse_word_and_covert_to_uppercase,
+                        Number=parse_number)
+        r = parse.parse('Hello {name:Name} {number:Number}',
+                        'Hello Alice 42', extra_types=type_map)
+        self.assertEqual(r.named, dict(name='ALICE', number=42))
+
+        # -- CASE: Use unnamed/fixed (problematic)
+        r = parse.parse('Hello {:Name} {:Number}',
+                        'Hello Alice 42', extra_types=type_map)
+        self.assertEqual(r[0], 'ALICE')
+        self.assertEqual(r[1], 42)
+
 
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
 # -----------------------------------------------------------------------------
-
-
 class TestParseType(unittest.TestCase):
 
     def assert_match(self, parser, text, param_name, expected):
