@@ -868,27 +868,6 @@ class TestParseType(unittest.TestCase):
             parser = parse.Parser('test {:Unit}-{:Number}', type_converters)
             self.assertRaises(error_class, parser.parse, 'test meter-10')
 
-    def test_with_pattern_and_regex_group_count0(self):
-        # -- SPECIAL-CASE: Regex-grouping is used in user-defined type
-        data_values = dict(a=1, b=2)
-
-        @parse.with_pattern(r'(([ab]))', regex_group_count=2)
-        def parse_data(text):
-            return data_values[text]
-
-        # -- CASE: Unnamed-params (affected)
-        parser = parse.Parser('test {:Data}', {'Data': parse_data})
-        self.assert_fixed_match(parser, 'test a', (1,))
-        self.assert_fixed_match(parser, 'test b', (2,))
-        self.assert_fixed_mismatch(parser, 'test c')
-
-        # -- CASE: Named-params (uncritical; should not be affected)
-        # REASON: Named-params have additional, own grouping.
-        parser2 = parse.Parser('test {value:Data}', {'Data': parse_data})
-        self.assert_match(parser2, 'test a', 'value', 1)
-        self.assert_match(parser2, 'test b', 'value', 2)
-        self.assert_mismatch(parser2, 'test c', 'value')
-
     def test_with_pattern_and_regex_group_count_is_none(self):
         # -- CORNER-CASE: Increase code-coverage.
         data_values = dict(a=1, b=2)
