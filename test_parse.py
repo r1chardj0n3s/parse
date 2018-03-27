@@ -722,10 +722,9 @@ class TestBugs(unittest.TestCase):
         self.assertEqual(r[0], datetime(2011, 2, 2, 0, 45))
 
     def test_user_type_with_group_count_issue60(self):
-        @parse.with_pattern(r'((\w+))')
+        @parse.with_pattern(r'((\w+))', regex_group_count=2)
         def parse_word_and_covert_to_uppercase(text):
             return text.strip().upper()
-        parse_word_and_covert_to_uppercase.group_count = 2
 
         @parse.with_pattern(r'\d+')
         def parse_number(text):
@@ -757,6 +756,15 @@ class TestParseType(unittest.TestCase):
     def assert_mismatch(self, parser, text, param_name):
         result = parser.parse(text)
         self.assertTrue(result is None)
+
+    def assert_fixed_match(self, parser, text, expected):
+        result = parser.parse(text)
+        self.assertEqual(result.fixed, expected)
+
+    def assert_fixed_mismatch(self, parser, text):
+        result = parser.parse(text)
+        self.assertEqual(result, None)
+
 
     def test_pattern_should_be_used(self):
         def parse_number(text):
@@ -808,6 +816,99 @@ class TestParseType(unittest.TestCase):
         self.assert_match(parser, 'test a', 'result', 1)
         self.assert_match(parser, 'test b', 'result', 2)
         self.assert_mismatch(parser, "test c", "result")
+
+    def test_with_pattern_and_regex_group_count(self):
+        # -- SPECIAL-CASE: Regex-grouping is used in user-defined type
+        # NOTE: Missing or wroung regex_group_counts cause problems
+        #       with parsing following params.
+        @parse.with_pattern(r'(meter|kilometer)', regex_group_count=1)
+        def parse_unit(text):
+            return text.strip()
+
+        @parse.with_pattern(r'\d+')
+        def parse_number(text):
+            return int(text)
+
+        type_converters = dict(Number=parse_number, Unit=parse_unit)
+        # -- CASE: Unnamed-params (affected)
+        parser = parse.Parser('test {:Unit}-{:Number}', type_converters)
+        self.assert_fixed_match(parser, 'test meter-10', ('meter', 10))
+        self.assert_fixed_match(parser, 'test kilometer-20', ('kilometer', 20))
+        self.assert_fixed_mismatch(parser, 'test liter-30')
+
+        # -- CASE: Named-params (uncritical; should not be affected)
+        # REASON: Named-params have additional, own grouping.
+        parser2 = parse.Parser('test {unit:Unit}-{value:Number}', type_converters)
+        self.assert_match(parser2, 'test meter-10', 'unit', 'meter')
+        self.assert_match(parser2, 'test meter-10', 'value', 10)
+        self.assert_match(parser2, 'test kilometer-20', 'unit', 'kilometer')
+        self.assert_match(parser2, 'test kilometer-20', 'value', 20)
+        self.assert_mismatch(parser2, 'test liter-30', 'unit')
+
+    def test_with_pattern_and_wrong_regex_group_count_raises_error(self):
+        # -- SPECIAL-CASE:
+        # Regex-grouping is used in user-defined type, but wrong value is provided.
+        @parse.with_pattern(r'(meter|kilometer)', regex_group_count=1)
+        def parse_unit(text):
+            return text.strip()
+
+        @parse.with_pattern(r'\d+')
+        def parse_number(text):
+            return int(text)
+
+        # -- CASE: Unnamed-params (affected)
+        BAD_REGEX_GROUP_COUNTS_AND_ERRORS = [
+            (None, ValueError),
+            (0, ValueError),
+            (2, IndexError),
+        ]
+        for bad_regex_group_count, error_class in BAD_REGEX_GROUP_COUNTS_AND_ERRORS:
+            parse_unit.regex_group_count = bad_regex_group_count    # -- OVERRIDE-HERE
+            type_converters = dict(Number=parse_number, Unit=parse_unit)
+            parser = parse.Parser('test {:Unit}-{:Number}', type_converters)
+            self.assertRaises(error_class, parser.parse, 'test meter-10')
+
+    def test_with_pattern_and_regex_group_count0(self):
+        # -- SPECIAL-CASE: Regex-grouping is used in user-defined type
+        data_values = dict(a=1, b=2)
+
+        @parse.with_pattern(r'(([ab]))', regex_group_count=2)
+        def parse_data(text):
+            return data_values[text]
+
+        # -- CASE: Unnamed-params (affected)
+        parser = parse.Parser('test {:Data}', {'Data': parse_data})
+        self.assert_fixed_match(parser, 'test a', (1,))
+        self.assert_fixed_match(parser, 'test b', (2,))
+        self.assert_fixed_mismatch(parser, 'test c')
+
+        # -- CASE: Named-params (uncritical; should not be affected)
+        # REASON: Named-params have additional, own grouping.
+        parser2 = parse.Parser('test {value:Data}', {'Data': parse_data})
+        self.assert_match(parser2, 'test a', 'value', 1)
+        self.assert_match(parser2, 'test b', 'value', 2)
+        self.assert_mismatch(parser2, 'test c', 'value')
+
+    def test_with_pattern_and_regex_group_count_is_none(self):
+        # -- CORNER-CASE: Increase code-coverage.
+        data_values = dict(a=1, b=2)
+
+        @parse.with_pattern(r'[ab]')
+        def parse_data(text):
+            return data_values[text]
+        parse_data.regex_group_count = None     # ENFORCE: None
+
+        # -- CASE: Unnamed-params
+        parser = parse.Parser('test {:Data}', {'Data': parse_data})
+        self.assert_fixed_match(parser, 'test a', (1,))
+        self.assert_fixed_match(parser, 'test b', (2,))
+        self.assert_fixed_mismatch(parser, 'test c')
+
+        # -- CASE: Named-params
+        parser2 = parse.Parser('test {value:Data}', {'Data': parse_data})
+        self.assert_match(parser2, 'test a', 'value', 1)
+        self.assert_match(parser2, 'test b', 'value', 2)
+        self.assert_mismatch(parser2, 'test c', 'value')
 
 
 if __name__ == '__main__':

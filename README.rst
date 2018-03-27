@@ -2,8 +2,8 @@ Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
 
-The module is set up to only export ``parse()``, ``search()`` and
-``findall()`` when ``import *`` is used:
+The module is set up to only export ``parse()``, ``search()``, ``findall()``,
+and ``with_pattern()`` when ``import *`` is used:
 
 >>> from parse import *
 
@@ -90,9 +90,6 @@ spam
 {'name': 'to seek the holy grail!'}
 >>> print(r['quest']['name'])
 to seek the holy grail!
-
-If the text you're matching has braces in it you can match those by including
-a double-brace ``{{`` or ``}}`` in your format string, just like format() does.
 
 
 Format Specification
@@ -290,26 +287,22 @@ A more complete example of a custom type might be:
 ...     return yesno_mapping[text.lower()]
 
 
-Potential Gotchas
------------------
+If the type converter ``pattern`` uses regex-grouping (with parenthesis),
+you should indicate this by using the optional ``regex_group_count`` parameter
+in the ``with_pattern()`` decorator:
 
-`parse()` will always match the shortest text necessary (from left to right)
-to fulfil the parse pattern, so for example:
+>>> @with_pattern(r'((\d+))', regex_group_count=2)
+... def parse_number2(text):
+...    return int(text)
+>>> parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', dict(Number2=parse_number2))
+<Result () (42, 43)>
 
->>> pattern = '{dir1}/{dir2}'
->>> data = 'root/parent/subdir'
->>> parse(pattern, data).named
-{'dir1': 'root', 'dir2': 'parent/subdir'}
-
-So, even though `{'dir1': 'root/parent', 'dir2': 'subdir'}` would also fit
-the pattern, the actual match represents the shortest successful match for
-`dir1`.
-
+Otherwise, this may cause parsing problems with unnamed/fixed parameters.
 ----
 
 **Version history (in brief)**:
 
-- 1.8.2 add documentation for including braces in format string
+- 1.8.2 clarify message on invalid format specs (thanks Rick Teachey)
 - 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
 - 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
