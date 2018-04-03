@@ -91,6 +91,9 @@ spam
 >>> print(r['quest']['name'])
 to seek the holy grail!
 
+If the text you're matching has braces in it you can match those by including
+a double-brace ``{{`` or ``}}`` in your format string, just like format() does.
+
 
 Format Specification
 --------------------
@@ -287,11 +290,41 @@ A more complete example of a custom type might be:
 ...     return yesno_mapping[text.lower()]
 
 
+If the type converter ``pattern`` uses regex-grouping (with parenthesis),
+you should indicate this by using the optional ``regex_group_count`` parameter
+in the ``with_pattern()`` decorator:
+
+>>> @with_pattern(r'((\d+))', regex_group_count=2)
+... def parse_number2(text):
+...    return int(text)
+>>> parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', dict(Number2=parse_number2))
+<Result (42, 43) {}>
+
+Otherwise, this may cause parsing problems with unnamed/fixed parameters.
+
+
+Potential Gotchas
+-----------------
+
+`parse()` will always match the shortest text necessary (from left to right)
+to fulfil the parse pattern, so for example:
+
+>>> pattern = '{dir1}/{dir2}'
+>>> data = 'root/parent/subdir'
+>>> sorted(parse(pattern, data).named.items())
+[('dir1', 'root'), ('dir2', 'parent/subdir')]
+
+So, even though `{'dir1': 'root/parent', 'dir2': 'subdir'}` would also fit
+the pattern, the actual match represents the shortest successful match for
+`dir1`.
+
 ----
 
 **Version history (in brief)**:
 
-- 1.8.2 clarify message on invalid format specs (thanks Rick Teachey)
+- 1.8.3 Add regex_group_count to with_pattern() decorator to support
+  user-defined types that contain brackets/parenthesis (thanks Jens Engel)
+- 1.8.2 add documentation for including braces in format string
 - 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
 - 1.7.0 parse dict fields (thanks Mark Visser) and adapted to allow
@@ -342,6 +375,8 @@ A more complete example of a custom type might be:
 This code is copyright 2012-2017 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
+
+from __future__ import absolute_import
 __version__ = '1.8.2'
 
 # yes, I now have two problems
@@ -356,7 +391,7 @@ __all__ = 'parse search findall with_pattern'.split()
 log = logging.getLogger(__name__)
 
 
-def with_pattern(pattern):
+def with_pattern(pattern, regex_group_count=None):
     """Attach a regular expression pattern matcher to a custom type converter
     function.
 
@@ -375,10 +410,12 @@ def with_pattern(pattern):
         >>> parse_number.pattern = r"\d+"
 
     :param pattern: regular expression pattern (as text)
+    :param regex_group_count: Indicates how many regex-groups are in pattern.
     :return: wrapped function
     """
     def decorator(func):
         func.pattern = pattern
+        func.regex_group_count = regex_group_count
         return func
     return decorator
 
@@ -879,6 +916,10 @@ class Parser(object):
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, 'pattern', r'.+?')
+            regex_group_count = getattr(type_converter, 'regex_group_count', 0)
+            if regex_group_count is None:
+                regex_group_count = 0
+            self._group_index += regex_group_count
 
             def f(string, m):
                 return type_converter(string)
@@ -1081,7 +1122,7 @@ class ResultIterator(object):
     def __next__(self):
         m = self.parser._search_re.search(self.string, self.pos, self.endpos)
         if m is None:
-            raise StopIteration
+            raise StopIteration()
         self.pos = m.end()
 
         if self.evaluate_result:

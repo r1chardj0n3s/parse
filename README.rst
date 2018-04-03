@@ -2,8 +2,8 @@ Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
 
-The module is set up to only export ``parse()``, ``search()`` and
-``findall()`` when ``import *`` is used:
+The module is set up to only export ``parse()``, ``search()``, ``findall()``,
+and ``with_pattern()`` when ``import *`` is used:
 
 >>> from parse import *
 
@@ -290,6 +290,19 @@ A more complete example of a custom type might be:
 ...     return yesno_mapping[text.lower()]
 
 
+If the type converter ``pattern`` uses regex-grouping (with parenthesis),
+you should indicate this by using the optional ``regex_group_count`` parameter
+in the ``with_pattern()`` decorator:
+
+>>> @with_pattern(r'((\d+))', regex_group_count=2)
+... def parse_number2(text):
+...    return int(text)
+>>> parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', dict(Number2=parse_number2))
+<Result (42, 43) {}>
+
+Otherwise, this may cause parsing problems with unnamed/fixed parameters.
+
+
 Potential Gotchas
 -----------------
 
@@ -298,8 +311,8 @@ to fulfil the parse pattern, so for example:
 
 >>> pattern = '{dir1}/{dir2}'
 >>> data = 'root/parent/subdir'
->>> parse(pattern, data).named
-{'dir1': 'root', 'dir2': 'parent/subdir'}
+>>> sorted(parse(pattern, data).named.items())
+[('dir1', 'root'), ('dir2', 'parent/subdir')]
 
 So, even though `{'dir1': 'root/parent', 'dir2': 'subdir'}` would also fit
 the pattern, the actual match represents the shortest successful match for
@@ -309,6 +322,8 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.8.3 Add regex_group_count to with_pattern() decorator to support
+  user-defined types that contain brackets/parenthesis (thanks Jens Engel)
 - 1.8.2 add documentation for including braces in format string
 - 1.8.1 ensure bare hexadecimal digits are not matched
 - 1.8.0 support manual control over result evaluation (thanks Timo Furrer)
