@@ -545,14 +545,18 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         H = int(H)
         M = int(M)
 
-    day_incr = False
     if am is not None:
         am = groups[am]
-        if am and am.strip() == 'PM':
+        if am:
+            am = am.strip()
+        if am == 'AM' and H == 12:
+            # correction for "12" hour functioning as "0" hour: 12:15 AM = 00:15 by 24 hr clock
+            H -= 12
+        elif am == 'PM' and H == 12:
+            # no correction needed: 12PM is midday, 12:00 by 24 hour clock
+            pass
+        elif am == 'PM':
             H += 12
-            if H > 23:
-                day_incr = True
-                H -= 24
 
     if tz is not None:
         tz = groups[tz]
@@ -586,9 +590,6 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
             m = MONTHS_MAP[m]
         d = int(d)
         d = datetime(y, m, d, H, M, S, u, tzinfo=tz)
-
-    if day_incr:
-        d = d + timedelta(days=1)
 
     return d
 

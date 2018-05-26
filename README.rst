@@ -322,7 +322,8 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
-- 1.8.4 Add LICENSE file at request of packagers
+- 1.8.4 Add LICENSE file at request of packagers.
+  Correct handling of AM/PM to follow most common interpretation.
 - 1.8.3 Add regex_group_count to with_pattern() decorator to support
   user-defined types that contain brackets/parenthesis (thanks Jens Engel)
 - 1.8.2 add documentation for including braces in format string

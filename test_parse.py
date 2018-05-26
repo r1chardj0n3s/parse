@@ -719,7 +719,13 @@ class TestBugs(unittest.TestCase):
 
     def test_pm_overflow_issue16(self):
         r = parse.parse('Meet at {:tg}', 'Meet at 1/2/2011 12:45 PM')
-        self.assertEqual(r[0], datetime(2011, 2, 2, 0, 45))
+        self.assertEqual(r[0], datetime(2011, 2, 1, 12, 45))
+
+    def test_pm_handling_issue57(self):
+        r = parse.parse('Meet at {:tg}', 'Meet at 1/2/2011 12:15 PM')
+        self.assertEqual(r[0], datetime(2011, 2, 1, 12, 15))
+        r = parse.parse('Meet at {:tg}', 'Meet at 1/2/2011 12:15 AM')
+        self.assertEqual(r[0], datetime(2011, 2, 1, 0, 15))
 
     def test_user_type_with_group_count_issue60(self):
         @parse.with_pattern(r'((\w+))', regex_group_count=2)
