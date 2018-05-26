@@ -427,6 +427,9 @@ def int_convert(base):
 
     It may be of a base other than 10.
 
+    If may start with a base indicator, 0#nnnn, which we assume should
+    override the specified base.
+
     It may also have other non-numeric characters that we can ignore.
     '''
     CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -437,7 +440,7 @@ def int_convert(base):
         else:
             sign = 1
 
-        if string[0] == '0' and len(string) > 1:
+        if string[0] == '0' and len(string) > 2:
             if string[1] in 'bB':
                 base = 2
             elif string[1] in 'oO':

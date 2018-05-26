@@ -393,6 +393,11 @@ class TestParse(unittest.TestCase):
         y('a {:x=5d} b', 'a xxx12 b', 12)
         y('a {:x=5d} b', 'a -xxx12 b', -12)
 
+    def test_hex_looks_like_binary_issue65(self):
+        r = parse.parse('a {:x} b', 'a 0B b')
+        self.assertEqual(r[0], 11)
+        r = parse.parse('a {:x} b', 'a 0B1 b')
+        self.assertEqual(r[0], 1)
 
     def test_two_datetimes(self):
         r = parse.parse('a {:ti} {:ti} b', 'a 1997-07-16 2012-08-01 b')
