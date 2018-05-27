@@ -37,6 +37,12 @@ compile it once:
 ("compile" is not exported for ``import *`` usage as it would override the
 built-in ``compile()`` function)
 
+The default behaviour is to match strings case insensitively. You may match with
+case by specifying `case_sensitive=True`:
+
+>>> parse('SPAM', 'spam', case_sensitive=True) is None
+True
+
 
 Format Syntax
 -------------
@@ -325,6 +331,7 @@ the pattern, the actual match represents the shortest successful match for
 - 1.8.4 Add LICENSE file at request of packagers.
   Correct handling of AM/PM to follow most common interpretation.
   Correct parsing of hexadecimal that looks like a binary prefix.
+  Add ability to parse case sensitively.
 - 1.8.3 Add regex_group_count to with_pattern() decorator to support
   user-defined types that contain brackets/parenthesis (thanks Jens Engel)
 - 1.8.2 add documentation for including braces in format string

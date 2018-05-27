@@ -37,6 +37,12 @@ compile it once:
 ("compile" is not exported for ``import *`` usage as it would override the
 built-in ``compile()`` function)
 
+The default behaviour is to match strings case insensitively. You may match with
+case by specifying `case_sensitive=True`:
+
+>>> parse('SPAM', 'spam', case_sensitive=True) is None
+True
+
 
 Format Syntax
 -------------
@@ -322,6 +328,10 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.8.4 Add LICENSE file at request of packagers.
+  Correct handling of AM/PM to follow most common interpretation.
+  Correct parsing of hexadecimal that looks like a binary prefix.
+  Add ability to parse case sensitively.
 - 1.8.3 Add regex_group_count to with_pattern() decorator to support
   user-defined types that contain brackets/parenthesis (thanks Jens Engel)
 - 1.8.2 add documentation for including braces in format string
@@ -663,7 +673,7 @@ PARSE_RE = re.compile(r"""({{|}}|{\w*(?:(?:\.\w+)|(?:\[[^\]]+\]))*(?::[^}]+)?})"
 class Parser(object):
     '''Encapsulate a format string that may be used to parse other strings.
     '''
-    def __init__(self, format, extra_types=None):
+    def __init__(self, format, extra_types=None, case_sensitive=False):
         # a mapping of a name as in {hello.world} to a regex-group compatible
         # name, like hello__world Its used to prevent the transformation of
         # name-to-group and group to name to fail subtly, such as in:
@@ -680,6 +690,10 @@ class Parser(object):
         if extra_types is None:
             extra_types = {}
         self._extra_types = extra_types
+        if case_sensitive:
+            self._re_flags = re.DOTALL
+        else:
+            self._re_flags = re.IGNORECASE | re.DOTALL
         self._fixed_fields = []
         self._named_fields = []
         self._group_index = 0
@@ -700,8 +714,7 @@ class Parser(object):
     def _search_re(self):
         if self.__search_re is None:
             try:
-                self.__search_re = re.compile(self._expression,
-                    re.IGNORECASE | re.DOTALL)
+                self.__search_re = re.compile(self._expression, self._re_flags)
             except AssertionError:
                 # access error through sys to keep py3k and backward compat
                 e = str(sys.exc_info()[1])
@@ -715,8 +728,7 @@ class Parser(object):
         if self.__match_re is None:
             expression = '^%s$' % self._expression
             try:
-                self.__match_re = re.compile(expression,
-                    re.IGNORECASE | re.DOTALL)
+                self.__match_re = re.compile(expression, self._re_flags)
             except AssertionError:
                 # access error through sys to keep py3k and backward compat
                 e = str(sys.exc_info()[1])
@@ -1138,7 +1150,7 @@ class ResultIterator(object):
     next = __next__
 
 
-def parse(format, string, extra_types=None, evaluate_result=True):
+def parse(format, string, extra_types=None, evaluate_result=True, case_sensitive=False):
     '''Using "format" attempt to pull values from "string".
 
     The format must match the string contents exactly. If the value
@@ -1155,16 +1167,21 @@ def parse(format, string, extra_types=None, evaluate_result=True):
      .evaluate_result() - This will return a Result instance like you would get
                           with ``evaluate_result`` set to True
 
+    The default behaviour is to match strings case insensitively. You may match with
+    case by specifying case_sensitive=True.
+
     If the format is invalid a ValueError will be raised.
 
     See the module documentation for the use of "extra_types".
 
     In the case there is no match parse() will return None.
     '''
-    return Parser(format, extra_types=extra_types).parse(string, evaluate_result=evaluate_result)
+    p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
+    return p.parse(string, evaluate_result=evaluate_result)
 
 
-def search(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
+def search(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True,
+        case_sensitive=False):
     '''Search "string" for the first occurrence of "format".
 
     The format may occur anywhere within the string. If
@@ -1184,16 +1201,21 @@ def search(format, string, pos=0, endpos=None, extra_types=None, evaluate_result
      .evaluate_result() - This will return a Result instance like you would get
                           with ``evaluate_result`` set to True
 
+    The default behaviour is to match strings case insensitively. You may match with
+    case by specifying case_sensitive=True.
+
     If the format is invalid a ValueError will be raised.
 
     See the module documentation for the use of "extra_types".
 
     In the case there is no match parse() will return None.
     '''
-    return Parser(format, extra_types=extra_types).search(string, pos, endpos, evaluate_result=evaluate_result)
+    p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
+    return p.search(string, pos, endpos, evaluate_result=evaluate_result)
 
 
-def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True):
+def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_result=True,
+        case_sensitive=False):
     '''Search "string" for all occurrences of "format".
 
     You will be returned an iterator that holds Result instances
@@ -1212,18 +1234,25 @@ def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_resul
      .evaluate_result() - This will return a Result instance like you would get
                           with ``evaluate_result`` set to True
 
+    The default behaviour is to match strings case insensitively. You may match with
+    case by specifying case_sensitive=True.
+
     If the format is invalid a ValueError will be raised.
 
     See the module documentation for the use of "extra_types".
     '''
+    p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
     return Parser(format, extra_types=extra_types).findall(string, pos, endpos, evaluate_result=evaluate_result)
 
 
-def compile(format, extra_types=None):
+def compile(format, extra_types=None, case_sensitive=False):
     '''Create a Parser instance to parse "format".
 
     The resultant Parser has a method .parse(string) which
     behaves in the same manner as parse(format, string).
+
+    The default behaviour is to match strings case insensitively. You may match with
+    case by specifying case_sensitive=True.
 
     Use this function if you intend to parse many strings
     with the same format.

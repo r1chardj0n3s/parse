@@ -900,6 +900,11 @@ class TestParseType(unittest.TestCase):
         self.assert_match(parser2, 'test b', 'value', 2)
         self.assert_mismatch(parser2, 'test c', 'value')
 
+    def test_case_sensitivity(self):
+        r = parse.parse('SPAM {} SPAM', 'spam spam spam')
+        self.assertEqual(r[0], 'spam')
+        self.assertEqual(parse.parse('SPAM {} SPAM', 'spam spam spam', case_sensitive=True), None)
+
 
 if __name__ == '__main__':
     unittest.main()
