@@ -141,6 +141,7 @@ Type  Characters Matched                          Output
  n    Numbers with thousands separators (, or .)  int
  %    Percentage (converted to value/100.0)       float
  f    Fixed-point numbers                         float
+ F    Decimal numbers                             Decimal
  e    Floating-point numbers with exponent        float
       e.g. 1.1e-10, NAN (all case insensitive)
  g    General number format (either d, f or e)    float
@@ -332,6 +333,7 @@ the pattern, the actual match represents the shortest successful match for
   Correct handling of AM/PM to follow most common interpretation.
   Correct parsing of hexadecimal that looks like a binary prefix.
   Add ability to parse case sensitively.
+  Add parsing of numbers to Decimal with "F" (thanks John Vandenberg)
 - 1.8.3 Add regex_group_count to with_pattern() decorator to support
   user-defined types that contain brackets/parenthesis (thanks Jens Engel)
 - 1.8.2 add documentation for including braces in format string
@@ -393,6 +395,7 @@ __version__ = '1.8.2'
 import re
 import sys
 from datetime import datetime, time, tzinfo, timedelta
+from decimal import Decimal
 from functools import partial
 import logging
 
@@ -620,7 +623,7 @@ class RepeatedNameError(ValueError):
 REGEX_SAFETY = re.compile('([?\\\\.[\]()*+\^$!\|])')
 
 # allowed field types
-ALLOWED_TYPES = set(list('nbox%fegwWdDsS') +
+ALLOWED_TYPES = set(list('nbox%fFegwWdDsS') +
     ['t' + c for c in 'ieahgcts'])
 
 
@@ -963,6 +966,9 @@ class Parser(object):
         elif type == 'f':
             s = r'\d+\.\d+'
             self._type_conversions[group] = lambda s, m: float(s)
+        elif type == 'F':
+            s = r'\d+\.\d+'
+            self._type_conversions[group] = lambda s, m: Decimal(s)
         elif type == 'e':
             s = r'\d+\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
             self._type_conversions[group] = lambda s, m: float(s)

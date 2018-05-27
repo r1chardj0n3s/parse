@@ -7,6 +7,7 @@ See the end of the source file for the license of use.
 
 import unittest
 from datetime import datetime, time
+from decimal import Decimal
 import re
 
 import parse
@@ -904,6 +905,12 @@ class TestParseType(unittest.TestCase):
         r = parse.parse('SPAM {} SPAM', 'spam spam spam')
         self.assertEqual(r[0], 'spam')
         self.assertEqual(parse.parse('SPAM {} SPAM', 'spam spam spam', case_sensitive=True), None)
+
+    def test_decimal_value(self):
+        value = Decimal('5.5')
+        str_ = 'test {}'.format(value)
+        parser = parse.Parser('test {:F}')
+        self.assertEqual(parser.parse(str_)[0], value)
 
 
 if __name__ == '__main__':

@@ -141,6 +141,7 @@ Type  Characters Matched                          Output
  n    Numbers with thousands separators (, or .)  int
  %    Percentage (converted to value/100.0)       float
  f    Fixed-point numbers                         float
+ F    Decimal numbers                             Decimal
  e    Floating-point numbers with exponent        float
       e.g. 1.1e-10, NAN (all case insensitive)
  g    General number format (either d, f or e)    float
@@ -332,6 +333,7 @@ the pattern, the actual match represents the shortest successful match for
   Correct handling of AM/PM to follow most common interpretation.
   Correct parsing of hexadecimal that looks like a binary prefix.
   Add ability to parse case sensitively.
+  Add parsing of numbers to Decimal with "F" (thanks John Vandenberg)
 - 1.8.3 Add regex_group_count to with_pattern() decorator to support
   user-defined types that contain brackets/parenthesis (thanks Jens Engel)
 - 1.8.2 add documentation for including braces in format string
