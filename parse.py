@@ -1038,6 +1038,8 @@ class Parser(object):
 
         elif type:
             s = r'\%s+' % type
+        elif 'precision' in format:
+            s = '.{%s}' % format['precision']
         else:
             s = '.+?'
 
