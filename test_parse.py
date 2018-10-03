@@ -915,25 +915,36 @@ class TestParseType(unittest.TestCase):
 
     def test_width_str(self):
         res = parse.parse('{:.2}{:.2}', 'look')
-        assert res.fixed == ('lo', 'ok')
+        self.assertEqual(res.fixed, ('lo', 'ok'))
         res = parse.parse('{:2}{:2}', 'look')
-        assert res.fixed == ('lo', 'ok')
+        self.assertEqual(res.fixed, ('lo', 'ok'))
         res = parse.parse('{:4}{}', 'look at that')
-        assert res.fixed == ('look', ' at that')
+        self.assertEqual(res.fixed, ('look', ' at that'))
+
+    def test_width_constraints(self):
+        res = parse.parse('{:4}', 'looky')
+        self.assertEqual(res.fixed, ('looky', ))
+        res = parse.parse('{:4.4}', 'looky')
+        self.assertIsNone(res)
+        res = parse.parse('{:4.4}', 'ook')
+        self.assertIsNone(res)
+        res = parse.parse('{:4}{:.4}', 'look at that')
+        self.assertEqual(res.fixed, ('look at ', 'that'))
 
     def test_width_multi_int(self):
         res = parse.parse('{:02d}{:02d}', '0440')
-        assert res.fixed == (4, 40)
+        self.assertEqual(res.fixed, (4, 40))
         res = parse.parse('{:03d}{:d}', '04404')
-        assert res.fixed == (44, 4)
+        self.assertEqual(res.fixed, (44, 4))
 
     def test_width_empty_input(self):
         res = parse.parse('{:.2}', '')
-        assert res is None
+        self.assertIsNone(res)
         res = parse.parse('{:2}', 'l')
-        assert res is None
+        self.assertIsNone(res)
         res = parse.parse('{:2d}', '')
-        assert res is None
+        self.assertIsNone(res)
+
 
 if __name__ == '__main__':
     unittest.main()
