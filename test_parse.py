@@ -389,6 +389,7 @@ class TestParse(unittest.TestCase):
         y('a {:05d} b', 'a 00001 b', 1)
         y('a {:05d} b', 'a -00001 b', -1)
         y('a {:05d} b', 'a +00001 b', 1)
+        y('a {:02d} b', 'a 10 b', 10)
 
         y('a {:=d} b', 'a 000012 b', 12)
         y('a {:x=5d} b', 'a xxx12 b', 12)
@@ -912,6 +913,27 @@ class TestParseType(unittest.TestCase):
         parser = parse.Parser('test {:F}')
         self.assertEqual(parser.parse(str_)[0], value)
 
+    def test_width_str(self):
+        res = parse.parse('{:.2}{:.2}', 'look')
+        assert res.fixed == ('lo', 'ok')
+        res = parse.parse('{:2}{:2}', 'look')
+        assert res.fixed == ('lo', 'ok')
+        res = parse.parse('{:4}{}', 'look at that')
+        assert res.fixed == ('look', ' at that')
+
+    def test_width_multi_int(self):
+        res = parse.parse('{:02d}{:02d}', '0440')
+        assert res.fixed == (4, 40)
+        res = parse.parse('{:03d}{:d}', '04404')
+        assert res.fixed == (44, 4)
+
+    def test_width_empty_input(self):
+        res = parse.parse('{:.2}', '')
+        assert res is None
+        res = parse.parse('{:2}', 'l')
+        assert res is None
+        res = parse.parse('{:2d}', '')
+        assert res is None
 
 if __name__ == '__main__':
     unittest.main()
