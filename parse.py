@@ -977,7 +977,11 @@ class Parser(object):
             self._group_index += 2
             self._type_conversions[group] = lambda s, m: float(s)
         elif type == 'd':
-            s = r'\d+|0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+'
+            if format.get('width'):
+                width = '{1,%s}' % int(format['width'])
+            else:
+                width = '+'
+            s = '\\d{w}|0[xX][0-9a-fA-F]{w}|0[bB][01]{w}|0[oO][0-7]{w}'.format(w=width)
             self._type_conversions[group] = int_convert(10)
         elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \
@@ -1038,8 +1042,10 @@ class Parser(object):
 
         elif type:
             s = r'\%s+' % type
-        elif 'precision' in format:
-            s = '.{%s}' % format['precision']
+        elif format.get('precision'):
+            s = '.{1,%s}?' % format['precision']
+        elif format.get('width'):
+            s = '.{%s,}?' % format['width']
         else:
             s = '.+?'
 
@@ -1055,8 +1061,6 @@ class Parser(object):
                 if not fill:
                     fill = '0'
                 s = '%s*' % fill + s
-            elif format['zero']:
-                s = '0*' + s
 
             # allow numbers to be prefixed with a sign
             s = r'[-+ ]?' + s
