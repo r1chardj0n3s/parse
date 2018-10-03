@@ -8,6 +8,7 @@ __pycache__/
 .coverage
 .pytest_cache
 parse.egg-info
+.python-version
 
 MANIFEST
 build

@@ -186,6 +186,19 @@ And messing about with alignment:
 Note that the "center" alignment does not test to make sure the value is
 centered - it just strips leading and trailing whitespace.
 
+Width and precision may be used to restrict the size of matched text
+from the input. Width specifies a minimum size and precision specifies
+a maximum. For example:
+
+>>> parse('{:.2}{:.2}', 'look')           # specifying precision
+<Result ('lo', 'ok') {}>
+>>> parse('{:4}{:4}', 'look at that')     # specifying width
+<Result ('look', 'at that') {}>
+>>> parse('{:4}{:.4}', 'look at that')    # specifying both
+<Result ('look at ', 'that') {}>
+>>> parse('{:2d}{:2d}', '0440')           # parsing two contiguous numbers
+<Result (4, 40) {}>
+
 Some notes for the date and time types:
 
 - the presence of the time part is optional (including ISO 8601, starting
@@ -329,6 +342,9 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.9.0 We now honor precision and width specifiers when parsing numbers
+  and strings, allowing parsing of concatenated elements of fixed width
+  (thanks Julia Signell)
 - 1.8.4 Add LICENSE file at request of packagers.
   Correct handling of AM/PM to follow most common interpretation.
   Correct parsing of hexadecimal that looks like a binary prefix.
@@ -389,7 +405,7 @@ See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.8.4'
+__version__ = '1.9.0'
 
 # yes, I now have two problems
 import re
@@ -1043,7 +1059,10 @@ class Parser(object):
         elif type:
             s = r'\%s+' % type
         elif format.get('precision'):
-            s = '.{1,%s}?' % format['precision']
+            if format.get('width'):
+                s = '.{%s,%s}?' % (format['width'], format['precision'])
+            else:
+                s = '.{1,%s}?' % format['precision']
         elif format.get('width'):
             s = '.{%s,}?' % format['width']
         else:
