@@ -421,7 +421,7 @@ log = logging.getLogger(__name__)
 
 
 def with_pattern(pattern, regex_group_count=None):
-    """Attach a regular expression pattern matcher to a custom type converter
+    r"""Attach a regular expression pattern matcher to a custom type converter
     function.
 
     This annotates the type converter with the :attr:`pattern` attribute.
@@ -550,11 +550,11 @@ def date_convert(string, match, ymd=None, mdy=None, dmy=None,
         m=groups[mm]
         d=groups[dd]
     elif ymd is not None:
-        y, m, d = re.split('[-/\s]', groups[ymd])
+        y, m, d = re.split(r'[-/\s]', groups[ymd])
     elif mdy is not None:
-        m, d, y = re.split('[-/\s]', groups[mdy])
+        m, d, y = re.split(r'[-/\s]', groups[mdy])
     elif dmy is not None:
-        d, m, y = re.split('[-/\s]', groups[dmy])
+        d, m, y = re.split(r'[-/\s]', groups[dmy])
     elif d_m_y is not None:
         d, m, y = d_m_y
         d = groups[d]
@@ -636,7 +636,7 @@ class RepeatedNameError(ValueError):
 
 # note: {} are handled separately
 # note: I don't use r'' here because Sublime Text 2 syntax highlight has a fit
-REGEX_SAFETY = re.compile('([?\\\\.[\]()*+\^$!\|])')
+REGEX_SAFETY = re.compile(r'([?\\\\.[\]()*+\^$!\|])')
 
 # allowed field types
 ALLOWED_TYPES = set(list('nbox%fFegwWdDsS') +
@@ -960,7 +960,7 @@ class Parser(object):
                 return type_converter(string)
             self._type_conversions[group] = f
         elif type == 'n':
-            s = '\d{1,3}([,.]\d{3})*'
+            s = r'\d{1,3}([,.]\d{3})*'
             self._group_index += 1
             self._type_conversions[group] = int_convert(10)
         elif type == 'b':
@@ -1101,7 +1101,7 @@ class Parser(object):
             if not align:
                 align = '>'
 
-        if fill in '.\+?*[](){}^$':
+        if fill in r'.\+?*[](){}^$':
             fill = '\\' + fill
 
         # align "=" has been handled
