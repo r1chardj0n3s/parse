@@ -19,7 +19,7 @@ class TestPattern(unittest.TestCase):
 
     def test_braces(self):
         # pull a simple string out of another string
-        self._test_expression('{{ }}', '\{ \}')
+        self._test_expression('{{ }}', r'\{ \}')
 
     def test_fixed(self):
         # pull a simple string out of another string
@@ -34,9 +34,9 @@ class TestPattern(unittest.TestCase):
 
     def test_named_typed(self):
         # pull a named string out of another string
-        self._test_expression('{name:w}', '(?P<name>\w+)')
+        self._test_expression('{name:w}', r'(?P<name>\w+)')
         self._test_expression('{name:w} {other:w}',
-            '(?P<name>\w+) (?P<other>\w+)')
+            r'(?P<name>\w+) (?P<other>\w+)')
 
     def test_beaker(self):
         # skip some trailing whitespace
@@ -44,7 +44,7 @@ class TestPattern(unittest.TestCase):
 
     def test_left_fill(self):
         # skip some trailing periods
-        self._test_expression('{:.<}', '(.+?)\.*')
+        self._test_expression('{:.<}', r'(.+?)\.*')
 
     def test_bird(self):
         # skip some trailing whitespace
