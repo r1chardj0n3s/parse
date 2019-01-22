@@ -79,9 +79,11 @@ Some simple parse() format string examples:
 {'item': 'hand grenade'}
 >>> print(r['item'])
 hand grenade
+>>> 'item' in r
+True
 
-Dotted names and indexes are possible though the application must make
-additional sense of the result:
+Note that `in` only works if you have named fields. Dotted names and indexes
+are possible though the application must make additional sense of the result:
 
 >>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
 >>> print(r)
@@ -344,6 +346,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.11.0 Implement `__contains__` for Result instances.
 - 1.10.0 Introduce a "letters" matcher, since "w" matches numbers
   also.
 - 1.9.1 Fix deprecation warnings around backslashes in regex strings
@@ -412,7 +415,7 @@ See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.10.0'
+__version__ = '1.11.0'
 
 # yes, I now have two problems
 import re
@@ -1126,8 +1129,11 @@ class Parser(object):
 class Result(object):
     '''The result of a parse() or search().
 
-    Fixed results may be looked up using result[index]. Named results may be
-    looked up using result['name'].
+    Fixed results may be looked up using `result[index]`.
+
+    Named results may be looked up using `result['name']`.
+
+    Named results may be tested for existence using `'name' in result`.
     '''
     def __init__(self, fixed, named, spans):
         self.fixed = fixed
@@ -1142,6 +1148,9 @@ class Result(object):
     def __repr__(self):
         return '<%s %r %r>' % (self.__class__.__name__, self.fixed,
             self.named)
+
+    def __contains__(self, name):
+        return name in self.named
 
 
 class Match(object):
