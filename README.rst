@@ -3,7 +3,7 @@ Parse strings using a specification based on the Python format() syntax.
    ``parse()`` is the opposite of ``format()``
 
 The module is set up to only export ``parse()``, ``search()``, ``findall()``,
-and ``with_pattern()`` when ``import *`` is used:
+and ``with_pattern()`` when ``import \*`` is used:
 
 >>> from parse import *
 
@@ -132,38 +132,38 @@ The differences between `parse()` and `format()` are:
 ===== =========================================== ========
 Type  Characters Matched                          Output
 ===== =========================================== ========
- w    Letters and underscore                      str
- W    Non-letter and underscore                   str
- s    Whitespace                                  str
- S    Non-whitespace                              str
- d    Digits (effectively integer numbers)        int
- D    Non-digit                                   str
- n    Numbers with thousands separators (, or .)  int
- %    Percentage (converted to value/100.0)       float
- f    Fixed-point numbers                         float
- F    Decimal numbers                             Decimal
- e    Floating-point numbers with exponent        float
+w     Letters and underscore                      str
+W     Non-letter and underscore                   str
+s     Whitespace                                  str
+S     Non-whitespace                              str
+d     Digits (effectively integer numbers)        int
+D     Non-digit                                   str
+n     Numbers with thousands separators (, or .)  int
+%     Percentage (converted to value/100.0)       float
+f     Fixed-point numbers                         float
+F     Decimal numbers                             Decimal
+e     Floating-point numbers with exponent        float
       e.g. 1.1e-10, NAN (all case insensitive)
- g    General number format (either d, f or e)    float
- b    Binary numbers                              int
- o    Octal numbers                               int
- x    Hexadecimal numbers (lower and upper case)  int
- ti   ISO 8601 format date/time                   datetime
+g     General number format (either d, f or e)    float
+b     Binary numbers                              int
+o     Octal numbers                               int
+x     Hexadecimal numbers (lower and upper case)  int
+ti    ISO 8601 format date/time                   datetime
       e.g. 1972-01-20T10:21:36Z ("T" and "Z"
       optional)
- te   RFC2822 e-mail format date/time             datetime
+te    RFC2822 e-mail format date/time             datetime
       e.g. Mon, 20 Jan 1972 10:21:36 +1000
- tg   Global (day/month) format date/time         datetime
+tg    Global (day/month) format date/time         datetime
       e.g. 20/1/1972 10:21:36 AM +1:00
- ta   US (month/day) format date/time             datetime
+ta    US (month/day) format date/time             datetime
       e.g. 1/20/1972 10:21:36 PM +10:30
- tc   ctime() format date/time                    datetime
+tc    ctime() format date/time                    datetime
       e.g. Sun Sep 16 01:03:52 1973
- th   HTTP log format date/time                   datetime
+th    HTTP log format date/time                   datetime
       e.g. 21/Nov/2011:00:07:11 +0000
- ts   Linux system log format date/time           datetime
+ts    Linux system log format date/time           datetime
       e.g. Nov  9 03:37:44
- tt   Time                                        time
+tt    Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
@@ -342,6 +342,9 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.9.1 Fix deprecation warnings around backslashes in regex strings
+  (thanks Mickaël Schoentgen). Also fix some documentation formatting
+  issues.
 - 1.9.0 We now honor precision and width specifiers when parsing numbers
   and strings, allowing parsing of concatenated elements of fixed width
   (thanks Julia Signell)
