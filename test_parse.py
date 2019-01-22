@@ -663,6 +663,16 @@ class TestParse(unittest.TestCase):
             p = parse.compile('{:ti}' * 15)
             self.assertRaises(parse.TooManyFields, p.parse, '')
 
+    def test_letters(self):
+        res = parse.parse('{:l}', '')
+        self.assertIsNone(res)
+        res = parse.parse('{:l}', 'sPaM')
+        self.assertEqual(res.fixed, ('sPaM', ))
+        res = parse.parse('{:l}', 'sP4M')
+        self.assertIsNone(res)
+        res = parse.parse('{:l}', 'sP_M')
+        self.assertIsNone(res)
+
 
 class TestSearch(unittest.TestCase):
     def test_basic(self):
@@ -684,7 +694,6 @@ class TestSearch(unittest.TestCase):
         match = parse.search('age: {:d}\n', 'name: Rufus\nage: 42\ncolor: red\n', evaluate_result=False)
         r = match.evaluate_result()
         self.assertEqual(r.fixed, (42,))
-
 
 
 class TestFindall(unittest.TestCase):
