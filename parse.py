@@ -133,8 +133,9 @@ The differences between `parse()` and `format()` are:
 ===== =========================================== ========
 Type  Characters Matched                          Output
 ===== =========================================== ========
-w     Letters and underscore                      str
-W     Non-letter and underscore                   str
+l     Letters (ASCII)                             str
+w     Letters, numbers and underscore             str
+W     Not letters, numbers and underscore         str
 s     Whitespace                                  str
 S     Non-whitespace                              str
 d     Digits (effectively integer numbers)        int
@@ -343,6 +344,8 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.10.0 Introduce a "letters" matcher, since "w" matches numbers
+  also.
 - 1.9.1 Fix deprecation warnings around backslashes in regex strings
   (thanks Mickaël Schoentgen). Also fix some documentation formatting
   issues.
@@ -404,12 +407,12 @@ the pattern, the actual match represents the shortest successful match for
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012-2017 Richard Jones <richard@python.org>
+This code is copyright 2012-2019 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.9.1'
+__version__ = '1.10.0'
 
 # yes, I now have two problems
 import re
@@ -643,7 +646,7 @@ class RepeatedNameError(ValueError):
 REGEX_SAFETY = re.compile(r'([?\\\\.[\]()*+\^$!\|])')
 
 # allowed field types
-ALLOWED_TYPES = set(list('nbox%fFegwWdDsS') +
+ALLOWED_TYPES = set(list('nbox%fFegwWdDsSl') +
     ['t' + c for c in 'ieahgcts'])
 
 
@@ -1059,7 +1062,8 @@ class Parser(object):
             self._type_conversions[group] = partial(date_convert, mm=n+1, dd=n+3,
                 hms=n + 5)
             self._group_index += 5
-
+        elif type == 'l':
+            s = r'[A-Za-z]+'
         elif type:
             s = r'\%s+' % type
         elif format.get('precision'):
@@ -1299,7 +1303,7 @@ def compile(format, extra_types=None, case_sensitive=False):
     return Parser(format, extra_types=extra_types)
 
 
-# Copyright (c) 2012-2013 Richard Jones <richard@python.org>
+# Copyright (c) 2012-2019 Richard Jones <richard@python.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

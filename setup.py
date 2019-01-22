@@ -16,7 +16,7 @@ setup(
     description = "parse() is the opposite of format()",
     long_description = __doc__,
     author = "Richard Jones",
-    author_email = "rjones@ekit-inc.com",
+    author_email = "richard@python.org",
     py_modules = ['parse'],
     url = 'https://github.com/r1chardj0n3s/parse',
     classifiers = [
