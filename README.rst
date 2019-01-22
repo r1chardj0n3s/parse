@@ -78,9 +78,11 @@ Some simple parse() format string examples:
 {'item': 'hand grenade'}
 >>> print(r['item'])
 hand grenade
+>>> 'item' in r
+True
 
-Dotted names and indexes are possible though the application must make
-additional sense of the result:
+Note that `in` only works if you have named fields. Dotted names and indexes
+are possible though the application must make additional sense of the result:
 
 >>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
 >>> print(r)
@@ -343,6 +345,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.11.0 Implement `__contains__` for Result instances.
 - 1.10.0 Introduce a "letters" matcher, since "w" matches numbers
   also.
 - 1.9.1 Fix deprecation warnings around backslashes in regex strings

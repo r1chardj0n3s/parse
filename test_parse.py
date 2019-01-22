@@ -121,6 +121,12 @@ class TestResult(unittest.TestCase):
         self.assertRaises(KeyError, r.__getitem__, 'ham')
         self.assertRaises(IndexError, r.__getitem__, 0)
 
+    def test_contains(self):
+        r = parse.Result(('cat',), {'spam': 'ham'}, None)
+        self.assertTrue('spam' in r)
+        self.assertTrue('cat' not in r)
+        self.assertTrue('ham' not in r)
+
 
 class TestParse(unittest.TestCase):
     def test_no_match(self):
