@@ -132,8 +132,9 @@ The differences between `parse()` and `format()` are:
 ===== =========================================== ========
 Type  Characters Matched                          Output
 ===== =========================================== ========
-w     Letters and underscore                      str
-W     Non-letter and underscore                   str
+l     Letters (ASCII)                             str
+w     Letters, numbers and underscore             str
+W     Not letters, numbers and underscore         str
 s     Whitespace                                  str
 S     Non-whitespace                              str
 d     Digits (effectively integer numbers)        int
@@ -342,6 +343,8 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.10.0 Introduce a "letters" matcher, since "w" matches numbers
+  also.
 - 1.9.1 Fix deprecation warnings around backslashes in regex strings
   (thanks Mickaël Schoentgen). Also fix some documentation formatting
   issues.
@@ -403,5 +406,5 @@ the pattern, the actual match represents the shortest successful match for
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012-2017 Richard Jones <richard@python.org>
+This code is copyright 2012-2019 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
