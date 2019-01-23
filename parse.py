@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 r'''Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
@@ -346,11 +345,12 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.11.1 Revert having unicode char in docstring, it breaks Bamboo builds(?!)
 - 1.11.0 Implement `__contains__` for Result instances.
 - 1.10.0 Introduce a "letters" matcher, since "w" matches numbers
   also.
 - 1.9.1 Fix deprecation warnings around backslashes in regex strings
-  (thanks Mickaël Schoentgen). Also fix some documentation formatting
+  (thanks Mickael Schoentgen). Also fix some documentation formatting
   issues.
 - 1.9.0 We now honor precision and width specifiers when parsing numbers
   and strings, allowing parsing of concatenated elements of fixed width
@@ -415,7 +415,7 @@ See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.11.0'
+__version__ = '1.11.1'
 
 # yes, I now have two problems
 import re
