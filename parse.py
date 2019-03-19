@@ -885,7 +885,7 @@ class Parser(object):
                 e.append(r'\{')
             elif part == '}}':
                 e.append(r'\}')
-            elif part[0] == '{':
+            elif part[0] == '{' and part[-1] == '}':
                 # this will be a braces-delimited field to handle
                 e.append(self._handle_field(part))
             else:
