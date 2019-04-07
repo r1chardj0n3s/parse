@@ -771,6 +771,10 @@ class TestBugs(unittest.TestCase):
         self.assertEqual(r[0], 'ALICE')
         self.assertEqual(r[1], 42)
 
+    def test_unmatched_brace_doesnt_match(self):
+        r = parse.parse("{who.txt", "hello")
+        self.assertIsNone(r)
+
 
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
@@ -792,7 +796,6 @@ class TestParseType(unittest.TestCase):
     def assert_fixed_mismatch(self, parser, text):
         result = parser.parse(text)
         self.assertEqual(result, None)
-
 
     def test_pattern_should_be_used(self):
         def parse_number(text):
