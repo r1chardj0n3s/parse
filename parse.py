@@ -432,7 +432,7 @@ log = logging.getLogger(__name__)
 
 
 def with_pattern(pattern, regex_group_count=None):
-    """Attach a regular expression pattern matcher to a custom type converter
+    r"""Attach a regular expression pattern matcher to a custom type converter
     function.
 
     This annotates the type converter with the :attr:`pattern` attribute.
