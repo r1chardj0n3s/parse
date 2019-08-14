@@ -1310,7 +1310,7 @@ def compile(format, extra_types=None, case_sensitive=False):
 
     Returns a Parser instance.
     '''
-    return Parser(format, extra_types=extra_types)
+    return Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
 
 
 # Copyright (c) 2012-2019 Richard Jones <richard@python.org>
