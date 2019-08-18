@@ -345,6 +345,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.12.1 Actually use the `case_sensitive` arg in compile (thanks @jacquev6)
 - 1.12.0 Do not assume closing brace when an opening one is found (thanks @mattsep)
 - 1.11.1 Revert having unicode char in docstring, it breaks Bamboo builds(?!)
 - 1.11.0 Implement `__contains__` for Result instances.
@@ -416,7 +417,7 @@ See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.12.0'
+__version__ = '1.12.1'
 
 # yes, I now have two problems
 import re
