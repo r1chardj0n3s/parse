@@ -21,7 +21,7 @@ Or to search a string for some pattern:
 
 Or find all the occurrences of some pattern in a string:
 
->>> ''.join(r.fixed[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
+>>> ''.join(r[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
 'the bold text'
 
 If you're going to use the same pattern to match lots of strings you can
