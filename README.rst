@@ -346,7 +346,9 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
-- 1.12.2 Handle comparison of FixedTzOffset with other types of object
+- 1.13.0 Handle Fortran formatted numbers with no leading 0 before decimal
+  point (thanks @purpleskyfall).
+  Handle comparison of FixedTzOffset with other types of object.
 - 1.12.1 Actually use the `case_sensitive` arg in compile (thanks @jacquev6)
 - 1.12.0 Do not assume closing brace when an opening one is found (thanks @mattsep)
 - 1.11.1 Revert having unicode char in docstring, it breaks Bamboo builds(?!)
