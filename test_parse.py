@@ -364,6 +364,7 @@ class TestParse(unittest.TestCase):
         n('a {:f} b', 'a 12 b', None)
 
         y('a {:e} b', 'a 1.0e10 b', 1.0e10)
+        y('a {:e} b', 'a .0e10 b', 0.0e10)
         y('a {:e} b', 'a 1.0E10 b', 1.0e10)
         y('a {:e} b', 'a 1.10000e10 b', 1.1e10)
         y('a {:e} b', 'a 1.0e-10 b', 1.0e-10)

@@ -129,7 +129,8 @@ The differences between `parse()` and `format()` are:
   In addition some regular expression character group types "D", "w", "W", "s"
   and "S" are also available.
 - The "e" and "g" types are case-insensitive so there is not need for
-  the "E" or "G" types.
+  the "E" or "G" types. The "e" type handles Fortran formatted numbers (no
+  leading 0 before the decimal point).
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
@@ -345,7 +346,9 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
-- 1.12.2 Handle comparison of FixedTzOffset with other types of object
+- 1.13.0 Handle Fortran formatted numbers with no leading 0 before decimal
+  point (thanks @purpleskyfall).
+  Handle comparison of FixedTzOffset with other types of object.
 - 1.12.1 Actually use the `case_sensitive` arg in compile (thanks @jacquev6)
 - 1.12.0 Do not assume closing brace when an opening one is found (thanks @mattsep)
 - 1.11.1 Revert having unicode char in docstring, it breaks Bamboo builds(?!)
@@ -418,7 +421,7 @@ See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.12.1'
+__version__ = '1.13.0'
 
 # yes, I now have two problems
 import re
@@ -1001,7 +1004,7 @@ class Parser(object):
             s = r'\d+\.\d+'
             self._type_conversions[group] = lambda s, m: Decimal(s)
         elif type == 'e':
-            s = r'\d+\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
+            s = r'\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
             self._type_conversions[group] = lambda s, m: float(s)
         elif type == 'g':
             s = r'\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF'
