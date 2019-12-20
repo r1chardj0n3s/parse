@@ -717,6 +717,11 @@ class TestFindall(unittest.TestCase):
 
 
 class TestBugs(unittest.TestCase):
+    def test_tz_compare_to_None(self):
+        utc = parse.FixedTzOffset(0, 'UTC')
+        self.assertNotEqual(utc, None)
+        self.assertNotEqual(utc, 'spam')
+
     def test_named_date_issue7(self):
         r = parse.parse('on {date:ti}', 'on 2012-09-17')
         self.assertEqual(r['date'], datetime(2012, 9, 17, 0, 0, 0))
