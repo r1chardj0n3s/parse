@@ -129,7 +129,8 @@ The differences between `parse()` and `format()` are:
   In addition some regular expression character group types "D", "w", "W", "s"
   and "S" are also available.
 - The "e" and "g" types are case-insensitive so there is not need for
-  the "E" or "G" types.
+  the "E" or "G" types. The "e" type handles Fortran formatted numbers (no
+  leading 0 before the decimal point).
 
 ===== =========================================== ========
 Type  Characters Matched                          Output
@@ -345,6 +346,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.12.2 Handle comparison of FixedTzOffset with other types of object
 - 1.12.1 Actually use the `case_sensitive` arg in compile (thanks @jacquev6)
 - 1.12.0 Do not assume closing brace when an opening one is found (thanks @mattsep)
 - 1.11.1 Revert having unicode char in docstring, it breaks Bamboo builds(?!)
