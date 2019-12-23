@@ -999,10 +999,10 @@ class Parser(object):
             self._group_index += 1
             self._type_conversions[group] = percentage
         elif type == 'f':
-            s = r'\d+\.\d+'
+            s = r'\d*\.\d+'
             self._type_conversions[group] = lambda s, m: float(s)
         elif type == 'F':
-            s = r'\d+\.\d+'
+            s = r'\d*\.\d+'
             self._type_conversions[group] = lambda s, m: Decimal(s)
         elif type == 'e':
             s = r'\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
