@@ -208,12 +208,11 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.fixed, (3.1415926, ))
         r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 =  0.31415')
         self.assertEqual(r.fixed, (0.31415, ))
-
-    def test_precision_fail(self):
-        # floats must have a leading zero
-        # IS THIS CORRECT?
-        r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 = .31415')
-        self.assertEqual(r, None)
+        # float may have not leading zero
+        r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 =  .31415')
+        self.assertEqual(r.fixed, (0.31415, ))
+        r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 = -.31415')
+        self.assertEqual(r.fixed, (-0.31415, ))
 
     def test_custom_type(self):
         # use a custom type
@@ -361,6 +360,8 @@ class TestParse(unittest.TestCase):
         y('a {:f} b', 'a 12.0 b', 12.0)
         y('a {:f} b', 'a -12.1 b', -12.1)
         y('a {:f} b', 'a +12.1 b', 12.1)
+        y('a {:f} b', 'a .121 b', 0.121)
+        y('a {:f} b', 'a -.121 b', -0.121)
         n('a {:f} b', 'a 12 b', None)
 
         y('a {:e} b', 'a 1.0e10 b', 1.0e10)
