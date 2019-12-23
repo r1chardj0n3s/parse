@@ -346,6 +346,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.14.0 More broad acceptance of Fortran number format (thanks @purpleskyfall)
 - 1.13.1 Project metadata correction.
 - 1.13.0 Handle Fortran formatted numbers with no leading 0 before decimal
   point (thanks @purpleskyfall).
@@ -422,7 +423,7 @@ See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.13.1'
+__version__ = '1.14.0'
 
 # yes, I now have two problems
 import re
