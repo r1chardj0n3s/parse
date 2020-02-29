@@ -467,15 +467,16 @@ def with_pattern(pattern, regex_group_count=None):
     return decorator
 
 
-def int_convert(base):
+def int_convert(base=None):
     '''Convert a string to an integer.
 
     The string may start with a sign.
 
-    It may be of a base other than 10.
+    It may be of a base other than 2, 8, 10 or 16.
 
-    If may start with a base indicator, 0#nnnn, which we assume should
-    override the specified base.
+    If base isn't specified, it will be detected automatically based
+    on a string format. When string starts with a base indicator, 0#nnnn, 
+    it overrides the default base of 10.
 
     It may also have other non-numeric characters that we can ignore.
     '''
@@ -484,19 +485,28 @@ def int_convert(base):
     def f(string, match, base=base):
         if string[0] == '-':
             sign = -1
+            number_start = 1
+        elif string[0] == '+':
+            sign = 1
+            number_start = 1
         else:
             sign = 1
+            number_start = 0
 
-        if string[0] == '0' and len(string) > 2:
-            if string[1] in 'bB':
-                base = 2
-            elif string[1] in 'oO':
-                base = 8
-            elif string[1] in 'xX':
-                base = 16
-            else:
-                # just go with the base specifed
-                pass
+        # If base wasn't specified, detect it automatically
+        if base is None:
+
+          # Assume decimal number, unless different base is detected
+          base = 10
+
+          # For number formats starting with 0b, 0o, 0x, use corresponding base ...
+          if string[number_start] == '0' and len(string) - number_start > 2:
+              if string[number_start+1] in 'bB':
+                  base = 2
+              elif string[number_start+1] in 'oO':
+                  base = 8
+              elif string[number_start+1] in 'xX':
+                  base = 16
 
         chars = CHARS[:base]
         string = re.sub('[^%s]' % chars, '', string.lower())
@@ -967,7 +977,7 @@ class Parser(object):
 
         # figure type conversions, if any
         type = format['type']
-        is_numeric = type and type in 'n%fegdobh'
+        is_numeric = type and type in 'n%fegdobx'
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, 'pattern', r'.+?')
@@ -1017,8 +1027,8 @@ class Parser(object):
                 width = r'{1,%s}' % int(format['width'])
             else:
                 width = '+'
-            s = r'\d{w}|0[xX][0-9a-fA-F]{w}|0[bB][01]{w}|0[oO][0-7]{w}'.format(w=width)
-            self._type_conversions[group] = int_convert(10)
+            s = r'\d{w}|[-+ ]?0[xX][0-9a-fA-F]{w}|[-+ ]?0[bB][01]{w}|[-+ ]?0[oO][0-7]{w}'.format(w=width)
+            self._type_conversions[group] = int_convert() # do not specify numeber base, determine it automatically
         elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \
                 TIME_PAT
