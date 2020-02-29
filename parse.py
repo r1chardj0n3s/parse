@@ -967,7 +967,7 @@ class Parser(object):
 
         # figure type conversions, if any
         type = format['type']
-        is_numeric = type and type in 'n%fegdobh'
+        is_numeric = type and type in 'n%fegdobx'
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, 'pattern', r'.+?')
