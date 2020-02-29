@@ -346,6 +346,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.15.0 Several fixes for parsing non-base 10 numbers (thanks @vladikcomper)
 - 1.14.0 More broad acceptance of Fortran number format (thanks @purpleskyfall)
 - 1.13.1 Project metadata correction.
 - 1.13.0 Handle Fortran formatted numbers with no leading 0 before decimal
@@ -423,7 +424,7 @@ See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.14.0'
+__version__ = '1.15.0'
 
 # yes, I now have two problems
 import re
@@ -1332,7 +1333,7 @@ def compile(format, extra_types=None, case_sensitive=False):
     return Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
 
 
-# Copyright (c) 2012-2019 Richard Jones <richard@python.org>
+# Copyright (c) 2012-2020 Richard Jones <richard@python.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

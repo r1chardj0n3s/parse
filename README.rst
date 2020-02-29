@@ -346,6 +346,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.15.0 Several fixes for parsing non-base 10 numbers (thanks @vladikcomper)
 - 1.14.0 More broad acceptance of Fortran number format (thanks @purpleskyfall)
 - 1.13.1 Project metadata correction.
 - 1.13.0 Handle Fortran formatted numbers with no leading 0 before decimal
