@@ -1027,8 +1027,8 @@ class Parser(object):
                 width = r'{1,%s}' % int(format['width'])
             else:
                 width = '+'
-            s = r'\d{w}|0[xX][0-9a-fA-F]{w}|0[bB][01]{w}|0[oO][0-7]{w}'.format(w=width)
-            self._type_conversions[group] = int_convert(10)
+            s = r'\d{w}|[-+ ]?0[xX][0-9a-fA-F]{w}|[-+ ]?0[bB][01]{w}|[-+ ]?0[oO][0-7]{w}'.format(w=width)
+            self._type_conversions[group] = int_convert() # do not specify numeber base, determine it automatically
         elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \
                 TIME_PAT
