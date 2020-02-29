@@ -403,11 +403,26 @@ class TestParse(unittest.TestCase):
         y('a {:x=5d} b', 'a xxx12 b', 12)
         y('a {:x=5d} b', 'a -xxx12 b', -12)
 
-    def test_hex_looks_like_binary_issue65(self):
-        r = parse.parse('a {:x} b', 'a 0B b')
-        self.assertEqual(r[0], 11)
-        r = parse.parse('a {:x} b', 'a 0B1 b')
-        self.assertEqual(r[0], 1)
+        # Test that hex numbers that ambiguously start with 0b / 0B are parsed correctly 
+        # See issue #65 (https://github.com/r1chardj0n3s/parse/issues/65)
+        y('a {:x} b', 'a 0B b', 0xB)
+        y('a {:x} b', 'a 0B1 b', 0xB1)
+        y('a {:x} b', 'a 0b b', 0xB)
+        y('a {:x} b', 'a 0b1 b', 0xB1)
+
+        # Test that number signs are understood correctly
+        y('a {:d} b', 'a -0o10 b', -8)
+        y('a {:d} b', 'a -0b1010 b', -10)
+        y('a {:d} b', 'a -0x1010 b', -0x1010)
+        y('a {:o} b', 'a -10 b', -8)
+        y('a {:b} b', 'a -1010 b', -10)
+        y('a {:x} b', 'a -1010 b', -0x1010)
+        y('a {:d} b', 'a +0o10 b', 8)
+        y('a {:d} b', 'a +0b1010 b', 10)
+        y('a {:d} b', 'a +0x1010 b', 0x1010)
+        y('a {:o} b', 'a +10 b', 8)
+        y('a {:b} b', 'a +1010 b', 10)
+        y('a {:x} b', 'a +1010 b', 0x1010)
 
     def test_two_datetimes(self):
         r = parse.parse('a {:ti} {:ti} b', 'a 1997-07-16 2012-08-01 b')
