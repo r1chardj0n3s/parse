@@ -2,33 +2,29 @@ Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
 
-The module is set up to only export ``parse()``, ``search()``, ``findall()``,
-and ``with_pattern()`` when ``import \*`` is used:
-
->>> from parse import *
+>>> import parse as pe
 
 From there it's a simple thing to parse a string:
 
->>> parse("It's {}, I love it!", "It's spam, I love it!")
+>>> pe.parse("It's {}, I love it!", "It's spam, I love it!")
 <Result ('spam',) {}>
 >>> _[0]
 'spam'
 
 Or to search a string for some pattern:
 
->>> search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
+>>> pe.search('Age: {:d}\n', 'Name: Rufus\nAge: 42\nColor: red\n')
 <Result (42,) {}>
 
 Or find all the occurrences of some pattern in a string:
 
->>> ''.join(r[0] for r in findall(">{}<", "<p>the <b>bold</b> text</p>"))
+>>> ''.join(r[0] for r in pe.findall(">{}<", "<p>the <b>bold</b> text</p>"))
 'the bold text'
 
 If you're going to use the same pattern to match lots of strings you can
 compile it once:
 
->>> from parse import compile
->>> p = compile("It's {}, I love it!")
+>>> p = pe.compile("It's {}, I love it!")
 >>> print(p)
 <Parser "It's {}, I love it!">
 >>> p.parse("It's spam, I love it!")
@@ -40,7 +36,7 @@ built-in ``compile()`` function)
 The default behaviour is to match strings case insensitively. You may match with
 case by specifying `case_sensitive=True`:
 
->>> parse('SPAM', 'spam', case_sensitive=True) is None
+>>> pe.parse('SPAM', 'spam', case_sensitive=True) is None
 True
 
 
@@ -64,14 +60,14 @@ There are no "!" field conversions like ``format()`` has.
 
 Some simple parse() format string examples:
 
->>> parse("Bring me a {}", "Bring me a shrubbery")
+>>> pe.parse("Bring me a {}", "Bring me a shrubbery")
 <Result ('shrubbery',) {}>
->>> r = parse("The {} who say {}", "The knights who say Ni!")
+>>> r = pe.parse("The {} who say {}", "The knights who say Ni!")
 >>> print(r)
 <Result ('knights', 'Ni!') {}>
 >>> print(r.fixed)
 ('knights', 'Ni!')
->>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
+>>> r = pe.parse("Bring out the holy {item}", "Bring out the holy hand grenade")
 >>> print(r)
 <Result () {'item': 'hand grenade'}>
 >>> print(r.named)
@@ -84,14 +80,14 @@ True
 Note that `in` only works if you have named fields. Dotted names and indexes
 are possible though the application must make additional sense of the result:
 
->>> r = parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
+>>> r = pe.parse("Mmm, {food.type}, I love it!", "Mmm, spam, I love it!")
 >>> print(r)
 <Result () {'food.type': 'spam'}>
 >>> print(r.named)
 {'food.type': 'spam'}
 >>> print(r['food.type'])
 spam
->>> r = parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
+>>> r = pe.parse("My quest is {quest[name]}", "My quest is to seek the holy grail!")
 >>> print(r)
 <Result () {'quest': {'name': 'to seek the holy grail!'}}>
 >>> print(r['quest'])
@@ -174,17 +170,17 @@ tt    Time                                        time
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
 
->>> parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
+>>> pe.parse('Our {:d} {:w} are...', 'Our 3 weapons are...')
 <Result (3, 'weapons') {}>
->>> parse('Our {:d} {:w} are...', 'Our three weapons are...')
->>> parse('Meet at {:tg}', 'Meet at 1/2/2011 11:00 PM')
+>>> pe.parse('Our {:d} {:w} are...', 'Our three weapons are...')
+>>> pe.parse('Meet at {:tg}', 'Meet at 1/2/2011 11:00 PM')
 <Result (datetime.datetime(2011, 2, 1, 23, 0),) {}>
 
 And messing about with alignment:
 
->>> parse('with {:>} herring', 'with     a herring')
+>>> pe.parse('with {:>} herring', 'with     a herring')
 <Result ('a',) {}>
->>> parse('spam {:^} spam', 'spam    lovely     spam')
+>>> pe.parse('spam {:^} spam', 'spam    lovely     spam')
 <Result ('lovely',) {}>
 
 Note that the "center" alignment does not test to make sure the value is
@@ -194,13 +190,13 @@ Width and precision may be used to restrict the size of matched text
 from the input. Width specifies a minimum size and precision specifies
 a maximum. For example:
 
->>> parse('{:.2}{:.2}', 'look')           # specifying precision
+>>> pe.parse('{:.2}{:.2}', 'look')           # specifying precision
 <Result ('lo', 'ok') {}>
->>> parse('{:4}{:4}', 'look at that')     # specifying width
+>>> pe.parse('{:4}{:4}', 'look at that')     # specifying width
 <Result ('look', 'at that') {}>
->>> parse('{:4}{:.4}', 'look at that')    # specifying both
+>>> pe.parse('{:4}{:.4}', 'look at that')    # specifying both
 <Result ('look at ', 'that') {}>
->>> parse('{:2d}{:2d}', '0440')           # parsing two contiguous numbers
+>>> pe.parse('{:2d}{:2d}', '0440')           # parsing two contiguous numbers
 <Result (4, 40) {}>
 
 Some notes for the date and time types:
@@ -278,7 +274,7 @@ with the same identifier.
 >>> def shouty(string):
 ...    return string.upper()
 ...
->>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
+>>> pe.parse('{:shouty} world', 'hello world', dict(shouty=shouty))
 <Result ('HELLO',) {}>
 
 If the type converter has the optional ``pattern`` attribute, it is used as
@@ -287,19 +283,18 @@ regular expression for better pattern matching (instead of the default one).
 >>> def parse_number(text):
 ...    return int(text)
 >>> parse_number.pattern = r'\d+'
->>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+>>> pe.parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
 <Result () {'number': 42}>
->>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
+>>> _ = pe.parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
 >>> assert _ is None, "MISMATCH"
 
 You can also use the ``with_pattern(pattern)`` decorator to add this
 information to a type converter function:
 
->>> from parse import with_pattern
->>> @with_pattern(r'\d+')
+>>> @pe.with_pattern(r'\d+')
 ... def parse_number(text):
 ...    return int(text)
->>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+>>> pe.parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
 <Result () {'number': 42}>
 
 A more complete example of a custom type might be:
@@ -309,7 +304,7 @@ A more complete example of a custom type might be:
 ...     "on":   True,   "off":   False,
 ...     "true": True,   "false": False,
 ... }
->>> @with_pattern(r"|".join(yesno_mapping))
+>>> @pe.with_pattern(r"|".join(yesno_mapping))
 ... def parse_yesno(text):
 ...     return yesno_mapping[text.lower()]
 
@@ -318,10 +313,10 @@ If the type converter ``pattern`` uses regex-grouping (with parenthesis),
 you should indicate this by using the optional ``regex_group_count`` parameter
 in the ``with_pattern()`` decorator:
 
->>> @with_pattern(r'((\d+))', regex_group_count=2)
+>>> @pe.with_pattern(r'((\d+))', regex_group_count=2)
 ... def parse_number2(text):
 ...    return int(text)
->>> parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', dict(Number2=parse_number2))
+>>> pe.parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', dict(Number2=parse_number2))
 <Result (42, 43) {}>
 
 Otherwise, this may cause parsing problems with unnamed/fixed parameters.
@@ -335,7 +330,7 @@ to fulfil the parse pattern, so for example:
 
 >>> pattern = '{dir1}/{dir2}'
 >>> data = 'root/parent/subdir'
->>> sorted(parse(pattern, data).named.items())
+>>> sorted(pe.parse(pattern, data).named.items())
 [('dir1', 'root'), ('dir2', 'parent/subdir')]
 
 So, even though `{'dir1': 'root/parent', 'dir2': 'subdir'}` would also fit
