@@ -501,7 +501,7 @@ def with_pattern(pattern, regex_group_count=None):
     return decorator
 
 
-def int_convert(base=None):
+class int_convert:
     '''Convert a string to an integer.
 
     The string may start with a sign.
@@ -513,10 +513,13 @@ def int_convert(base=None):
     it overrides the default base of 10.
 
     It may also have other non-numeric characters that we can ignore.
-    '''
-    CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
+    '''    
 
-    def f(string, match, base=base):
+    def __init__(self, base=None):
+        self.base = base
+        self.CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+    def __call__(self, string, match):
         if string[0] == '-':
             sign = -1
             number_start = 1
@@ -528,24 +531,24 @@ def int_convert(base=None):
             number_start = 0
 
         # If base wasn't specified, detect it automatically
-        if base is None:
+        if self.base is None:
 
           # Assume decimal number, unless different base is detected
-          base = 10
+          self.base = 10
 
           # For number formats starting with 0b, 0o, 0x, use corresponding base ...
           if string[number_start] == '0' and len(string) - number_start > 2:
               if string[number_start+1] in 'bB':
-                  base = 2
+                  self.base = 2
               elif string[number_start+1] in 'oO':
-                  base = 8
+                  self.base = 8
               elif string[number_start+1] in 'xX':
-                  base = 16
+                  self.base = 16
 
-        chars = CHARS[:base]
+        chars = self.CHARS[:self.base]
         string = re.sub('[^%s]' % chars, '', string.lower())
-        return sign * int(string, base)
-    return f
+        return sign * int(string, self.base)
+ 
 
 
 def percentage(string, match):
