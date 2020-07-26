@@ -8,6 +8,7 @@ See the end of the source file for the license of use.
 import unittest
 from datetime import datetime, time
 from decimal import Decimal
+import pickle
 import re
 
 import parse
@@ -797,6 +798,10 @@ class TestBugs(unittest.TestCase):
         r = parse.parse("{who.txt", "hello")
         self.assertIsNone(r)
 
+    def test_pickling_bug_110(self):
+        p = parse.compile('{a:d}')
+        # prior to the fix, this would raise an AttributeError
+        pickle.dumps(p)
 
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
