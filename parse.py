@@ -1355,7 +1355,7 @@ def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_resul
     See the module documentation for the use of "extra_types".
     '''
     p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
-    return Parser(format, extra_types=extra_types).findall(string, pos, endpos, evaluate_result=evaluate_result)
+    return p.findall(string, pos, endpos, evaluate_result=evaluate_result)
 
 
 def compile(format, extra_types=None, case_sensitive=False):
