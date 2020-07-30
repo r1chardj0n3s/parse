@@ -733,6 +733,13 @@ class TestFindall(unittest.TestCase):
             "<p>some <b>bold</b> text</p>", evaluate_result=False))
         self.assertEqual(s, "some bold text")
 
+    def test_case_sensitivity(self):
+        l = [r.fixed[0] for r in parse.findall("x({})x", "X(hi)X")]
+        self.assertEqual(l, ["hi"])
+
+        l = [r.fixed[0] for r in parse.findall("x({})x", "X(hi)X", case_sensitive=True)]
+        self.assertEqual(l, [])
+
 
 class TestBugs(unittest.TestCase):
     def test_tz_compare_to_None(self):
