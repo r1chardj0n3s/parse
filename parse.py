@@ -838,6 +838,14 @@ class Parser(object):
                     expression)
         return self.__match_re
 
+    @property 
+    def named_fields(self):
+        return self._named_fields.copy()
+    
+    @property 
+    def fixed_fields(self):
+        return self._fixed_fields.copy()
+
     def parse(self, string, evaluate_result=True):
         '''Match my format to the string exactly.
 
