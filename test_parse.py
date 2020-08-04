@@ -8,6 +8,7 @@ See the end of the source file for the license of use.
 import unittest
 from datetime import datetime, time
 from decimal import Decimal
+import pickle
 import re
 
 import parse
@@ -732,6 +733,13 @@ class TestFindall(unittest.TestCase):
             "<p>some <b>bold</b> text</p>", evaluate_result=False))
         self.assertEqual(s, "some bold text")
 
+    def test_case_sensitivity(self):
+        l = [r.fixed[0] for r in parse.findall("x({})x", "X(hi)X")]
+        self.assertEqual(l, ["hi"])
+
+        l = [r.fixed[0] for r in parse.findall("x({})x", "X(hi)X", case_sensitive=True)]
+        self.assertEqual(l, [])
+
 
 class TestBugs(unittest.TestCase):
     def test_tz_compare_to_None(self):
@@ -797,6 +805,10 @@ class TestBugs(unittest.TestCase):
         r = parse.parse("{who.txt", "hello")
         self.assertIsNone(r)
 
+    def test_pickling_bug_110(self):
+        p = parse.compile('{a:d}')
+        # prior to the fix, this would raise an AttributeError
+        pickle.dumps(p)
 
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType

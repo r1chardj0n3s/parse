@@ -379,6 +379,7 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.16.0 Make compiled parse objects pickleable (thanks @martinResearch)
 - 1.15.0 Several fixes for parsing non-base 10 numbers (thanks @vladikcomper)
 - 1.14.0 More broad acceptance of Fortran number format (thanks @purpleskyfall)
 - 1.13.1 Project metadata correction.
@@ -452,12 +453,12 @@ the pattern, the actual match represents the shortest successful match for
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012-2019 Richard Jones <richard@python.org>
+This code is copyright 2012-2020 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
 '''
 
 from __future__ import absolute_import
-__version__ = '1.15.0'
+__version__ = '1.16.0'
 
 # yes, I now have two problems
 import re
@@ -501,7 +502,7 @@ def with_pattern(pattern, regex_group_count=None):
     return decorator
 
 
-def int_convert(base=None):
+class int_convert:
     '''Convert a string to an integer.
 
     The string may start with a sign.
@@ -513,10 +514,15 @@ def int_convert(base=None):
     it overrides the default base of 10.
 
     It may also have other non-numeric characters that we can ignore.
-    '''
+    '''    
+
     CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
 
-    def f(string, match, base=base):
+    def __init__(self, base=None):
+        self.base = base
+      
+
+    def __call__(self, string, match):
         if string[0] == '-':
             sign = -1
             number_start = 1
@@ -528,24 +534,32 @@ def int_convert(base=None):
             number_start = 0
 
         # If base wasn't specified, detect it automatically
-        if base is None:
+        if self.base is None:
 
           # Assume decimal number, unless different base is detected
-          base = 10
+          self.base = 10
 
           # For number formats starting with 0b, 0o, 0x, use corresponding base ...
           if string[number_start] == '0' and len(string) - number_start > 2:
               if string[number_start+1] in 'bB':
-                  base = 2
+                  self.base = 2
               elif string[number_start+1] in 'oO':
-                  base = 8
+                  self.base = 8
               elif string[number_start+1] in 'xX':
-                  base = 16
+                  self.base = 16
 
-        chars = CHARS[:base]
+        chars = int_convert.CHARS[:self.base]
         string = re.sub('[^%s]' % chars, '', string.lower())
-        return sign * int(string, base)
-    return f
+        return sign * int(string, self.base)
+ 
+class convert_first:
+    """Convert the first element of a pair.     
+    This equivalent to lambda s,m: converter(s). But unlike a lambda function, it can be pickled
+    """
+    def __init__(self, converter):
+        self.converter = converter
+    def __call__(self, string, match):
+        return self.converter(string)
 
 
 def percentage(string, match):
@@ -1019,10 +1033,7 @@ class Parser(object):
             if regex_group_count is None:
                 regex_group_count = 0
             self._group_index += regex_group_count
-
-            def f(string, m):
-                return type_converter(string)
-            self._type_conversions[group] = f
+            self._type_conversions[group] = convert_first(type_converter)
         elif type == 'n':
             s = r'\d{1,3}([,.]\d{3})*'
             self._group_index += 1
@@ -1045,24 +1056,24 @@ class Parser(object):
             self._type_conversions[group] = percentage
         elif type == 'f':
             s = r'\d*\.\d+'
-            self._type_conversions[group] = lambda s, m: float(s)
+            self._type_conversions[group] = convert_first(float)
         elif type == 'F':
             s = r'\d*\.\d+'
-            self._type_conversions[group] = lambda s, m: Decimal(s)
+            self._type_conversions[group] = convert_first(Decimal)
         elif type == 'e':
             s = r'\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF'
-            self._type_conversions[group] = lambda s, m: float(s)
+            self._type_conversions[group] = convert_first(float)
         elif type == 'g':
             s = r'\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF'
             self._group_index += 2
-            self._type_conversions[group] = lambda s, m: float(s)
+            self._type_conversions[group] = convert_first(float)
         elif type == 'd':
             if format.get('width'):
                 width = r'{1,%s}' % int(format['width'])
             else:
                 width = '+'
             s = r'\d{w}|[-+ ]?0[xX][0-9a-fA-F]{w}|[-+ ]?0[bB][01]{w}|[-+ ]?0[oO][0-7]{w}'.format(w=width)
-            self._type_conversions[group] = int_convert() # do not specify numeber base, determine it automatically
+            self._type_conversions[group] = int_convert() # do not specify number base, determine it automatically
         elif type == 'ti':
             s = r'(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?' % \
                 TIME_PAT
@@ -1344,7 +1355,7 @@ def findall(format, string, pos=0, endpos=None, extra_types=None, evaluate_resul
     See the module documentation for the use of "extra_types".
     '''
     p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
-    return Parser(format, extra_types=extra_types).findall(string, pos, endpos, evaluate_result=evaluate_result)
+    return p.findall(string, pos, endpos, evaluate_result=evaluate_result)
 
 
 def compile(format, extra_types=None, case_sensitive=False):
