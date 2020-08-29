@@ -1,6 +1,7 @@
 *.pyc
 *.pyo
 
+.vscode/
 .cache/
 .idea/
 .tox/

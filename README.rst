@@ -379,6 +379,8 @@ the pattern, the actual match represents the shortest successful match for
 
 **Version history (in brief)**:
 
+- 1.17.0 Make left- and center-aligned search consume up to next space
+- 1.16.0 Make compiled parse objects pickleable (thanks @martinResearch)
 - 1.15.0 Several fixes for parsing non-base 10 numbers (thanks @vladikcomper)
 - 1.14.0 More broad acceptance of Fortran number format (thanks @purpleskyfall)
 - 1.13.1 Project metadata correction.
@@ -452,5 +454,5 @@ the pattern, the actual match represents the shortest successful match for
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012-2019 Richard Jones <richard@python.org>
+This code is copyright 2012-2020 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.

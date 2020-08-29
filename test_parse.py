@@ -30,37 +30,26 @@ class TestPattern(unittest.TestCase):
     def test_named(self):
         # pull a named string out of another string
         self._test_expression('{name}', r'(?P<name>.+?)')
-        self._test_expression('{name} {other}',
-            r'(?P<name>.+?) (?P<other>.+?)')
+        self._test_expression('{name} {other}', r'(?P<name>.+?) (?P<other>.+?)')
 
     def test_named_typed(self):
         # pull a named string out of another string
         self._test_expression('{name:w}', r'(?P<name>\w+)')
-        self._test_expression('{name:w} {other:w}',
-            r'(?P<name>\w+) (?P<other>\w+)')
-
-    def test_beaker(self):
-        # skip some trailing whitespace
-        self._test_expression('{:<}', r'(.+?) *')
-
-    def test_left_fill(self):
-        # skip some trailing periods
-        self._test_expression('{:.<}', r'(.+?)\.*')
+        self._test_expression('{name:w} {other:w}', r'(?P<name>\w+) (?P<other>\w+)')
 
     def test_bird(self):
         # skip some trailing whitespace
         self._test_expression('{:>}', r' *(.+?)')
 
-    def test_center(self):
-        # skip some surrounding whitespace
-        self._test_expression('{:^}', r' *(.+?) *')
-
     def test_format_variety(self):
         def _(fmt, matches):
             d = parse.extract_format(fmt, {'spam': 'spam'})
             for k in matches:
-                self.assertEqual(d.get(k), matches[k],
-                    'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]))
+                self.assertEqual(
+                    d.get(k),
+                    matches[k],
+                    'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]),
+                )
 
         for t in '%obxegfdDwWsS':
             _(t, dict(type=t))
@@ -77,8 +66,7 @@ class TestPattern(unittest.TestCase):
         _('ti', dict(type='ti'))
         _('spam', dict(type='spam'))
 
-        _('.^010d', dict(type='d', width='10', align='^', fill='.',
-            zero=True))
+        _('.^010d', dict(type='d', width='10', align='^', fill='.', zero=True))
         _('.2f', dict(type='f', precision='2'))
         _('10.2f', dict(type='f', width='10', precision='2'))
 
@@ -104,8 +92,9 @@ class TestPattern(unittest.TestCase):
         assert res.named['a___b'] == 'd'
 
     def test_invalid_groupnames_are_handled_gracefully(self):
-        self.assertRaises(NotImplementedError, parse.parse,
-            "{hello['world']}", "doesn't work")
+        self.assertRaises(
+            NotImplementedError, parse.parse, "{hello['world']}", "doesn't work"
+        )
 
 
 class TestResult(unittest.TestCase):
@@ -144,7 +133,7 @@ class TestParse(unittest.TestCase):
         # pull a fixed value out of string
         match = parse.parse('hello {}', 'hello world', evaluate_result=False)
         r = match.evaluate_result()
-        self.assertEqual(r.fixed, ('world', ))
+        self.assertEqual(r.fixed, ('world',))
 
     def test_regular_expression(self):
         # match an actual regular expression
@@ -179,22 +168,22 @@ class TestParse(unittest.TestCase):
     def test_fixed(self):
         # pull a fixed value out of string
         r = parse.parse('hello {}', 'hello world')
-        self.assertEqual(r.fixed, ('world', ))
+        self.assertEqual(r.fixed, ('world',))
 
     def test_left(self):
         # pull left-aligned text out of string
         r = parse.parse('{:<} world', 'hello       world')
-        self.assertEqual(r.fixed, ('hello', ))
+        self.assertEqual(r.fixed, ('hello',))
 
     def test_right(self):
         # pull right-aligned text out of string
         r = parse.parse('hello {:>}', 'hello       world')
-        self.assertEqual(r.fixed, ('world', ))
+        self.assertEqual(r.fixed, ('world',))
 
     def test_center(self):
         # pull center-aligned text out of string
         r = parse.parse('hello {:^} world', 'hello  there     world')
-        self.assertEqual(r.fixed, ('there', ))
+        self.assertEqual(r.fixed, ('there',))
 
     def test_typed(self):
         # pull a named, typed values out of string
@@ -206,20 +195,22 @@ class TestParse(unittest.TestCase):
     def test_precision(self):
         # pull a float out of a string
         r = parse.parse('Pi = {:.7f}', 'Pi = 3.1415926')
-        self.assertEqual(r.fixed, (3.1415926, ))
+        self.assertEqual(r.fixed, (3.1415926,))
         r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 =  0.31415')
-        self.assertEqual(r.fixed, (0.31415, ))
+        self.assertEqual(r.fixed, (0.31415,))
         # float may have not leading zero
         r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 =  .31415')
-        self.assertEqual(r.fixed, (0.31415, ))
+        self.assertEqual(r.fixed, (0.31415,))
         r = parse.parse('Pi/10 = {:8.5f}', 'Pi/10 = -.31415')
-        self.assertEqual(r.fixed, (-0.31415, ))
+        self.assertEqual(r.fixed, (-0.31415,))
 
     def test_custom_type(self):
         # use a custom type
-        r = parse.parse('{:shouty} {:spam}', 'hello world',
-            dict(shouty=lambda s: s.upper(),
-                spam=lambda s: ''.join(reversed(s))))
+        r = parse.parse(
+            '{:shouty} {:spam}',
+            'hello world',
+            dict(shouty=lambda s: s.upper(), spam=lambda s: ''.join(reversed(s))),
+        )
         self.assertEqual(r.fixed, ('HELLO', 'dlrow'))
         r = parse.parse('{:d}', '12', dict(d=lambda s: int(s) * 2))
         self.assertEqual(r.fixed, (24,))
@@ -228,8 +219,7 @@ class TestParse(unittest.TestCase):
 
     def test_typed_fail(self):
         # pull a named, typed values out of string
-        self.assertEqual(parse.parse('hello {:d} {:w}', 'hello people 12'),
-            None)
+        self.assertEqual(parse.parse('hello {:d} {:w}', 'hello people 12'), None)
 
     def test_named(self):
         # pull a named value out of string
@@ -258,13 +248,11 @@ class TestParse(unittest.TestCase):
 
     def test_named_repeated_type_mismatch(self):
         # test repeated name with mismatched type
-        self.assertRaises(parse.RepeatedNameError, parse.compile,
-            '{n:d} {n:w}')
+        self.assertRaises(parse.RepeatedNameError, parse.compile, '{n:d} {n:w}')
 
     def test_mixed(self):
         # pull a fixed and named values out of string
-        r = parse.parse('hello {} {name} {} {spam}',
-            'hello world and other beings')
+        r = parse.parse('hello {} {name} {} {spam}', 'hello world and other beings')
         self.assertEqual(r.fixed, ('world', 'other'))
         self.assertEqual(r.named, dict(name='and', spam='beings'))
 
@@ -281,8 +269,7 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r.named, dict(number=12, things='people'))
         r = parse.parse('hello {number:>d} {things}', 'hello      12 people')
         self.assertEqual(r.named, dict(number=12, things='people'))
-        r = parse.parse('hello {number:^d} {things}',
-            'hello      12      people')
+        r = parse.parse('hello {number:^d} {things}', 'hello      12      people')
         self.assertEqual(r.named, dict(number=12, things='people'))
 
     def test_multiline(self):
@@ -311,8 +298,9 @@ class TestParse(unittest.TestCase):
 
         string = 'hello world and other beings'
         r = parse.parse('hello {} {name} {} {spam}', string)
-        self.assertEqual(r.spans, {0: (6, 11), 'name': (12, 15),
-            1: (16, 21), 'spam': (22, 28)})
+        self.assertEqual(
+            r.spans, {0: (6, 11), 'name': (12, 15), 1: (16, 21), 'spam': (22, 28)}
+        )
 
     def test_numbers(self):
         # pull a numbers out of a string
@@ -323,15 +311,16 @@ class TestParse(unittest.TestCase):
                 self.fail('%r (%r) did not match %r' % (fmt, p._expression, s))
             r = r.fixed[0]
             if str_equals:
-                self.assertEqual(str(r), str(e),
-                    '%r found %r in %r, not %r' % (fmt, r, s, e))
+                self.assertEqual(
+                    str(r), str(e), '%r found %r in %r, not %r' % (fmt, r, s, e)
+                )
             else:
-                self.assertEqual(r, e,
-                    '%r found %r in %r, not %r' % (fmt, r, s, e))
+                self.assertEqual(r, e, '%r found %r in %r, not %r' % (fmt, r, s, e))
 
         def n(fmt, s, e):
             if parse.parse(fmt, s) is not None:
                 self.fail('%r matched %r' % (fmt, s))
+
         y('a {:d} b', 'a 0 b', 0)
         y('a {:d} b', 'a 12 b', 12)
         y('a {:5d} b', 'a    12 b', 12)
@@ -342,11 +331,11 @@ class TestParse(unittest.TestCase):
         y('a {:d} b', 'a 0b1000 b', 8)
         y('a {:d} b', 'a 0o1000 b', 512)
         y('a {:d} b', 'a 0x1000 b', 4096)
-        y('a {:d} b', 'a 0xabcdef b', 0xabcdef)
+        y('a {:d} b', 'a 0xabcdef b', 0xABCDEF)
 
         y('a {:%} b', 'a 100% b', 1)
-        y('a {:%} b', 'a 50% b', .5)
-        y('a {:%} b', 'a 50.1% b', .501)
+        y('a {:%} b', 'a 50% b', 0.5)
+        y('a {:%} b', 'a 50.1% b', 0.501)
 
         y('a {:n} b', 'a 100 b', 100)
         y('a {:n} b', 'a 1,000 b', 1000)
@@ -390,9 +379,9 @@ class TestParse(unittest.TestCase):
         y('a {:b} b', 'a 0b1000 b', 8)
         y('a {:o} b', 'a 12345670 b', int('12345670', 8))
         y('a {:o} b', 'a 0o12345670 b', int('12345670', 8))
-        y('a {:x} b', 'a 1234567890abcdef b', 0x1234567890abcdef)
+        y('a {:x} b', 'a 1234567890abcdef b', 0x1234567890ABCDEF)
         y('a {:x} b', 'a 1234567890ABCDEF b', 0x1234567890ABCDEF)
-        y('a {:x} b', 'a 0x1234567890abcdef b', 0x1234567890abcdef)
+        y('a {:x} b', 'a 0x1234567890abcdef b', 0x1234567890ABCDEF)
         y('a {:x} b', 'a 0x1234567890ABCDEF b', 0x1234567890ABCDEF)
 
         y('a {:05d} b', 'a 00001 b', 1)
@@ -404,7 +393,7 @@ class TestParse(unittest.TestCase):
         y('a {:x=5d} b', 'a xxx12 b', 12)
         y('a {:x=5d} b', 'a -xxx12 b', -12)
 
-        # Test that hex numbers that ambiguously start with 0b / 0B are parsed correctly 
+        # Test that hex numbers that ambiguously start with 0b / 0B are parsed correctly
         # See issue #65 (https://github.com/r1chardj0n3s/parse/issues/65)
         y('a {:x} b', 'a 0B b', 0xB)
         y('a {:x} b', 'a 0B1 b', 0xB1)
@@ -439,14 +428,14 @@ class TestParse(unittest.TestCase):
                 self.fail('%r (%r) did not match %r' % (fmt, p._expression, s))
             r = r.fixed[0]
             try:
-                self.assertEqual(r, e,
-                    '%r found %r in %r, not %r' % (fmt, r, s, e))
+                self.assertEqual(r, e, '%r found %r in %r, not %r' % (fmt, r, s, e))
             except ValueError:
                 self.fail('%r found %r in %r, not %r' % (fmt, r, s, e))
 
             if tz is not None:
-                self.assertEqual(r.tzinfo, tz,
-                    '%r found TZ %r in %r, not %r' % (fmt, r.tzinfo, s, e))
+                self.assertEqual(
+                    r.tzinfo, tz, '%r found TZ %r in %r, not %r' % (fmt, r.tzinfo, s, e)
+                )
 
         def n(fmt, s, e):
             if parse.parse(fmt, s) is not None:
@@ -461,40 +450,69 @@ class TestParse(unittest.TestCase):
         y('a {:ti} b', 'a 1997-07-16 b', datetime(1997, 7, 16))
 
         # YYYY-MM-DDThh:mmTZD (eg 1997-07-16T19:20+01:00)
-        y('a {:ti} b', 'a 1997-07-16 19:20 b',
-            datetime(1997, 7, 16, 19, 20, 0))
-        y('a {:ti} b', 'a 1997-07-16T19:20 b',
-            datetime(1997, 7, 16, 19, 20, 0))
-        y('a {:ti} b', 'a 1997-07-16T19:20Z b',
-            datetime(1997, 7, 16, 19, 20, tzinfo=utc))
-        y('a {:ti} b', 'a 1997-07-16T19:20+0100 b',
-            datetime(1997, 7, 16, 19, 20, tzinfo=tz60))
-        y('a {:ti} b', 'a 1997-07-16T19:20+01:00 b',
-            datetime(1997, 7, 16, 19, 20, tzinfo=tz60))
-        y('a {:ti} b', 'a 1997-07-16T19:20 +01:00 b',
-            datetime(1997, 7, 16, 19, 20, tzinfo=tz60))
+        y('a {:ti} b', 'a 1997-07-16 19:20 b', datetime(1997, 7, 16, 19, 20, 0))
+        y('a {:ti} b', 'a 1997-07-16T19:20 b', datetime(1997, 7, 16, 19, 20, 0))
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20Z b',
+            datetime(1997, 7, 16, 19, 20, tzinfo=utc),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20+0100 b',
+            datetime(1997, 7, 16, 19, 20, tzinfo=tz60),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20+01:00 b',
+            datetime(1997, 7, 16, 19, 20, tzinfo=tz60),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20 +01:00 b',
+            datetime(1997, 7, 16, 19, 20, tzinfo=tz60),
+        )
 
         # YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00)
-        y('a {:ti} b', 'a 1997-07-16 19:20:30 b',
-            datetime(1997, 7, 16, 19, 20, 30))
-        y('a {:ti} b', 'a 1997-07-16T19:20:30 b',
-            datetime(1997, 7, 16, 19, 20, 30))
-        y('a {:ti} b', 'a 1997-07-16T19:20:30Z b',
-            datetime(1997, 7, 16, 19, 20, 30, tzinfo=utc))
-        y('a {:ti} b', 'a 1997-07-16T19:20:30+01:00 b',
-            datetime(1997, 7, 16, 19, 20, 30, tzinfo=tz60))
-        y('a {:ti} b', 'a 1997-07-16T19:20:30 +01:00 b',
-            datetime(1997, 7, 16, 19, 20, 30, tzinfo=tz60))
+        y('a {:ti} b', 'a 1997-07-16 19:20:30 b', datetime(1997, 7, 16, 19, 20, 30))
+        y('a {:ti} b', 'a 1997-07-16T19:20:30 b', datetime(1997, 7, 16, 19, 20, 30))
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20:30Z b',
+            datetime(1997, 7, 16, 19, 20, 30, tzinfo=utc),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20:30+01:00 b',
+            datetime(1997, 7, 16, 19, 20, 30, tzinfo=tz60),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20:30 +01:00 b',
+            datetime(1997, 7, 16, 19, 20, 30, tzinfo=tz60),
+        )
 
         # YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00)
-        y('a {:ti} b', 'a 1997-07-16 19:20:30.500000 b',
-            datetime(1997, 7, 16, 19, 20, 30, 500000))
-        y('a {:ti} b', 'a 1997-07-16T19:20:30.500000 b',
-            datetime(1997, 7, 16, 19, 20, 30, 500000))
-        y('a {:ti} b', 'a 1997-07-16T19:20:30.5Z b',
-            datetime(1997, 7, 16, 19, 20, 30, 500000, tzinfo=utc))
-        y('a {:ti} b', 'a 1997-07-16T19:20:30.5+01:00 b',
-            datetime(1997, 7, 16, 19, 20, 30, 500000, tzinfo=tz60))
+        y(
+            'a {:ti} b',
+            'a 1997-07-16 19:20:30.500000 b',
+            datetime(1997, 7, 16, 19, 20, 30, 500000),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20:30.500000 b',
+            datetime(1997, 7, 16, 19, 20, 30, 500000),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20:30.5Z b',
+            datetime(1997, 7, 16, 19, 20, 30, 500000, tzinfo=utc),
+        )
+        y(
+            'a {:ti} b',
+            'a 1997-07-16T19:20:30.5+01:00 b',
+            datetime(1997, 7, 16, 19, 20, 30, 500000, tzinfo=tz60),
+        )
 
         aest_d = datetime(2011, 11, 21, 10, 21, 36, tzinfo=aest)
         dt = datetime(2011, 11, 21, 10, 21, 36)
@@ -530,9 +548,21 @@ class TestParse(unittest.TestCase):
         y('a {:ta} b', 'a November-21-2011 b', d)
 
         # ts   Linux System log format        datetime
-        y('a {:ts} b', 'a Nov 21 10:21:36 b',  datetime(datetime.today().year, 11, 21, 10, 21, 36))
-        y('a {:ts} b', 'a Nov  1 10:21:36 b',  datetime(datetime.today().year, 11, 1, 10, 21, 36))
-        y('a {:ts} b', 'a Nov  1 03:21:36 b',  datetime(datetime.today().year, 11, 1, 3, 21, 36))
+        y(
+            'a {:ts} b',
+            'a Nov 21 10:21:36 b',
+            datetime(datetime.today().year, 11, 21, 10, 21, 36),
+        )
+        y(
+            'a {:ts} b',
+            'a Nov  1 10:21:36 b',
+            datetime(datetime.today().year, 11, 1, 10, 21, 36),
+        )
+        y(
+            'a {:ts} b',
+            'a Nov  1 03:21:36 b',
+            datetime(datetime.today().year, 11, 1, 3, 21, 36),
+        )
 
         # th   HTTP log format date/time                   datetime
         y('a {:th} b', 'a 21/Nov/2011:10:21:36 +1000 b', aest_d)
@@ -579,7 +609,8 @@ class TestParse(unittest.TestCase):
 
     def test_mixed_types(self):
         # stress-test: pull one of everything out of a string
-        r = parse.parse('''
+        r = parse.parse(
+            '''
             letters: {:w}
             non-letters: {:W}
             whitespace: "{:s}"
@@ -602,7 +633,7 @@ class TestParse(unittest.TestCase):
             time: {:tt}
             final value: {}
         ''',
-        '''
+            '''
             letters: abcdef_GHIJLK
             non-letters: !@#%$ *^%
             whitespace: "   \t\n"
@@ -624,12 +655,14 @@ class TestParse(unittest.TestCase):
             HTTP e.g. 21/Nov/2011:00:07:11 +0000
             time: 10:21:36 PM -5:30
             final value: spam
-        ''')
+        ''',
+        )
         self.assertNotEqual(r, None)
         self.assertEqual(r.fixed[22], 'spam')
 
     def test_mixed_type_variant(self):
-        r = parse.parse('''
+        r = parse.parse(
+            '''
             letters: {:w}
             non-letters: {:W}
             whitespace: "{:s}"
@@ -652,7 +685,7 @@ class TestParse(unittest.TestCase):
             time: {:tt}
             final value: {}
         ''',
-        '''
+            '''
             letters: abcdef_GHIJLK
             non-letters: !@#%$ *^%
             whitespace: "   \t\n"
@@ -674,7 +707,8 @@ class TestParse(unittest.TestCase):
             HTTP e.g. 21/Nov/2011:00:07:11 +0000
             time: 10:21:36 PM -5:30
             final value: spam
-        ''')
+        ''',
+        )
         self.assertNotEqual(r, None)
         self.assertEqual(r.fixed[21], 'spam')
 
@@ -691,7 +725,7 @@ class TestParse(unittest.TestCase):
         res = parse.parse('{:l}', '')
         self.assertIsNone(res)
         res = parse.parse('{:l}', 'sPaM')
-        self.assertEqual(res.fixed, ('sPaM', ))
+        self.assertEqual(res.fixed, ('sPaM',))
         res = parse.parse('{:l}', 'sP4M')
         self.assertIsNone(res)
         res = parse.parse('{:l}', 'sP_M')
@@ -715,7 +749,9 @@ class TestSearch(unittest.TestCase):
         self.assertEqual(r, None)
 
     def test_no_evaluate_result(self):
-        match = parse.search('age: {:d}\n', 'name: Rufus\nage: 42\ncolor: red\n', evaluate_result=False)
+        match = parse.search(
+            'age: {:d}\n', 'name: Rufus\nage: 42\ncolor: red\n', evaluate_result=False
+        )
         r = match.evaluate_result()
         self.assertEqual(r.fixed, (42,))
 
@@ -723,14 +759,19 @@ class TestSearch(unittest.TestCase):
 class TestFindall(unittest.TestCase):
     def test_findall(self):
         # basic findall() test
-        s = ''.join(r.fixed[0] for r in parse.findall(">{}<",
-            "<p>some <b>bold</b> text</p>"))
+        s = ''.join(
+            r.fixed[0] for r in parse.findall(">{}<", "<p>some <b>bold</b> text</p>")
+        )
         self.assertEqual(s, "some bold text")
 
     def test_no_evaluate_result(self):
         # basic findall() test
-        s = ''.join(m.evaluate_result().fixed[0] for m in parse.findall(">{}<",
-            "<p>some <b>bold</b> text</p>", evaluate_result=False))
+        s = ''.join(
+            m.evaluate_result().fixed[0]
+            for m in parse.findall(
+                ">{}<", "<p>some <b>bold</b> text</p>", evaluate_result=False
+            )
+        )
         self.assertEqual(s, "some bold text")
 
     def test_case_sensitivity(self):
@@ -789,15 +830,16 @@ class TestBugs(unittest.TestCase):
             return int(text)
 
         # -- CASE: Use named (OK)
-        type_map = dict(Name=parse_word_and_covert_to_uppercase,
-                        Number=parse_number)
-        r = parse.parse('Hello {name:Name} {number:Number}',
-                        'Hello Alice 42', extra_types=type_map)
+        type_map = dict(Name=parse_word_and_covert_to_uppercase, Number=parse_number)
+        r = parse.parse(
+            'Hello {name:Name} {number:Number}', 'Hello Alice 42', extra_types=type_map
+        )
         self.assertEqual(r.named, dict(name='ALICE', number=42))
 
         # -- CASE: Use unnamed/fixed (problematic)
-        r = parse.parse('Hello {:Name} {:Number}',
-                        'Hello Alice 42', extra_types=type_map)
+        r = parse.parse(
+            'Hello {:Name} {:Number}', 'Hello Alice 42', extra_types=type_map
+        )
         self.assertEqual(r[0], 'ALICE')
         self.assertEqual(r[1], 42)
 
@@ -810,11 +852,23 @@ class TestBugs(unittest.TestCase):
         # prior to the fix, this would raise an AttributeError
         pickle.dumps(p)
 
+    def test_search_centered_bug_112(self):
+        r = parse.parse("{:^},{:^}", " 12 , 34 ")
+        self.assertEqual(r[1], "34")
+        r = parse.search("{:^},{:^}", " 12 , 34 ")
+        self.assertEqual(r[1], "34")
+
+    def test_search_left_align_bug_112(self):
+        r = parse.parse("{:<},{:<}", "12 ,34 ")
+        self.assertEqual(r[1], "34")
+        r = parse.search("{:<},{:<}", "12 ,34 ")
+        self.assertEqual(r[1], "34")
+
+
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType
 # -----------------------------------------------------------------------------
 class TestParseType(unittest.TestCase):
-
     def assert_match(self, parser, text, param_name, expected):
         result = parser.parse(text)
         self.assertEqual(result[param_name], expected)
@@ -834,8 +888,9 @@ class TestParseType(unittest.TestCase):
     def test_pattern_should_be_used(self):
         def parse_number(text):
             return int(text)
+
         parse_number.pattern = r"\d+"
-        parse_number.name = "Number"    # For testing only.
+        parse_number.name = "Number"  # For testing only.
 
         extra_types = {parse_number.name: parse_number}
         format = "Value is {number:Number} and..."
@@ -849,13 +904,17 @@ class TestParseType(unittest.TestCase):
     def test_pattern_should_be_used2(self):
         def parse_yesno(text):
             return parse_yesno.mapping[text.lower()]
+
         parse_yesno.mapping = {
-            "yes": True, "no": False,
-            "on": True, "off": False,
-            "true": True, "false": False,
+            "yes": True,
+            "no": False,
+            "on": True,
+            "off": False,
+            "true": True,
+            "false": False,
         }
         parse_yesno.pattern = r"|".join(parse_yesno.mapping.keys())
-        parse_yesno.name = "YesNo"      # For testing only.
+        parse_yesno.name = "YesNo"  # For testing only.
 
         extra_types = {parse_yesno.name: parse_yesno}
         format = "Answer: {answer:YesNo}"
@@ -928,7 +987,7 @@ class TestParseType(unittest.TestCase):
             (2, IndexError),
         ]
         for bad_regex_group_count, error_class in BAD_REGEX_GROUP_COUNTS_AND_ERRORS:
-            parse_unit.regex_group_count = bad_regex_group_count    # -- OVERRIDE-HERE
+            parse_unit.regex_group_count = bad_regex_group_count  # -- OVERRIDE-HERE
             type_converters = dict(Number=parse_number, Unit=parse_unit)
             parser = parse.Parser('test {:Unit}-{:Number}', type_converters)
             self.assertRaises(error_class, parser.parse, 'test meter-10')
@@ -940,7 +999,8 @@ class TestParseType(unittest.TestCase):
         @parse.with_pattern(r'[ab]')
         def parse_data(text):
             return data_values[text]
-        parse_data.regex_group_count = None     # ENFORCE: None
+
+        parse_data.regex_group_count = None  # ENFORCE: None
 
         # -- CASE: Unnamed-params
         parser = parse.Parser('test {:Data}', {'Data': parse_data})
@@ -957,7 +1017,9 @@ class TestParseType(unittest.TestCase):
     def test_case_sensitivity(self):
         r = parse.parse('SPAM {} SPAM', 'spam spam spam')
         self.assertEqual(r[0], 'spam')
-        self.assertEqual(parse.parse('SPAM {} SPAM', 'spam spam spam', case_sensitive=True), None)
+        self.assertEqual(
+            parse.parse('SPAM {} SPAM', 'spam spam spam', case_sensitive=True), None
+        )
 
     def test_decimal_value(self):
         value = Decimal('5.5')
@@ -975,7 +1037,7 @@ class TestParseType(unittest.TestCase):
 
     def test_width_constraints(self):
         res = parse.parse('{:4}', 'looky')
-        self.assertEqual(res.fixed, ('looky', ))
+        self.assertEqual(res.fixed, ('looky',))
         res = parse.parse('{:4.4}', 'looky')
         self.assertIsNone(res)
         res = parse.parse('{:4.4}', 'ook')
