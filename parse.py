@@ -536,24 +536,25 @@ class int_convert:
             sign = 1
             number_start = 0
 
+        base = self.base
         # If base wasn't specified, detect it automatically
-        if self.base is None:
+        if base is None:
 
             # Assume decimal number, unless different base is detected
-            self.base = 10
+            base = 10
 
             # For number formats starting with 0b, 0o, 0x, use corresponding base ...
             if string[number_start] == '0' and len(string) - number_start > 2:
                 if string[number_start + 1] in 'bB':
-                    self.base = 2
+                    base = 2
                 elif string[number_start + 1] in 'oO':
-                    self.base = 8
+                    base = 8
                 elif string[number_start + 1] in 'xX':
-                    self.base = 16
+                    base = 16
 
-        chars = int_convert.CHARS[: self.base]
+        chars = int_convert.CHARS[: base]
         string = re.sub('[^%s]' % chars, '', string.lower())
-        return sign * int(string, self.base)
+        return sign * int(string, base)
 
 
 class convert_first:
