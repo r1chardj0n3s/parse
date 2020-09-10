@@ -1059,6 +1059,10 @@ class TestParseType(unittest.TestCase):
         res = parse.parse('{:2d}', '')
         self.assertIsNone(res)
 
+    def test_int_convert_stateless_base(self):
+        parser = parse.Parser("{:d}")
+        self.assertEqual(parser.parse("1234")[0], 1234)
+        self.assertEqual(parser.parse("0b1011")[0], 0b1011)
 
 if __name__ == '__main__':
     unittest.main()
