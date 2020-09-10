@@ -377,8 +377,7 @@ the pattern, the actual match represents the shortest successful match for
 
 ----
 
-**Version history (in brief)**:
-
+- 1.18.0 Correct bug in int parsing introduced in 1.16.0 (thanks @maxxk)
 - 1.17.0 Make left- and center-aligned search consume up to next space
 - 1.16.0 Make compiled parse objects pickleable (thanks @martinResearch)
 - 1.15.0 Several fixes for parsing non-base 10 numbers (thanks @vladikcomper)
