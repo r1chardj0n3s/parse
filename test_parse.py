@@ -864,6 +864,10 @@ class TestBugs(unittest.TestCase):
         r = parse.search("{:<},{:<}", "12 ,34 ")
         self.assertEqual(r[1], "34")
 
+    def test_match_trailing_newline(self):
+        r = parse.parse('{}', 'test\n')
+        self.assertEqual(r[0], 'test\n')
+
 
 # -----------------------------------------------------------------------------
 # TEST SUPPORT FOR: TestParseType

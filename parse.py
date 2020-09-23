@@ -848,7 +848,7 @@ class Parser(object):
     @property
     def _match_re(self):
         if self.__match_re is None:
-            expression = r'^%s$' % self._expression
+            expression = r'\A%s\Z' % self._expression
             try:
                 self.__match_re = re.compile(expression, self._re_flags)
             except AssertionError:
