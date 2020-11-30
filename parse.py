@@ -1272,7 +1272,7 @@ class Result(object):
         self.spans = spans
 
     def __getitem__(self, item):
-        if isinstance(item, int):
+        if isinstance(item, (int, slice)):
             return self.fixed[item]
         return self.named[item]
 

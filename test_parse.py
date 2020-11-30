@@ -105,6 +105,14 @@ class TestResult(unittest.TestCase):
         self.assertRaises(IndexError, r.__getitem__, 2)
         self.assertRaises(KeyError, r.__getitem__, 'spam')
 
+    def test_slice_access(self):
+        r = parse.Result((1, 2, 3, 4), {}, None)
+        self.assertEqual(r[1:3], (2, 3))
+        self.assertEqual(r[-5:5], (1, 2, 3, 4))
+        self.assertEqual(r[:4:2], (1, 3))
+        self.assertEqual(r[::-2], (4, 2))
+        self.assertEqual(r[5:10], tuple())
+
     def test_named_access(self):
         r = parse.Result((), {'spam': 'ham'}, None)
         self.assertEqual(r['spam'], 'ham')
