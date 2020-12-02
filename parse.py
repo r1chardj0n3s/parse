@@ -469,7 +469,7 @@ from decimal import Decimal
 from functools import partial
 import logging
 
-__all__ = 'parse search findall with_pattern'.split()
+__all__ = 'parse parse_lines search findall with_pattern'.split()
 
 log = logging.getLogger(__name__)
 
@@ -886,6 +886,13 @@ class Parser(object):
             return self.evaluate_result(m)
         else:
             return Match(self, m)
+
+    def parse_lines(self, string, evaluate_result=True):
+        """Match my format to each line of the string, yielding each Result. 
+        
+        """
+        yield from (self.parse(line, evaluate_result) 
+                    for line in string.splitlines())
 
     def search(self, string, pos=0, endpos=None, evaluate_result=True):
         """Search the string for my format.
@@ -1359,6 +1366,30 @@ def parse(format, string, extra_types=None, evaluate_result=True, case_sensitive
     p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
     return p.parse(string, evaluate_result=evaluate_result)
 
+def parse_lines(
+        format, 
+        string, 
+        extra_types=None, 
+        evaluate_result=True, 
+        case_sensitive=False,
+):
+    """
+    Parse linewise data. This is similar to `parse`, except that for multiline
+    data, each line will be parsed and one result given per line. Lines that 
+    don't match the format will be skipped.
+
+    ..codeblock:: pycon
+    >>> data = '''1-3 a: abcde
+    ... 1-3 b: cdefg
+    ... 2-9 c: ccccccccc'''
+    >>> pprint(list(parse_lines("{:d}-{:d} {}: {}", data)))
+    [<Result (1, 3, 'a', 'abcde') {}>,
+     <Result (1, 3, 'b', 'cdefg') {}>,
+     <Result (2, 9, 'c', 'ccccccccc') {}>]
+
+    """
+    p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
+    return p.parse_lines(string, evaluate_result=evaluate_result)
 
 def search(
     format,
