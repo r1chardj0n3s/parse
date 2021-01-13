@@ -93,7 +93,7 @@ Some simple parse() format string examples:
     >>> 'item' in r
     True
 
-Note that `in` only works if you have named fields. Dotted names and indexes
+Note that ``in`` only works if you have named fields. Dotted names and indexes
 are possible though the application must make additional sense of the result:
 
 .. code-block:: pycon
