@@ -78,11 +78,15 @@ Some simple parse() format string examples:
 
     >>> parse("Bring me a {}", "Bring me a shrubbery")
     <Result ('shrubbery',) {}>
-    >>> r = parse("The {} who say {}", "The knights who say Ni!")
+    >>> r = parse("The {} who {} {}", "The knights who say Ni!")
     >>> print(r)
-    <Result ('knights', 'Ni!') {}>
+    <Result ('knights', 'say', 'Ni!') {}>
     >>> print(r.fixed)
-    ('knights', 'Ni!')
+    ('knights', 'say', 'Ni!')
+    >>> print(r[0])
+    knights
+    >>> print(r[1:])
+    ('say', 'Ni!')
     >>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
     >>> print(r)
     <Result () {'item': 'hand grenade'}>
@@ -377,6 +381,7 @@ the pattern, the actual match represents the shortest successful match for
 
 ----
 
+- 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen)
 - 1.18.0 Correct bug in int parsing introduced in 1.16.0 (thanks @maxxk)
 - 1.17.0 Make left- and center-aligned search consume up to next space
 - 1.16.0 Make compiled parse objects pickleable (thanks @martinResearch)
@@ -551,7 +556,7 @@ class int_convert:
                 elif string[number_start + 1] in 'xX':
                     base = 16
 
-        chars = int_convert.CHARS[: base]
+        chars = int_convert.CHARS[:base]
         string = re.sub('[^%s]' % chars, '', string.lower())
         return sign * int(string, base)
 
@@ -1260,6 +1265,7 @@ class Result(object):
     """The result of a parse() or search().
 
     Fixed results may be looked up using `result[index]`.
+    Slices of fixed results may also be looked up.
 
     Named results may be looked up using `result['name']`.
 
