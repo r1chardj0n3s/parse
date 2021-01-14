@@ -37,6 +37,11 @@ class TestPattern(unittest.TestCase):
         self._test_expression('{name:w}', r'(?P<name>\w+)')
         self._test_expression('{name:w} {other:w}', r'(?P<name>\w+) (?P<other>\w+)')
 
+    def test_numbered(self):
+        self._test_expression('{0}', r'(.+?)')
+        self._test_expression('{0} {1}', r'(.+?) (.+?)')
+        self._test_expression('{0:f} {1:f}', r'([-+ ]?\d*\.\d+) ([-+ ]?\d*\.\d+)')
+
     def test_bird(self):
         # skip some trailing whitespace
         self._test_expression('{:>}', r' *(.+?)')
@@ -1075,6 +1080,7 @@ class TestParseType(unittest.TestCase):
         parser = parse.Parser("{:d}")
         self.assertEqual(parser.parse("1234")[0], 1234)
         self.assertEqual(parser.parse("0b1011")[0], 0b1011)
+
 
 if __name__ == '__main__':
     unittest.main()

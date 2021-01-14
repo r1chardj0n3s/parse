@@ -78,11 +78,15 @@ Some simple parse() format string examples:
 
     >>> parse("Bring me a {}", "Bring me a shrubbery")
     <Result ('shrubbery',) {}>
-    >>> r = parse("The {} who say {}", "The knights who say Ni!")
+    >>> r = parse("The {} who {} {}", "The knights who say Ni!")
     >>> print(r)
-    <Result ('knights', 'Ni!') {}>
+    <Result ('knights', 'say', 'Ni!') {}>
     >>> print(r.fixed)
-    ('knights', 'Ni!')
+    ('knights', 'say', 'Ni!')
+    >>> print(r[0])
+    knights
+    >>> print(r[1:])
+    ('say', 'Ni!')
     >>> r = parse("Bring out the holy {item}", "Bring out the holy hand grenade")
     >>> print(r)
     <Result () {'item': 'hand grenade'}>
@@ -93,8 +97,11 @@ Some simple parse() format string examples:
     >>> 'item' in r
     True
 
-Note that ``in`` only works if you have named fields. Dotted names and indexes
-are possible though the application must make additional sense of the result:
+Note that `in` only works if you have named fields.
+
+Dotted names and indexes are possible with some limits. Only word identifiers
+are supported (ie. no numeric indexes) and the application must make additional
+sense of the result:
 
 .. code-block:: pycon
 
@@ -377,6 +384,9 @@ the pattern, the actual match represents the shortest successful match for
 
 ----
 
+- 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen).
+  Also corrected matching of *full string* vs. *full line* (thanks @giladreti)
+  Fix issue with using digit field numbering and types
 - 1.18.0 Correct bug in int parsing introduced in 1.16.0 (thanks @maxxk)
 - 1.17.0 Make left- and center-aligned search consume up to next space
 - 1.16.0 Make compiled parse objects pickleable (thanks @martinResearch)
@@ -453,5 +463,5 @@ the pattern, the actual match represents the shortest successful match for
   and removed the restriction on mixing fixed-position and named fields
 - 1.0.0 initial release
 
-This code is copyright 2012-2020 Richard Jones <richard@python.org>
+This code is copyright 2012-2021 Richard Jones <richard@python.org>
 See the end of the source file for the license of use.
