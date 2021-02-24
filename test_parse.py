@@ -205,6 +205,17 @@ class TestParse(unittest.TestCase):
         r = parse.parse('hello {:w} {:w}', 'hello 12 people')
         self.assertEqual(r.fixed, ('12', 'people'))
 
+    def test_sign(self):
+        # sign is ignored
+        r = parse.parse('Pi = {:.7f}', 'Pi = 3.1415926')
+        self.assertEqual(r.fixed, (3.1415926,))
+        r = parse.parse('Pi = {:+.7f}', 'Pi = 3.1415926')
+        self.assertEqual(r.fixed, (3.1415926,))
+        r = parse.parse('Pi = {:-.7f}', 'Pi = 3.1415926')
+        self.assertEqual(r.fixed, (3.1415926,))
+        r = parse.parse('Pi = {: .7f}', 'Pi = 3.1415926')
+        self.assertEqual(r.fixed, (3.1415926,))
+
     def test_precision(self):
         # pull a float out of a string
         r = parse.parse('Pi = {:.7f}', 'Pi = 3.1415926')
