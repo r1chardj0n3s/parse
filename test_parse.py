@@ -871,6 +871,11 @@ class TestBugs(unittest.TestCase):
         r = parse.search("{:^2S}", "foo")
         self.assertEqual(r[0], "foo")
 
+        # specifically test for the case in issue #118 as well
+        r = parse.parse("Column {:d}:{:^}", "Column 1: Timestep")
+        self.assertEqual(r[0], 1)
+        self.assertEqual(r[1], "Timestep")
+
     def test_unused_left_alignment_bug(self):
         r = parse.parse("{:<2S}", "foo")
         self.assertEqual(r[0], "foo")
