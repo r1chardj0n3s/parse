@@ -132,7 +132,7 @@ format specification might have been used.
 
 Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
-   [[fill]align][0][width][.precision][type]
+   [[fill]align][sign][0][width][.precision][type]
 
 The differences between `parse()` and `format()` are:
 
@@ -143,7 +143,8 @@ The differences between `parse()` and `format()` are:
   That is, the "#" format character is handled automatically by d, b, o
   and x formats. For "d" any will be accepted, but for the others the correct
   prefix must be present if at all.
-- Numeric sign is handled automatically.
+- Numeric sign is handled automatically.  A sign specifier can be given, but
+  has no effect.
 - The thousands separator is handled automatically if the "n" type is used.
 - The types supported are a slightly different mix to the format() types.  Some
   format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".

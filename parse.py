@@ -758,7 +758,7 @@ ALLOWED_TYPES = set(list('nbox%fFegwWdDsSl') + ['t' + c for c in 'ieahgcts'])
 
 
 def extract_format(format, extra_types):
-    """Pull apart the format [[fill]align][0][width][.precision][type]"""
+    """Pull apart the format [[fill]align][sign][0][width][.precision][type]"""
     fill = align = None
     if format[0] in '<>=^':
         align = format[0]
@@ -767,6 +767,9 @@ def extract_format(format, extra_types):
         fill = format[0]
         align = format[1]
         format = format[2:]
+
+    if format.startswith(('+', '-', ' ')):
+        format = format[1:]
 
     zero = False
     if format and format[0] == '0':
