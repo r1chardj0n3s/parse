@@ -1264,11 +1264,11 @@ class Parser(object):
 
         # align "=" has been handled
         if align == '<':
-            s = '%s%s+' % (s, fill)
+            s = '%s%s*' % (s, fill)
         elif align == '>':
             s = '%s*%s' % (fill, s)
         elif align == '^':
-            s = '%s*%s%s+' % (fill, s, fill)
+            s = '%s*%s%s*' % (fill, s, fill)
 
         return s
 

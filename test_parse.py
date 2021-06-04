@@ -876,17 +876,22 @@ class TestBugs(unittest.TestCase):
         # prior to the fix, this would raise an AttributeError
         pickle.dumps(p)
 
-    def test_search_centered_bug_112(self):
-        r = parse.parse("{:^},{:^}", " 12 , 34 ")
-        self.assertEqual(r[1], "34")
-        r = parse.search("{:^},{:^}", " 12 , 34 ")
-        self.assertEqual(r[1], "34")
+    def test_unused_centered_alignment_bug(self):
+        r = parse.parse("{:^2S}", "foo")
+        self.assertEqual(r[0], "foo")
+        r = parse.search("{:^2S}", "foo")
+        self.assertEqual(r[0], "foo")
 
-    def test_search_left_align_bug_112(self):
-        r = parse.parse("{:<},{:<}", "12 ,34 ")
-        self.assertEqual(r[1], "34")
-        r = parse.search("{:<},{:<}", "12 ,34 ")
-        self.assertEqual(r[1], "34")
+        # specifically test for the case in issue #118 as well
+        r = parse.parse("Column {:d}:{:^}", "Column 1: Timestep")
+        self.assertEqual(r[0], 1)
+        self.assertEqual(r[1], "Timestep")
+
+    def test_unused_left_alignment_bug(self):
+        r = parse.parse("{:<2S}", "foo")
+        self.assertEqual(r[0], "foo")
+        r = parse.search("{:<2S}", "foo")
+        self.assertEqual(r[0], "foo")
 
     def test_match_trailing_newline(self):
         r = parse.parse('{}', 'test\n')
