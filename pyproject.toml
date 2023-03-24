@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parse"
+dynamic = ["version"]
+readme = "README.rst"
+authors = [{name = "Richard Jones", email = "richard@python.org"}]
+description = "parse() is the opposite of format()"
+license = {file = "LICENSE"}
+classifiers = [
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+homepage = "https://github.com/r1chardj0n3s/parse"
+
+[tool.setuptools]
+py-modules = ["parse"]
+
+[tool.setuptools.dynamic]
+version = {attr = "parse.__version__"}
