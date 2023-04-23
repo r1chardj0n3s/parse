@@ -193,6 +193,9 @@ tt    Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
+The type can also be a datetime format string, e.g. %Y-%m-%d. Any type
+containing %Y or %y will be parsed and output as a datetime.
+
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
 
