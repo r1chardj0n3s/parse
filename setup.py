@@ -11,15 +11,15 @@ with open('README.rst', 'w') as f:
 
 # perform the setup action
 setup(
-    name = "fparse",
-    version = __version__,
-    description = "parse() is the opposite of format()",
-    long_description = __doc__,
-    author = "Richard Jones",
-    author_email = "richard@python.org",
-    py_modules = ['parse'],
-    url = 'https://github.com/r1chardj0n3s/parse',
-    classifiers = [
+    name="fparse",
+    version=__version__,
+    description="parse() is the opposite of format()",
+    long_description=__doc__,
+    author="Richard Jones & Ben Dichter",
+    author_email="ben.dichter@catalystneuro.com",
+    py_modules=['fparse'],
+    url='https://github.com/r1chardj0n3s/parse',
+    classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3.4',
@@ -27,6 +27,9 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Topic :: Software Development :: Code Generators',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'License :: OSI Approved :: BSD License',
