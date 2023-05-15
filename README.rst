@@ -1,3 +1,5 @@
+This is a fork of the [parse](https://github.com/r1chardj0n3s/parse) package that can parse datetime formats.
+
 Parse strings using a specification based on the Python format() syntax.
 
    ``parse()`` is the opposite of ``format()``
