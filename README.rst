@@ -1,4 +1,4 @@
-This is a fork of the [parse](https://github.com/r1chardj0n3s/parse) package that can parse datetime formats.
+This is a fork of the `parse library`_ that adds the ability to parse datetime formats.
 
 Parse strings using a specification based on the Python format() syntax.
 
@@ -271,6 +271,8 @@ that this limit will be removed one day.
   http://docs.python.org/library/string.html#format-specification-mini-language
 .. _`1989 C standard format codes`:
   https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
+.. _`parse library`:
+  https://github.com/r1chardj0n3s/parse
 
 
 Result and Match Objects
