@@ -5,7 +5,7 @@ Parse strings using a specification based on the Python format() syntax.
 The module is set up to only export ``parse()``, ``search()``, ``findall()``,
 and ``with_pattern()`` when ``import \*`` is used:
 
->>> from parse import *
+>>> from fparse import *
 
 From there it's a simple thing to parse a string:
 
@@ -35,7 +35,7 @@ compile it once:
 
 .. code-block:: pycon
 
-    >>> from parse import compile
+    >>> from fparse import compile
     >>> p = compile("It's {}, I love it!")
     >>> print(p)
     <Parser "It's {}, I love it!">
@@ -132,7 +132,7 @@ format specification might have been used.
 
 Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
-   [[fill]align][sign][0][width][.precision][type]
+   [[fill]align][0][width][.precision][type]
 
 The differences between `parse()` and `format()` are:
 
@@ -143,8 +143,7 @@ The differences between `parse()` and `format()` are:
   That is, the "#" format character is handled automatically by d, b, o
   and x formats. For "d" any will be accepted, but for the others the correct
   prefix must be present if at all.
-- Numeric sign is handled automatically.  A sign specifier can be given, but
-  has no effect.
+- Numeric sign is handled automatically.
 - The thousands separator is handled automatically if the "n" type is used.
 - The types supported are a slightly different mix to the format() types.  Some
   format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
@@ -193,6 +192,10 @@ tt    Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
+The type can also be a datetime format string, following the
+`1989 C standard format codes`_, e.g. %Y-%m-%d. Any type containing %Y
+or %y will be parsed and output as a ``datetime.datetime``.
+
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
 
@@ -231,7 +234,7 @@ a maximum. For example:
     >>> parse('{:2d}{:2d}', '0440')           # parsing two contiguous numbers
     <Result (4, 40) {}>
 
-Some notes for the date and time types:
+Some notes for the special date and time types:
 
 - the presence of the time part is optional (including ISO 8601, starting
   at the "T"). A full datetime object will always be returned; the time
@@ -264,6 +267,8 @@ that this limit will be removed one day.
   http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`:
   http://docs.python.org/library/string.html#format-specification-mini-language
+.. _`1989 C standard format codes`:
+  https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
 
 
 Result and Match Objects

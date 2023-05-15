@@ -4,14 +4,14 @@ from __future__ import with_statement
 
 from setuptools import setup
 
-from parse import __version__, __doc__
+from fparse import __version__, __doc__
 
 with open('README.rst', 'w') as f:
     f.write(__doc__)
 
 # perform the setup action
 setup(
-    name = "parse",
+    name = "fparse",
     version = __version__,
     description = "parse() is the opposite of format()",
     long_description = __doc__,

@@ -5,7 +5,7 @@ r'''Parse strings using a specification based on the Python format() syntax.
 The module is set up to only export ``parse()``, ``search()``, ``findall()``,
 and ``with_pattern()`` when ``import \*`` is used:
 
->>> from parse import *
+>>> from fparse import *
 
 From there it's a simple thing to parse a string:
 
@@ -35,7 +35,7 @@ compile it once:
 
 .. code-block:: pycon
 
-    >>> from parse import compile
+    >>> from fparse import compile
     >>> p = compile("It's {}, I love it!")
     >>> print(p)
     <Parser "It's {}, I love it!">
