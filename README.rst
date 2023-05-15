@@ -193,8 +193,9 @@ tt    Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
-The type can also be a datetime format string, e.g. %Y-%m-%d. Any type
-containing %Y or %y will be parsed and output as a datetime.
+The type can also be a datetime format string, following the
+`1989 C standard format codes`_, e.g. %Y-%m-%d. Any type containing %Y
+or %y will be parsed and output as a ``datetime.datetime``.
 
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
@@ -234,7 +235,7 @@ a maximum. For example:
     >>> parse('{:2d}{:2d}', '0440')           # parsing two contiguous numbers
     <Result (4, 40) {}>
 
-Some notes for the date and time types:
+Some notes for the special date and time types:
 
 - the presence of the time part is optional (including ISO 8601, starting
   at the "T"). A full datetime object will always be returned; the time
@@ -267,6 +268,8 @@ that this limit will be removed one day.
   http://docs.python.org/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`:
   http://docs.python.org/library/string.html#format-specification-mini-language
+.. _`1989 C standard format codes`:
+  https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
 
 
 Result and Match Objects
@@ -387,7 +390,7 @@ the pattern, the actual match represents the shortest successful match for
 ``dir1``.
 
 ----
-
+- 1.20.0 Added support for 1989 C standard datetime format codes.
 - 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen).
   Also corrected matching of *full string* vs. *full line* (thanks @giladreti)
   Fix issue with using digit field numbering and types
