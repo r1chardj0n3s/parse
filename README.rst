@@ -5,7 +5,7 @@ Parse strings using a specification based on the Python format() syntax.
 The module is set up to only export ``parse()``, ``search()``, ``findall()``,
 and ``with_pattern()`` when ``import \*`` is used:
 
->>> from parse import *
+>>> from fparse import *
 
 From there it's a simple thing to parse a string:
 
@@ -35,7 +35,7 @@ compile it once:
 
 .. code-block:: pycon
 
-    >>> from parse import compile
+    >>> from fparse import compile
     >>> p = compile("It's {}, I love it!")
     >>> print(p)
     <Parser "It's {}, I love it!">
@@ -132,7 +132,7 @@ format specification might have been used.
 
 Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
-   [[fill]align][sign][0][width][.precision][type]
+   [[fill]align][0][width][.precision][type]
 
 The differences between `parse()` and `format()` are:
 
@@ -143,8 +143,7 @@ The differences between `parse()` and `format()` are:
   That is, the "#" format character is handled automatically by d, b, o
   and x formats. For "d" any will be accepted, but for the others the correct
   prefix must be present if at all.
-- Numeric sign is handled automatically.  A sign specifier can be given, but
-  has no effect.
+- Numeric sign is handled automatically.
 - The thousands separator is handled automatically if the "n" type is used.
 - The types supported are a slightly different mix to the format() types.  Some
   format() types come directly over: "d", "n", "%", "f", "e", "b", "o" and "x".
@@ -390,7 +389,7 @@ the pattern, the actual match represents the shortest successful match for
 ``dir1``.
 
 ----
-- 1.20.0 Added support for 1989 C standard datetime format codes.
+
 - 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen).
   Also corrected matching of *full string* vs. *full line* (thanks @giladreti)
   Fix issue with using digit field numbering and types
