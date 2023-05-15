@@ -1,4 +1,4 @@
-name: parse
+name: fparse
 on: [push]
 jobs:
   run-test:
