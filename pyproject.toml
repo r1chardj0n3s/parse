@@ -26,3 +26,6 @@ py-modules = ["parse"]
 
 [tool.setuptools.dynamic]
 version = {attr = "parse.__version__"}
+
+[tool.distutils.bdist_wheel]
+universal = true
