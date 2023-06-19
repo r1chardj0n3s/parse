@@ -385,6 +385,7 @@ the pattern, the actual match represents the shortest successful match for
 
 ----
 
+- 1.19.1 Added support for sign specifiers in number formats (thanks @anntzer)
 - 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen).
   Also corrected matching of *full string* vs. *full line* (thanks @giladreti)
   Fix issue with using digit field numbering and types
