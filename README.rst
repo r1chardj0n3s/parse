@@ -1,4 +1,14 @@
-Parse strings using a specification based on the Python format() syntax.
+Installation
+------------
+
+.. code-block:: pycon
+
+    pip install parse
+
+Usage
+-----
+
+Parse strings using a specification based on the Python `format()`_ syntax.
 
    ``parse()`` is the opposite of ``format()``
 
@@ -52,6 +62,9 @@ case by specifying `case_sensitive=True`:
 
     >>> parse('SPAM', 'spam', case_sensitive=True) is None
     True
+
+.. _format():
+  https://docs.python.org/3/library/stdtypes.html#str.format
 
 
 Format Syntax
@@ -261,9 +274,9 @@ will be raised in this instance. The current limit is about 15. It is hoped
 that this limit will be removed one day.
 
 .. _`Format String Syntax`:
-  http://docs.python.org/library/string.html#format-string-syntax
+  https://docs.python.org/3/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`:
-  http://docs.python.org/library/string.html#format-specification-mini-language
+  https://docs.python.org/3/library/string.html#format-specification-mini-language
 
 
 Result and Match Objects
