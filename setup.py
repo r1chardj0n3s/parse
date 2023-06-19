@@ -31,6 +31,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'License :: OSI Approved :: BSD License',
     ],
+    options = {'bdist_wheel': {'universal': True}}
 )
 
 # vim: set filetype=python ts=4 sw=4 et si
