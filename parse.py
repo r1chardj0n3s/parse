@@ -5,7 +5,6 @@ __version__ = '1.19.1'
 # yes, I now have two problems
 import re
 import sys
-from copy import copy
 from datetime import datetime, time, tzinfo, timedelta
 from decimal import Decimal
 from functools import partial
