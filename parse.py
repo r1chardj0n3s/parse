@@ -293,7 +293,7 @@ dt_format_to_regex.update(
 )
 
 # Compile a regular expression pattern that matches any date/time format symbol.
-dt_format_symbols_re = re.compile('|'.join(re.escape(f"%{k}") for k in dt_format_to_regex.keys()))
+dt_format_symbols_re = re.compile('|'.join(re.escape("%{}".format(k)) for k in dt_format_to_regex.keys()))
 
 
 def get_regex_for_datetime_format(format_):
