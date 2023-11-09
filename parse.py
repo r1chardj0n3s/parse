@@ -292,12 +292,22 @@ dt_format_to_regex.update(
     }
 )
 
+# Compile a regular expression pattern that matches any date/time format symbol.
+dt_format_symbols_re = re.compile('|'.join(re.escape(f"%{k}") for k in dt_format_to_regex.keys()))
+
 
 def get_regex_for_datetime_format(format_):
-    regex = copy(format_)
-    for k, v in dt_format_to_regex.items():
-        regex = regex.replace(f"%{k}", v)
-    return regex
+    """
+    Generate a regex pattern for a given datetime format string.
+
+    Parameters:
+        format_ (str): The datetime format string.
+
+    Returns:
+        str: A regex pattern corresponding to the datetime format string.
+    """
+    # Replace all format symbols with their regex patterns.
+    return dt_format_symbols_re.sub(lambda m: dt_format_to_regex[m.group(0)[1:]], format_)
 
 
 class TooManyFields(ValueError):
