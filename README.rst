@@ -396,7 +396,32 @@ So, even though `{'dir1': 'root/parent', 'dir2': 'subdir'}` would also fit
 the pattern, the actual match represents the shortest successful match for
 ``dir1``.
 
+Developers
+----------
+
+Want to contribute to parse? Fork the repo to your own GitHub account, and create a pull-request.
+
+.. code-block:: bash
+
+   git clone git@github.com:r1chardj0n3s/parse.git
+   git remote rename origin upstream
+   git remote add origin git@github.com:YOURUSERNAME/parse.git
+   git checkout -b myfeature
+
+To run the tests locally:
+
+.. code-block:: bash
+
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r tests/requirements.txt
+   pip install -e .
+   pytest
+
 ----
+
+Changelog
+---------
 
 - 1.19.1 Added support for sign specifiers in number formats (thanks @anntzer)
 - 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen).
