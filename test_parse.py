@@ -444,6 +444,29 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r[0], datetime(1997, 7, 16))
         self.assertEqual(r[1], datetime(2012, 8, 1))
 
+    def test_flexible_datetimes(self):
+        r = parse.parse('a {:%Y-%m-%d} b', "a 1997-07-16 b")
+        self.assertEqual(len(r.fixed), 1)
+        self.assertEqual(r[0], datetime(1997, 7, 16))
+
+        r = parse.parse('a {:%Y-%b-%d} b', "a 1997-Feb-16 b")
+        self.assertEqual(len(r.fixed), 1)
+        self.assertEqual(r[0], datetime(1997, 2, 16))
+
+        r = parse.parse('a {:%Y-%b-%d} {:d} b', "a 1997-Feb-16 8 b")
+        self.assertEqual(len(r.fixed), 2)
+        self.assertEqual(r[0], datetime(1997, 2, 16))
+
+        r = parse.parse('a {my_date:%Y-%b-%d} {num:d} b', "a 1997-Feb-16 8 b")
+        self.assertEqual((r.named["my_date"]), datetime(1997, 2, 16))
+        self.assertEqual((r.named["num"]), 8)
+
+        r = parse.parse('a {:%Y-%B-%d} b', "a 1997-February-16 b")
+        self.assertEqual(r[0], datetime(1997, 2, 16))
+
+        r = parse.parse('a {:%Y%m%d} b', "a 19970716 b")
+        self.assertEqual(r[0], datetime(1997, 7, 16))
+
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
             p = parse.compile(fmt)
