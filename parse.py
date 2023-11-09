@@ -385,7 +385,7 @@ class Parser(object):
                 e = str(sys.exc_info()[1])
                 if e.endswith('this version only supports 100 named groups'):
                     raise TooManyFields(
-                        'sorry, you are attempting to parse ' 'too many complex fields'
+                        'sorry, you are attempting to parse too many complex fields'
                     )
         return self.__search_re
 
@@ -400,7 +400,7 @@ class Parser(object):
                 e = str(sys.exc_info()[1])
                 if e.endswith('this version only supports 100 named groups'):
                     raise TooManyFields(
-                        'sorry, you are attempting to parse ' 'too many complex fields'
+                        'sorry, you are attempting to parse too many complex fields'
                     )
             except re.error:
                 raise NotImplementedError(

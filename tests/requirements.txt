@@ -1,3 +1,2 @@
---editable .
 pytest
 pytest-cov

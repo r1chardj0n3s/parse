@@ -28,7 +28,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Run tests
         run: |
-          pip install -r tests/requirements.txt
+          pip install -r tests/requirements.txt --editable .
           pytest
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@main"
@@ -43,6 +43,6 @@ jobs:
       - name: Run tests
         run: |
           pip install -r tests/requirements.txt
-          pytest
+          python -m pytest
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@main"
