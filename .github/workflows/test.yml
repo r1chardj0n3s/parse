@@ -32,6 +32,8 @@ jobs:
           pytest
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@main"
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   tests-27:
     name: "Python 2.7 on ubuntu-20.04"
@@ -46,3 +48,5 @@ jobs:
           python -m pytest
       - name: Upload coverage to Codecov
         uses: "codecov/codecov-action@main"
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
