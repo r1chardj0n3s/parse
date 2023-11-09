@@ -476,7 +476,11 @@ class Parser(object):
         result = {}
         for field, value in named_fields.items():
             # split 'aaa[bbb][ccc]...' into 'aaa' and '[bbb][ccc]...'
-            basename, subkeys = re.match(r'([^\[]+)(.*)', field).groups()
+            n = field.find('[')
+            if n == -1:
+                basename, subkeys = field, ''
+            else:
+                basename, subkeys = field[:n], field[n:]
 
             # create nested dictionaries {'aaa': {'bbb': {'ccc': ...}}}
             d = result
