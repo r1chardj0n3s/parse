@@ -4,9 +4,9 @@
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 """
-
+import sys
 import unittest
-from datetime import datetime, time, timezone
+from datetime import datetime, time
 from decimal import Decimal
 import pickle
 import re
@@ -471,11 +471,15 @@ class TestParse(unittest.TestCase):
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S}", "2023-11-21 13:23:27")
         self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27))
 
+    @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
     def test_flexible_datetime_with_timezone(self):
+        from datetime import timezone
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +0000")
         self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc))
 
+    @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
     def test_flexible_datetime_with_timezone_that_has_colons(self):
+        from datetime import timezone
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +00:00:00")
         self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc))
 
