@@ -363,7 +363,7 @@ def extract_format(format, extra_types):
 
     # the rest is the type, if present
     type = format
-    if type and type not in ALLOWED_TYPES and type not in extra_types and "%Y" not in type and "%y" not in type:
+    if type and type not in ALLOWED_TYPES and type not in extra_types and not any("%" + x in type for x in "YyHIMSf"):
         raise ValueError("format spec %r not recognised" % type)
 
     return locals()
@@ -706,9 +706,12 @@ class Parser(object):
             self._type_conversions[
                 group
             ] = int_convert()  # do not specify number base, determine it automatically
-        elif "%Y" in type or "%y" in type:
+        elif any("%" + x in type for x in "YyHIMSf"):
             s = get_regex_for_datetime_format(type)
-            self._type_conversions[group] = lambda x, _: datetime.strptime(x, type)
+            if "%y" in type or "%Y" in type:
+                self._type_conversions[group] = lambda x, _: datetime.strptime(x, type)
+            else:
+                self._type_conversions[group] = lambda x, _: datetime.strptime(x, type).time()
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index

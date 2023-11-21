@@ -483,6 +483,18 @@ class TestParse(unittest.TestCase):
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +00:00:00")
         self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc))
 
+    def test_flexible_time(self):
+        r = parse.parse('a {time:%H:%M:%S} b', "a 13:23:27 b")
+        self.assertEqual(r.named["time"], time(13, 23, 27))
+
+    def test_flexible_time_no_hour(self):
+        r = parse.parse('a {time:%M:%S} b', "a 23:27 b")
+        self.assertEqual(r.named["time"], time(0, 23, 27))
+
+    def test_flexible_time_ms(self):
+        r = parse.parse('a {time:%M:%S:%f} b', "a 23:27:123456 b")
+        self.assertEqual(r.named["time"], time(0, 23, 27, 123456))
+
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
             p = parse.compile(fmt)

@@ -208,7 +208,9 @@ tt    Time                                        time
 
 The type can also be a datetime format string, following the
 `1989 C standard format codes`_, e.g. %Y-%m-%d. Any type containing %Y
-or %y will be parsed and output as a ``datetime.datetime``.
+or %y will be parsed and output as a ``datetime.datetime``. Remaining
+types containing %H, %I, %M, %S, or %f will be parsed and output as a
+``datetime.time``.
 
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
