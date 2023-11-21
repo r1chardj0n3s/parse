@@ -6,7 +6,7 @@ See the end of the source file for the license of use.
 """
 
 import unittest
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from decimal import Decimal
 import pickle
 import re
@@ -470,6 +470,14 @@ class TestParse(unittest.TestCase):
     def test_flexible_datetime_with_colon(self):
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S}", "2023-11-21 13:23:27")
         self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27))
+
+    def test_flexible_datetime_with_timezone(self):
+        r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +0000")
+        self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc))
+
+    def test_flexible_datetime_with_timezone_that_has_colons(self):
+        r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +00:00:00")
+        self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc))
 
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
