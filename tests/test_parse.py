@@ -467,6 +467,10 @@ class TestParse(unittest.TestCase):
         r = parse.parse('a {:%Y%m%d} b', "a 19970716 b")
         self.assertEqual(r[0], datetime(1997, 7, 16))
 
+    def test_flexible_datetime_with_colon(self):
+        r = parse.parse("{dt:%Y-%m-%d %H:%M:%S}", "2023-11-21 13:23:27")
+        self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27))
+
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
             p = parse.compile(fmt)

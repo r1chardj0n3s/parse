@@ -613,7 +613,7 @@ class Parser(object):
         format = ""
 
         if ":" in field:
-            name, format = field.split(":")
+            name, format = field.split(":", 1)
         else:
             name = field
 
