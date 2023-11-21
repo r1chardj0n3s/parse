@@ -135,7 +135,7 @@ class FixedTzOffset(tzinfo):
 
     def __eq__(self, other):
         if not isinstance(other, FixedTzOffset):
-            return False
+            return NotImplemented
         return self._name == other._name and self._offset == other._offset
 
 
