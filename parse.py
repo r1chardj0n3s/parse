@@ -273,7 +273,6 @@ def date_convert(
 
 dt_format_to_regex = {symbol: "[0-9]{2}" for symbol in "ymdIMSUW"}
 dt_format_to_regex.update({"-" + symbol: "[0-9]{1,2}" for symbol in "ymdIMS"})
-
 dt_format_to_regex.update(
     {
         "a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
@@ -291,7 +290,9 @@ dt_format_to_regex.update(
 )
 
 # Compile a regular expression pattern that matches any date/time format symbol.
-dt_format_symbols_re = re.compile('|'.join(re.escape("%{}".format(k)) for k in dt_format_to_regex.keys()))
+dt_format_symbols_re = re.compile(
+    "|".join(re.escape("%{}".format(k)) for k in dt_format_to_regex)
+)
 
 
 def get_regex_for_datetime_format(format_):
@@ -305,7 +306,9 @@ def get_regex_for_datetime_format(format_):
         str: A regex pattern corresponding to the datetime format string.
     """
     # Replace all format symbols with their regex patterns.
-    return dt_format_symbols_re.sub(lambda m: dt_format_to_regex[m.group(0)[1:]], format_)
+    return dt_format_symbols_re.sub(
+        lambda m: dt_format_to_regex[m.group(0)[1:]], format_
+    )
 
 
 class TooManyFields(ValueError):
@@ -363,7 +366,12 @@ def extract_format(format, extra_types):
 
     # the rest is the type, if present
     type = format
-    if type and type not in ALLOWED_TYPES and type not in extra_types and not any("%" + x in type for x in "YyHIMSf"):
+    if (
+        type
+        and type not in ALLOWED_TYPES
+        and type not in extra_types
+        and not any("%" + x in type for x in "YyHIMSf")
+    ):
         raise ValueError("format spec %r not recognised" % type)
 
     return locals()
@@ -711,7 +719,9 @@ class Parser(object):
             if "%y" in type or "%Y" in type:
                 self._type_conversions[group] = lambda x, _: datetime.strptime(x, type)
             else:
-                self._type_conversions[group] = lambda x, _: datetime.strptime(x, type).time()
+                self._type_conversions[group] = lambda x, _: datetime.strptime(
+                    x, type
+                ).time()
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index

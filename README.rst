@@ -432,6 +432,7 @@ To run the tests locally:
 Changelog
 ---------
 
+- 1.20.0 Added support for strptime codes (thanks @bendichter)
 - 1.19.1 Added support for sign specifiers in number formats (thanks @anntzer)
 - 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen).
   Also corrected matching of *full string* vs. *full line* (thanks @giladreti)

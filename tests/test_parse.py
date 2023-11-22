@@ -445,26 +445,26 @@ class TestParse(unittest.TestCase):
         self.assertEqual(r[1], datetime(2012, 8, 1))
 
     def test_flexible_datetimes(self):
-        r = parse.parse('a {:%Y-%m-%d} b', "a 1997-07-16 b")
+        r = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
         self.assertEqual(len(r.fixed), 1)
         self.assertEqual(r[0], datetime(1997, 7, 16))
 
-        r = parse.parse('a {:%Y-%b-%d} b', "a 1997-Feb-16 b")
+        r = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
         self.assertEqual(len(r.fixed), 1)
         self.assertEqual(r[0], datetime(1997, 2, 16))
 
-        r = parse.parse('a {:%Y-%b-%d} {:d} b', "a 1997-Feb-16 8 b")
+        r = parse.parse("a {:%Y-%b-%d} {:d} b", "a 1997-Feb-16 8 b")
         self.assertEqual(len(r.fixed), 2)
         self.assertEqual(r[0], datetime(1997, 2, 16))
 
-        r = parse.parse('a {my_date:%Y-%b-%d} {num:d} b', "a 1997-Feb-16 8 b")
+        r = parse.parse("a {my_date:%Y-%b-%d} {num:d} b", "a 1997-Feb-16 8 b")
         self.assertEqual((r.named["my_date"]), datetime(1997, 2, 16))
         self.assertEqual((r.named["num"]), 8)
 
-        r = parse.parse('a {:%Y-%B-%d} b', "a 1997-February-16 b")
+        r = parse.parse("a {:%Y-%B-%d} b", "a 1997-February-16 b")
         self.assertEqual(r[0], datetime(1997, 2, 16))
 
-        r = parse.parse('a {:%Y%m%d} b', "a 19970716 b")
+        r = parse.parse("a {:%Y%m%d} b", "a 19970716 b")
         self.assertEqual(r[0], datetime(1997, 7, 16))
 
     def test_flexible_datetime_with_colon(self):
@@ -474,25 +474,31 @@ class TestParse(unittest.TestCase):
     @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
     def test_flexible_datetime_with_timezone(self):
         from datetime import timezone
+
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +0000")
-        self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc))
+        self.assertEqual(
+            r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
+        )
 
     @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
     def test_flexible_datetime_with_timezone_that_has_colons(self):
         from datetime import timezone
+
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +00:00:00")
-        self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc))
+        self.assertEqual(
+            r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
+        )
 
     def test_flexible_time(self):
-        r = parse.parse('a {time:%H:%M:%S} b', "a 13:23:27 b")
+        r = parse.parse("a {time:%H:%M:%S} b", "a 13:23:27 b")
         self.assertEqual(r.named["time"], time(13, 23, 27))
 
     def test_flexible_time_no_hour(self):
-        r = parse.parse('a {time:%M:%S} b', "a 23:27 b")
+        r = parse.parse("a {time:%M:%S} b", "a 23:27 b")
         self.assertEqual(r.named["time"], time(0, 23, 27))
 
     def test_flexible_time_ms(self):
-        r = parse.parse('a {time:%M:%S:%f} b', "a 23:27:123456 b")
+        r = parse.parse("a {time:%M:%S:%f} b", "a 23:27:123456 b")
         self.assertEqual(r.named["time"], time(0, 23, 27, 123456))
 
     def test_datetimes(self):
