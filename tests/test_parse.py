@@ -495,6 +495,10 @@ class TestParse(unittest.TestCase):
         r = parse.parse('a {time:%M:%S:%f} b', "a 23:27:123456 b")
         self.assertEqual(r.named["time"], time(0, 23, 27, 123456))
 
+    def test_flexible_dates_single_digit(self):
+        r = parse.parse("{dt:%Y/%m/%d}", "2023/1/1")
+        self.assertEqual(r.named["dt"], datetime(2023, 1, 1, 0, 0))
+
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
             p = parse.compile(fmt)

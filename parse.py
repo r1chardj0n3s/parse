@@ -271,15 +271,14 @@ def date_convert(
     return d
 
 
-dt_format_to_regex = {symbol: "[0-9]{2}" for symbol in "ymdIMSUW"}
-dt_format_to_regex.update({"-" + symbol: "[0-9]{1,2}" for symbol in "ymdIMS"})
+dt_format_to_regex = {symbol: "[0-9]{2}" for symbol in "yMS"}
+dt_format_to_regex.update({symbol: "[0-9]{1,2}" for symbol in "mdIUWH"})
 
 dt_format_to_regex.update(
     {
         "a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
         "A": "(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)",
         "Y": "[0-9]{4}",
-        "H": "[0-9]{1,2}",
         "B": "(?:January|February|March|April|May|June|July|August|September|October|November|December)",
         "b": "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
         "f": "[0-9]{6}",
