@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__version__ = "1.19.1"
+__version__ = "1.20.0"
 
 # yes, I now have two problems
 import re
