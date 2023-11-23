@@ -270,25 +270,32 @@ def date_convert(
 
     return d
 
-
-dt_format_to_regex = {symbol: "[0-9]{2}" for symbol in "yMS"}
-dt_format_to_regex.update({symbol: "[0-9]{1,2}" for symbol in "mdIUWH"})
-dt_format_to_regex.update(
-    {
-        "a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
-        "A": "(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)",
-        "Y": "[0-9]{4}",
-        "B": "(?:January|February|March|April|May|June|July|August|September|October|November|December)",
-        "b": "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
-        "f": "[0-9]{6}",
-        "p": "(?:AM|PM)",
-        "z": "[+|-][0-9]{2}(:?[0-9]{2})?(:?[0-9]{2})?",
-        "j": "[0-9]{1,3}",
-    }
-)
+# ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
+dt_format_to_regex = {
+    "%a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
+    "%A": "(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)",
+    "%w": "[0-6]",
+    "%d": "[0-9]{1,2}",
+    "%b": "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
+    "%B": "(?:January|February|March|April|May|June|July|August|September|October|November|December)",
+    "%m": "[0-9]{1,2}",
+    "%y": "[0-9]{2}",
+    "%Y": "[0-9]{4}",
+    "%H": "[0-9]{1,2}",
+    "%I": "[0-9]{1,2}",
+    "%p": "(?:AM|PM)",
+    "%M": "[0-9]{2}",
+    "%S": "[0-9]{2}",
+    "%f": "[0-9]{6}",
+    "%z": "[+|-][0-9]{2}(:?[0-9]{2})?(:?[0-9]{2})?",
+    # "%Z": punt
+    "%j": "[0-9]{1,3}",
+    "%U": "[0-9]{1,2}",
+    "%W": "[0-9]{1,2}",
+}
 
 # Compile a regular expression pattern that matches any date/time format symbol.
-dt_format_symbols_re = re.compile("|".join("%" + k for k in dt_format_to_regex))
+dt_format_symbols_re = re.compile("|".join(dt_format_to_regex))
 
 
 def get_regex_for_datetime_format(format_):
@@ -303,7 +310,7 @@ def get_regex_for_datetime_format(format_):
     """
     # Replace all format symbols with their regex patterns.
     return dt_format_symbols_re.sub(
-        lambda m: dt_format_to_regex[m.group(0)[1:]], format_
+        lambda m: dt_format_to_regex[m.group(0)], format_
     )
 
 
