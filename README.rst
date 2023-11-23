@@ -207,10 +207,19 @@ tt    Time                                        time
 ===== =========================================== ========
 
 The type can also be a datetime format string, following the
-`1989 C standard format codes`_, e.g. %Y-%m-%d. Any type containing %Y
-or %y will be parsed and output as a ``datetime.datetime``. Remaining
-types containing %H, %I, %M, %S, or %f will be parsed and output as a
-``datetime.time``.
+`1989 C standard format codes`_, e.g. ``%Y-%m-%d``. Depending on the
+directives contained in the format string, parsed output may be an instance
+``datetime.datetime``, ``datetime.time``, or ``datetime.date``.
+
+.. code-block:: pycon
+
+    >>> parse("{:%Y-%m-%d %H:%M:%S}", "2023-11-23 12:56:47")
+    <Result (datetime.datetime(2023, 11, 23, 12, 56, 47),) {}>
+    >>> parse("{:%H:%M}", "10:26")
+    <Result (datetime.time(10, 26),) {}>
+    >>> parse("{:%Y/%m/%d}", "2023/11/25")
+    <Result (datetime.date(2023, 11, 25),) {}>
+
 
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
