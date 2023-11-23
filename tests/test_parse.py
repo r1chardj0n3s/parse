@@ -505,6 +505,13 @@ class TestParse(unittest.TestCase):
         r = parse.parse("{dt:%Y/%m/%d}", "2023/1/1")
         self.assertEqual(r.named["dt"], datetime(2023, 1, 1, 0, 0))
 
+    def test_flexible_dates_j(self):
+        r = parse.parse("{dt:%Y/%j}", "2023/9")
+        self.assertEqual(r.named["dt"], datetime(2023, 1, 9, 0, 0))
+
+        r = parse.parse("{dt:%Y/%j}", "2023/009")
+        self.assertEqual(r.named["dt"], datetime(2023, 1, 9, 0, 0))
+
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
             p = parse.compile(fmt)
