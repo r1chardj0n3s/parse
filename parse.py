@@ -373,7 +373,7 @@ def extract_format(format, extra_types):
         type
         and type not in ALLOWED_TYPES
         and type not in extra_types
-        and not any("%" + x in type for x in "YyHIMSf")
+        and not any(k in type for k in dt_format_to_regex)
     ):
         raise ValueError("format spec %r not recognised" % type)
 
@@ -717,7 +717,7 @@ class Parser(object):
             self._type_conversions[
                 group
             ] = int_convert()  # do not specify number base, determine it automatically
-        elif any("%" + x in type for x in "YyHIMSf"):
+        elif any(k in type for k in dt_format_to_regex):
             s = get_regex_for_datetime_format(type)
             if "%y" in type or "%Y" in type:
                 self._type_conversions[group] = lambda x, _: datetime.strptime(x, type)
