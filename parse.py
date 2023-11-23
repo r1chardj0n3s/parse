@@ -270,6 +270,7 @@ def date_convert(
 
     return d
 
+
 # ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
 dt_format_to_regex = {
     "%a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
@@ -309,9 +310,7 @@ def get_regex_for_datetime_format(format_):
         str: A regex pattern corresponding to the datetime format string.
     """
     # Replace all format symbols with their regex patterns.
-    return dt_format_symbols_re.sub(
-        lambda m: dt_format_to_regex[m.group(0)], format_
-    )
+    return dt_format_symbols_re.sub(lambda m: dt_format_to_regex[m.group(0)], format_)
 
 
 class TooManyFields(ValueError):
@@ -665,6 +664,7 @@ class Parser(object):
         # figure type conversions, if any
         type = format["type"]
         is_numeric = type and type in "n%fegdobx"
+        conv = self._type_conversions
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, "pattern", r".+?")
@@ -672,40 +672,40 @@ class Parser(object):
             if regex_group_count is None:
                 regex_group_count = 0
             self._group_index += regex_group_count
-            self._type_conversions[group] = convert_first(type_converter)
+            conv[group] = convert_first(type_converter)
         elif type == "n":
             s = r"\d{1,3}([,.]\d{3})*"
             self._group_index += 1
-            self._type_conversions[group] = int_convert(10)
+            conv[group] = int_convert(10)
         elif type == "b":
             s = r"(0[bB])?[01]+"
-            self._type_conversions[group] = int_convert(2)
+            conv[group] = int_convert(2)
             self._group_index += 1
         elif type == "o":
             s = r"(0[oO])?[0-7]+"
-            self._type_conversions[group] = int_convert(8)
+            conv[group] = int_convert(8)
             self._group_index += 1
         elif type == "x":
             s = r"(0[xX])?[0-9a-fA-F]+"
-            self._type_conversions[group] = int_convert(16)
+            conv[group] = int_convert(16)
             self._group_index += 1
         elif type == "%":
             s = r"\d+(\.\d+)?%"
             self._group_index += 1
-            self._type_conversions[group] = percentage
+            conv[group] = percentage
         elif type == "f":
             s = r"\d*\.\d+"
-            self._type_conversions[group] = convert_first(float)
+            conv[group] = convert_first(float)
         elif type == "F":
             s = r"\d*\.\d+"
-            self._type_conversions[group] = convert_first(Decimal)
+            conv[group] = convert_first(Decimal)
         elif type == "e":
             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
-            self._type_conversions[group] = convert_first(float)
+            conv[group] = convert_first(float)
         elif type == "g":
             s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
             self._group_index += 2
-            self._type_conversions[group] = convert_first(float)
+            conv[group] = convert_first(float)
         elif type == "d":
             if format.get("width"):
                 width = r"{1,%s}" % int(format["width"])
@@ -714,93 +714,63 @@ class Parser(object):
             s = r"\d{w}|[-+ ]?0[xX][0-9a-fA-F]{w}|[-+ ]?0[bB][01]{w}|[-+ ]?0[oO][0-7]{w}".format(
                 w=width
             )
-            self._type_conversions[
-                group
-            ] = int_convert()  # do not specify number base, determine it automatically
+            conv[group] = int_convert()
+            # do not specify number base, determine it automatically
         elif any(k in type for k in dt_format_to_regex):
             s = get_regex_for_datetime_format(type)
             if "%y" in type or "%Y" in type:
-                self._type_conversions[group] = lambda x, _: datetime.strptime(x, type)
+                conv[group] = lambda x, _: datetime.strptime(x, type)
             else:
-                self._type_conversions[group] = lambda x, _: datetime.strptime(
-                    x, type
-                ).time()
+                conv[group] = lambda x, _: datetime.strptime(x, type).time()
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, ymd=n + 1, hms=n + 4, tz=n + 7
-            )
+            conv[group] = partial(date_convert, ymd=n + 1, hms=n + 4, tz=n + 7)
             self._group_index += 7
         elif type == "tg":
-            s = r"(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?" % (
-                ALL_MONTHS_PAT,
-                TIME_PAT,
-                AM_PAT,
-                TZ_PAT,
-            )
+            s = r"(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?"
+            s %= (ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
+            conv[group] = partial(
                 date_convert, dmy=n + 1, hms=n + 5, am=n + 8, tz=n + 9
             )
             self._group_index += 9
         elif type == "ta":
-            s = r"((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?" % (
-                ALL_MONTHS_PAT,
-                TIME_PAT,
-                AM_PAT,
-                TZ_PAT,
-            )
+            s = r"((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?"
+            s %= (ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
+            conv[group] = partial(
                 date_convert, mdy=n + 1, hms=n + 5, am=n + 8, tz=n + 9
             )
             self._group_index += 9
         elif type == "te":
             # this will allow microseconds through if they're present, but meh
-            s = r"(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s" % (
-                DAYS_PAT,
-                MONTHS_PAT,
-                TIME_PAT,
-                TZ_PAT,
-            )
+            s = r"(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s"
+            s %= (DAYS_PAT, MONTHS_PAT, TIME_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, dmy=n + 3, hms=n + 5, tz=n + 8
-            )
+            conv[group] = partial(date_convert, dmy=n + 3, hms=n + 5, tz=n + 8)
             self._group_index += 8
         elif type == "th":
             # slight flexibility here from the stock Apache format
             s = r"(\d{1,2}[-/]%s[-/]\d{4}):%s%s" % (MONTHS_PAT, TIME_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, dmy=n + 1, hms=n + 3, tz=n + 6
-            )
+            conv[group] = partial(date_convert, dmy=n + 1, hms=n + 3, tz=n + 6)
             self._group_index += 6
         elif type == "tc":
-            s = r"(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})" % (
-                DAYS_PAT,
-                MONTHS_PAT,
-                TIME_PAT,
-            )
+            s = r"(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})"
+            s %= (DAYS_PAT, MONTHS_PAT, TIME_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5
-            )
+            conv[group] = partial(date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5)
             self._group_index += 8
         elif type == "tt":
             s = r"%s?%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, hms=n + 1, am=n + 4, tz=n + 5
-            )
+            conv[group] = partial(date_convert, hms=n + 1, am=n + 4, tz=n + 5)
             self._group_index += 5
         elif type == "ts":
             s = r"%s(\s+)(\d+)(\s+)(\d{1,2}:\d{1,2}:\d{1,2})?" % MONTHS_PAT
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, mm=n + 1, dd=n + 3, hms=n + 5
-            )
+            conv[group] = partial(date_convert, mm=n + 1, dd=n + 3, hms=n + 5)
             self._group_index += 5
         elif type == "l":
             s = r"[A-Za-z]+"
