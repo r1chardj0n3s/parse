@@ -6,7 +6,7 @@ See the end of the source file for the license of use.
 """
 import sys
 import unittest
-from datetime import datetime, time
+from datetime import datetime, time, date
 from decimal import Decimal
 import pickle
 import re
@@ -447,25 +447,25 @@ class TestParse(unittest.TestCase):
     def test_flexible_datetimes(self):
         r = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
         self.assertEqual(len(r.fixed), 1)
-        self.assertEqual(r[0], datetime(1997, 7, 16))
+        self.assertEqual(r[0], date(1997, 7, 16))
 
         r = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
         self.assertEqual(len(r.fixed), 1)
-        self.assertEqual(r[0], datetime(1997, 2, 16))
+        self.assertEqual(r[0], date(1997, 2, 16))
 
         r = parse.parse("a {:%Y-%b-%d} {:d} b", "a 1997-Feb-16 8 b")
         self.assertEqual(len(r.fixed), 2)
-        self.assertEqual(r[0], datetime(1997, 2, 16))
+        self.assertEqual(r[0], date(1997, 2, 16))
 
         r = parse.parse("a {my_date:%Y-%b-%d} {num:d} b", "a 1997-Feb-16 8 b")
-        self.assertEqual((r.named["my_date"]), datetime(1997, 2, 16))
+        self.assertEqual((r.named["my_date"]), date(1997, 2, 16))
         self.assertEqual((r.named["num"]), 8)
 
         r = parse.parse("a {:%Y-%B-%d} b", "a 1997-February-16 b")
-        self.assertEqual(r[0], datetime(1997, 2, 16))
+        self.assertEqual(r[0], date(1997, 2, 16))
 
         r = parse.parse("a {:%Y%m%d} b", "a 19970716 b")
-        self.assertEqual(r[0], datetime(1997, 7, 16))
+        self.assertEqual(r[0], date(1997, 7, 16))
 
     def test_flexible_datetime_with_colon(self):
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S}", "2023-11-21 13:23:27")
@@ -503,14 +503,18 @@ class TestParse(unittest.TestCase):
 
     def test_flexible_dates_single_digit(self):
         r = parse.parse("{dt:%Y/%m/%d}", "2023/1/1")
-        self.assertEqual(r.named["dt"], datetime(2023, 1, 1, 0, 0))
+        self.assertEqual(r.named["dt"], date(2023, 1, 1))
 
     def test_flexible_dates_j(self):
         r = parse.parse("{dt:%Y/%j}", "2023/9")
-        self.assertEqual(r.named["dt"], datetime(2023, 1, 9, 0, 0))
+        self.assertEqual(r.named["dt"], date(2023, 1, 9))
 
         r = parse.parse("{dt:%Y/%j}", "2023/009")
-        self.assertEqual(r.named["dt"], datetime(2023, 1, 9, 0, 0))
+        self.assertEqual(r.named["dt"], date(2023, 1, 9))
+
+    def test_flexible_dates_year_current_year_inferred(self):
+        r = parse.parse("{dt:%j}", "9")
+        self.assertEqual(r.named["dt"], date(datetime.today().year, 1, 9))
 
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):

@@ -271,6 +271,25 @@ def date_convert(
     return d
 
 
+def strf_date_convert(x, _, type):
+
+    is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
+    is_time = any("%" + x in type for x in "HIpMSfz")
+
+    dt = datetime.strptime(x, type)
+    if "%y" not in type and "%Y" not in type:  # year not specified
+        dt = dt.replace(year=datetime.today().year)
+
+    if is_date and is_time:
+        return dt
+    elif is_date:
+        return dt.date()
+    elif is_time:
+        return dt.time()
+    else:
+        ValueError("Datetime not a date nor a time?")
+
+
 # ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
 dt_format_to_regex = {
     "%a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
@@ -718,10 +737,7 @@ class Parser(object):
             # do not specify number base, determine it automatically
         elif any(k in type for k in dt_format_to_regex):
             s = get_regex_for_datetime_format(type)
-            if "%y" in type or "%Y" in type:
-                conv[group] = lambda x, _: datetime.strptime(x, type)
-            else:
-                conv[group] = lambda x, _: datetime.strptime(x, type).time()
+            conv[group] = partial(strf_date_convert, type=type)
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index
