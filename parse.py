@@ -284,14 +284,11 @@ dt_format_to_regex.update(
         "p": "(?:AM|PM)",
         "z": "[+|-][0-9]{2}(:?[0-9]{2})?(:?[0-9]{2})?",
         "j": "[0-9]{3}",
-        "-j": "[0-9]{1,3}",
     }
 )
 
 # Compile a regular expression pattern that matches any date/time format symbol.
-dt_format_symbols_re = re.compile(
-    "|".join(re.escape("%{}".format(k)) for k in dt_format_to_regex)
-)
+dt_format_symbols_re = re.compile("|".join("%" + k for k in dt_format_to_regex))
 
 
 def get_regex_for_datetime_format(format_):
