@@ -739,9 +739,7 @@ class Parser(object):
             s = r"((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?"
             s %= (ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            conv[group] = partial(
-                date_convert, mdy=n + 1, hms=n + 5, am=n + 8, tz=n + 9
-            )
+            conv[group] = partial(date_convert, mdy=n + 1, hms=n + 5, am=n + 8, tz=n + 9)
             self._group_index += 9
         elif type == "te":
             # this will allow microseconds through if they're present, but meh
@@ -757,15 +755,10 @@ class Parser(object):
             conv[group] = partial(date_convert, dmy=n + 1, hms=n + 3, tz=n + 6)
             self._group_index += 6
         elif type == "tc":
-            s = r"(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})" % (
-                DAYS_PAT,
-                MONTHS_PAT,
-                TIME_PAT,
-            )
+            s = r"(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})"
+            s %= (DAYS_PAT, MONTHS_PAT, TIME_PAT)
             n = self._group_index
-            conv[group] = partial(
-                date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5
-            )
+            conv[group] = partial(date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5)
             self._group_index += 8
         elif type == "tt":
             s = r"%s?%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
