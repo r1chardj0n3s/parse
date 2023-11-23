@@ -778,16 +778,8 @@ class Parser(object):
             )
             self._group_index += 6
         elif type == "tc":
-            s = r"(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})" % (
-                DAYS_PAT,
-                MONTHS_PAT,
-                TIME_PAT,
-            )
-            n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5
-            )
-            self._group_index += 8
+            s = get_regex_for_datetime_format("%a %b %d %H:%M:%S %Y")
+            self._type_conversions[group] = lambda x, _: datetime.strptime(x, "%a %b %d %H:%M:%S %Y")
         elif type == "tt":
             s = r"%s?%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
