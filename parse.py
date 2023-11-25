@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
-__version__ = "1.20.0"
-
-# yes, I now have two problems
+import logging
 import re
 import sys
-from datetime import datetime, time, tzinfo, timedelta
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import tzinfo
 from decimal import Decimal
 from functools import partial
-import logging
 
-__all__ = "parse search findall with_pattern".split()
+
+__version__ = "1.20.0"
+__all__ = ["parse", "search", "findall", "with_pattern"]
 
 log = logging.getLogger(__name__)
 
@@ -139,31 +141,31 @@ class FixedTzOffset(tzinfo):
         return self._name == other._name and self._offset == other._offset
 
 
-MONTHS_MAP = dict(
-    Jan=1,
-    January=1,
-    Feb=2,
-    February=2,
-    Mar=3,
-    March=3,
-    Apr=4,
-    April=4,
-    May=5,
-    Jun=6,
-    June=6,
-    Jul=7,
-    July=7,
-    Aug=8,
-    August=8,
-    Sep=9,
-    September=9,
-    Oct=10,
-    October=10,
-    Nov=11,
-    November=11,
-    Dec=12,
-    December=12,
-)
+MONTHS_MAP = {
+    "Jan": 1,
+    "January": 1,
+    "Feb": 2,
+    "February": 2,
+    "Mar": 3,
+    "March": 3,
+    "Apr": 4,
+    "April": 4,
+    "May": 5,
+    "Jun": 6,
+    "June": 6,
+    "Jul": 7,
+    "July": 7,
+    "Aug": 8,
+    "August": 8,
+    "Sep": 9,
+    "September": 9,
+    "Oct": 10,
+    "October": 10,
+    "Nov": 11,
+    "November": 11,
+    "Dec": 12,
+    "December": 12,
+}
 DAYS_PAT = r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)"
 MONTHS_PAT = r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
 ALL_MONTHS_PAT = r"(%s)" % "|".join(MONTHS_MAP)
@@ -272,7 +274,6 @@ def date_convert(
 
 
 def strf_date_convert(x, _, type):
-
     is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
     is_time = any("%" + x in type for x in "HIpMSfz")
 
@@ -341,8 +342,7 @@ class RepeatedNameError(ValueError):
 
 
 # note: {} are handled separately
-# note: I don't use r'' here because Sublime Text 2 syntax highlight has a fit
-REGEX_SAFETY = re.compile(r"([?\\\\.[\]()*+\^$!\|])")
+REGEX_SAFETY = re.compile(r"([?\\.[\]()*+^$!|])")
 
 # allowed field types
 ALLOWED_TYPES = set(list("nbox%fFegwWdDsSl") + ["t" + c for c in "ieahgcts"])
@@ -398,7 +398,7 @@ def extract_format(format, extra_types):
     return locals()
 
 
-PARSE_RE = re.compile(r"""({{|}}|{\w*(?:(?:\.\w+)|(?:\[[^\]]+\]))*(?::[^}]+)?})""")
+PARSE_RE = re.compile(r"({{|}}|{\w*(?:\.\w+|\[[^]]+])*(?::[^}]+)?})")
 
 
 class Parser(object):
@@ -406,7 +406,7 @@ class Parser(object):
 
     def __init__(self, format, extra_types=None, case_sensitive=False):
         # a mapping of a name as in {hello.world} to a regex-group compatible
-        # name, like hello__world Its used to prevent the transformation of
+        # name, like hello__world. It's used to prevent the transformation of
         # name-to-group and group to name to fail subtly, such as in:
         # hello_.world-> hello___world->hello._world
         self._group_to_name_map = {}
@@ -552,7 +552,7 @@ class Parser(object):
             k = basename
 
             if subkeys:
-                for subkey in re.findall(r"\[[^\]]+\]", subkeys):
+                for subkey in re.findall(r"\[[^]]+]", subkeys):
                     d = d.setdefault(k, {})
                     k = subkey[1:-1]
 
@@ -585,7 +585,7 @@ class Parser(object):
             named_fields[korig] = value
 
         # now figure the match spans
-        spans = dict((n, m.span(name_map[n])) for n in named_fields)
+        spans = {n: m.span(name_map[n]) for n in named_fields}
         spans.update((i, m.span(n + 1)) for i, n in enumerate(self._fixed_fields))
 
         # and that's our result
