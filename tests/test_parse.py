@@ -4,9 +4,9 @@
 This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 """
-
+import sys
 import unittest
-from datetime import datetime, time
+from datetime import datetime, time, date
 from decimal import Decimal
 import pickle
 import re
@@ -443,6 +443,78 @@ class TestParse(unittest.TestCase):
         self.assertEqual(len(r.fixed), 2)
         self.assertEqual(r[0], datetime(1997, 7, 16))
         self.assertEqual(r[1], datetime(2012, 8, 1))
+
+    def test_flexible_datetimes(self):
+        r = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
+        self.assertEqual(len(r.fixed), 1)
+        self.assertEqual(r[0], date(1997, 7, 16))
+
+        r = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
+        self.assertEqual(len(r.fixed), 1)
+        self.assertEqual(r[0], date(1997, 2, 16))
+
+        r = parse.parse("a {:%Y-%b-%d} {:d} b", "a 1997-Feb-16 8 b")
+        self.assertEqual(len(r.fixed), 2)
+        self.assertEqual(r[0], date(1997, 2, 16))
+
+        r = parse.parse("a {my_date:%Y-%b-%d} {num:d} b", "a 1997-Feb-16 8 b")
+        self.assertEqual((r.named["my_date"]), date(1997, 2, 16))
+        self.assertEqual((r.named["num"]), 8)
+
+        r = parse.parse("a {:%Y-%B-%d} b", "a 1997-February-16 b")
+        self.assertEqual(r[0], date(1997, 2, 16))
+
+        r = parse.parse("a {:%Y%m%d} b", "a 19970716 b")
+        self.assertEqual(r[0], date(1997, 7, 16))
+
+    def test_flexible_datetime_with_colon(self):
+        r = parse.parse("{dt:%Y-%m-%d %H:%M:%S}", "2023-11-21 13:23:27")
+        self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27))
+
+    @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
+    def test_flexible_datetime_with_timezone(self):
+        from datetime import timezone
+
+        r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +0000")
+        self.assertEqual(
+            r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
+        )
+
+    @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
+    def test_flexible_datetime_with_timezone_that_has_colons(self):
+        from datetime import timezone
+
+        r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +00:00:00")
+        self.assertEqual(
+            r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
+        )
+
+    def test_flexible_time(self):
+        r = parse.parse("a {time:%H:%M:%S} b", "a 13:23:27 b")
+        self.assertEqual(r.named["time"], time(13, 23, 27))
+
+    def test_flexible_time_no_hour(self):
+        r = parse.parse("a {time:%M:%S} b", "a 23:27 b")
+        self.assertEqual(r.named["time"], time(0, 23, 27))
+
+    def test_flexible_time_ms(self):
+        r = parse.parse("a {time:%M:%S:%f} b", "a 23:27:123456 b")
+        self.assertEqual(r.named["time"], time(0, 23, 27, 123456))
+
+    def test_flexible_dates_single_digit(self):
+        r = parse.parse("{dt:%Y/%m/%d}", "2023/1/1")
+        self.assertEqual(r.named["dt"], date(2023, 1, 1))
+
+    def test_flexible_dates_j(self):
+        r = parse.parse("{dt:%Y/%j}", "2023/9")
+        self.assertEqual(r.named["dt"], date(2023, 1, 9))
+
+        r = parse.parse("{dt:%Y/%j}", "2023/009")
+        self.assertEqual(r.named["dt"], date(2023, 1, 9))
+
+    def test_flexible_dates_year_current_year_inferred(self):
+        r = parse.parse("{dt:%j}", "9")
+        self.assertEqual(r.named["dt"], date(datetime.today().year, 1, 9))
 
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
@@ -1096,6 +1168,14 @@ class TestParseType(unittest.TestCase):
         parser = parse.Parser("{:d}")
         self.assertEqual(parser.parse("1234")[0], 1234)
         self.assertEqual(parser.parse("0b1011")[0], 0b1011)
+
+
+def test_strftime_strptime_roundtrip():
+    dt = datetime.now()
+    fmt = "_".join([k for k in parse.dt_format_to_regex if k != "%z"])
+    s = dt.strftime(fmt)
+    [res] = parse.parse("{:" + fmt + "}", s)
+    assert res == dt
 
 
 if __name__ == "__main__":

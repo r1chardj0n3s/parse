@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__version__ = "1.19.1"
+__version__ = "1.20.0"
 
 # yes, I now have two problems
 import re
@@ -271,6 +271,67 @@ def date_convert(
     return d
 
 
+def strf_date_convert(x, _, type):
+
+    is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
+    is_time = any("%" + x in type for x in "HIpMSfz")
+
+    dt = datetime.strptime(x, type)
+    if "%y" not in type and "%Y" not in type:  # year not specified
+        dt = dt.replace(year=datetime.today().year)
+
+    if is_date and is_time:
+        return dt
+    elif is_date:
+        return dt.date()
+    elif is_time:
+        return dt.time()
+    else:
+        ValueError("Datetime not a date nor a time?")
+
+
+# ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
+dt_format_to_regex = {
+    "%a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
+    "%A": "(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)",
+    "%w": "[0-6]",
+    "%d": "[0-9]{1,2}",
+    "%b": "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
+    "%B": "(?:January|February|March|April|May|June|July|August|September|October|November|December)",
+    "%m": "[0-9]{1,2}",
+    "%y": "[0-9]{2}",
+    "%Y": "[0-9]{4}",
+    "%H": "[0-9]{1,2}",
+    "%I": "[0-9]{1,2}",
+    "%p": "(?:AM|PM)",
+    "%M": "[0-9]{2}",
+    "%S": "[0-9]{2}",
+    "%f": "[0-9]{6}",
+    "%z": "[+|-][0-9]{2}(:?[0-9]{2})?(:?[0-9]{2})?",
+    # "%Z": punt
+    "%j": "[0-9]{1,3}",
+    "%U": "[0-9]{1,2}",
+    "%W": "[0-9]{1,2}",
+}
+
+# Compile a regular expression pattern that matches any date/time format symbol.
+dt_format_symbols_re = re.compile("|".join(dt_format_to_regex))
+
+
+def get_regex_for_datetime_format(format_):
+    """
+    Generate a regex pattern for a given datetime format string.
+
+    Parameters:
+        format_ (str): The datetime format string.
+
+    Returns:
+        str: A regex pattern corresponding to the datetime format string.
+    """
+    # Replace all format symbols with their regex patterns.
+    return dt_format_symbols_re.sub(lambda m: dt_format_to_regex[m.group(0)], format_)
+
+
 class TooManyFields(ValueError):
     pass
 
@@ -326,7 +387,12 @@ def extract_format(format, extra_types):
 
     # the rest is the type, if present
     type = format
-    if type and type not in ALLOWED_TYPES and type not in extra_types:
+    if (
+        type
+        and type not in ALLOWED_TYPES
+        and type not in extra_types
+        and not any(k in type for k in dt_format_to_regex)
+    ):
         raise ValueError("format spec %r not recognised" % type)
 
     return locals()
@@ -576,7 +642,7 @@ class Parser(object):
         format = ""
 
         if ":" in field:
-            name, format = field.split(":")
+            name, format = field.split(":", 1)
         else:
             name = field
 
@@ -617,6 +683,7 @@ class Parser(object):
         # figure type conversions, if any
         type = format["type"]
         is_numeric = type and type in "n%fegdobx"
+        conv = self._type_conversions
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, "pattern", r".+?")
@@ -624,40 +691,40 @@ class Parser(object):
             if regex_group_count is None:
                 regex_group_count = 0
             self._group_index += regex_group_count
-            self._type_conversions[group] = convert_first(type_converter)
+            conv[group] = convert_first(type_converter)
         elif type == "n":
             s = r"\d{1,3}([,.]\d{3})*"
             self._group_index += 1
-            self._type_conversions[group] = int_convert(10)
+            conv[group] = int_convert(10)
         elif type == "b":
             s = r"(0[bB])?[01]+"
-            self._type_conversions[group] = int_convert(2)
+            conv[group] = int_convert(2)
             self._group_index += 1
         elif type == "o":
             s = r"(0[oO])?[0-7]+"
-            self._type_conversions[group] = int_convert(8)
+            conv[group] = int_convert(8)
             self._group_index += 1
         elif type == "x":
             s = r"(0[xX])?[0-9a-fA-F]+"
-            self._type_conversions[group] = int_convert(16)
+            conv[group] = int_convert(16)
             self._group_index += 1
         elif type == "%":
             s = r"\d+(\.\d+)?%"
             self._group_index += 1
-            self._type_conversions[group] = percentage
+            conv[group] = percentage
         elif type == "f":
             s = r"\d*\.\d+"
-            self._type_conversions[group] = convert_first(float)
+            conv[group] = convert_first(float)
         elif type == "F":
             s = r"\d*\.\d+"
-            self._type_conversions[group] = convert_first(Decimal)
+            conv[group] = convert_first(Decimal)
         elif type == "e":
             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
-            self._type_conversions[group] = convert_first(float)
+            conv[group] = convert_first(float)
         elif type == "g":
             s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
             self._group_index += 2
-            self._type_conversions[group] = convert_first(float)
+            conv[group] = convert_first(float)
         elif type == "d":
             if format.get("width"):
                 width = r"{1,%s}" % int(format["width"])
@@ -666,85 +733,60 @@ class Parser(object):
             s = r"\d{w}|[-+ ]?0[xX][0-9a-fA-F]{w}|[-+ ]?0[bB][01]{w}|[-+ ]?0[oO][0-7]{w}".format(
                 w=width
             )
-            self._type_conversions[
-                group
-            ] = int_convert()  # do not specify number base, determine it automatically
+            conv[group] = int_convert()
+            # do not specify number base, determine it automatically
+        elif any(k in type for k in dt_format_to_regex):
+            s = get_regex_for_datetime_format(type)
+            conv[group] = partial(strf_date_convert, type=type)
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, ymd=n + 1, hms=n + 4, tz=n + 7
-            )
+            conv[group] = partial(date_convert, ymd=n + 1, hms=n + 4, tz=n + 7)
             self._group_index += 7
         elif type == "tg":
-            s = r"(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?" % (
-                ALL_MONTHS_PAT,
-                TIME_PAT,
-                AM_PAT,
-                TZ_PAT,
-            )
+            s = r"(\d{1,2}[-/](\d{1,2}|%s)[-/]\d{4})(\s+%s)?%s?%s?"
+            s %= (ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
+            conv[group] = partial(
                 date_convert, dmy=n + 1, hms=n + 5, am=n + 8, tz=n + 9
             )
             self._group_index += 9
         elif type == "ta":
-            s = r"((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?" % (
-                ALL_MONTHS_PAT,
-                TIME_PAT,
-                AM_PAT,
-                TZ_PAT,
-            )
+            s = r"((\d{1,2}|%s)[-/]\d{1,2}[-/]\d{4})(\s+%s)?%s?%s?"
+            s %= (ALL_MONTHS_PAT, TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
+            conv[group] = partial(
                 date_convert, mdy=n + 1, hms=n + 5, am=n + 8, tz=n + 9
             )
             self._group_index += 9
         elif type == "te":
             # this will allow microseconds through if they're present, but meh
-            s = r"(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s" % (
-                DAYS_PAT,
-                MONTHS_PAT,
-                TIME_PAT,
-                TZ_PAT,
-            )
+            s = r"(%s,\s+)?(\d{1,2}\s+%s\s+\d{4})\s+%s%s"
+            s %= (DAYS_PAT, MONTHS_PAT, TIME_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, dmy=n + 3, hms=n + 5, tz=n + 8
-            )
+            conv[group] = partial(date_convert, dmy=n + 3, hms=n + 5, tz=n + 8)
             self._group_index += 8
         elif type == "th":
             # slight flexibility here from the stock Apache format
             s = r"(\d{1,2}[-/]%s[-/]\d{4}):%s%s" % (MONTHS_PAT, TIME_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, dmy=n + 1, hms=n + 3, tz=n + 6
-            )
+            conv[group] = partial(date_convert, dmy=n + 1, hms=n + 3, tz=n + 6)
             self._group_index += 6
         elif type == "tc":
-            s = r"(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})" % (
-                DAYS_PAT,
-                MONTHS_PAT,
-                TIME_PAT,
-            )
+            s = r"(%s)\s+%s\s+(\d{1,2})\s+%s\s+(\d{4})"
+            s %= (DAYS_PAT, MONTHS_PAT, TIME_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5
-            )
+            conv[group] = partial(date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5)
             self._group_index += 8
         elif type == "tt":
             s = r"%s?%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, hms=n + 1, am=n + 4, tz=n + 5
-            )
+            conv[group] = partial(date_convert, hms=n + 1, am=n + 4, tz=n + 5)
             self._group_index += 5
         elif type == "ts":
             s = r"%s(\s+)(\d+)(\s+)(\d{1,2}:\d{1,2}:\d{1,2})?" % MONTHS_PAT
             n = self._group_index
-            self._type_conversions[group] = partial(
-                date_convert, mm=n + 1, dd=n + 3, hms=n + 5
-            )
+            conv[group] = partial(date_convert, mm=n + 1, dd=n + 3, hms=n + 5)
             self._group_index += 5
         elif type == "l":
             s = r"[A-Za-z]+"

@@ -206,6 +206,21 @@ tt    Time                                        time
       e.g. 10:21:36 PM -5:30
 ===== =========================================== ========
 
+The type can also be a datetime format string, following the
+`1989 C standard format codes`_, e.g. ``%Y-%m-%d``. Depending on the
+directives contained in the format string, parsed output may be an instance
+``datetime.datetime``, ``datetime.time``, or ``datetime.date``.
+
+.. code-block:: pycon
+
+    >>> parse("{:%Y-%m-%d %H:%M:%S}", "2023-11-23 12:56:47")
+    <Result (datetime.datetime(2023, 11, 23, 12, 56, 47),) {}>
+    >>> parse("{:%H:%M}", "10:26")
+    <Result (datetime.time(10, 26),) {}>
+    >>> parse("{:%Y/%m/%d}", "2023/11/25")
+    <Result (datetime.date(2023, 11, 25),) {}>
+
+
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
 
@@ -244,7 +259,7 @@ a maximum. For example:
     >>> parse('{:2d}{:2d}', '0440')           # parsing two contiguous numbers
     <Result (4, 40) {}>
 
-Some notes for the date and time types:
+Some notes for the special date and time types:
 
 - the presence of the time part is optional (including ISO 8601, starting
   at the "T"). A full datetime object will always be returned; the time
@@ -277,6 +292,9 @@ that this limit will be removed one day.
   https://docs.python.org/3/library/string.html#format-string-syntax
 .. _`Format Specification Mini-Language`:
   https://docs.python.org/3/library/string.html#format-specification-mini-language
+.. _`1989 C standard format codes`:
+  https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
+
 
 
 Result and Match Objects
@@ -423,6 +441,7 @@ To run the tests locally:
 Changelog
 ---------
 
+- 1.20.0 Added support for strptime codes (thanks @bendichter)
 - 1.19.1 Added support for sign specifiers in number formats (thanks @anntzer)
 - 1.19.0 Added slice access to fixed results (thanks @jonathangjertsen).
   Also corrected matching of *full string* vs. *full line* (thanks @giladreti)
