@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
-__version__ = "1.20.0"
-
-# yes, I now have two problems
+import logging
 import re
 import sys
-from datetime import datetime, time, tzinfo, timedelta
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import tzinfo
 from decimal import Decimal
 from functools import partial
-import logging
 
-__all__ = "parse search findall with_pattern".split()
+
+__version__ = "1.20.0"
+__all__ = ["parse", "search", "findall", "with_pattern"]
 
 log = logging.getLogger(__name__)
 
@@ -272,7 +274,6 @@ def date_convert(
 
 
 def strf_date_convert(x, _, type):
-
     is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
     is_time = any("%" + x in type for x in "HIpMSfz")
 
