@@ -126,10 +126,10 @@ def test_custom_type():
     r = parse.parse(
         "{:shouty} {:spam}",
         "hello world",
-        dict(shouty=lambda s: s.upper(), spam=lambda s: "".join(reversed(s))),
+        {"shouty": lambda s: s.upper(), "spam": lambda s: "".join(reversed(s))},
     )
     assert r.fixed == ("HELLO", "dlrow")
-    r = parse.parse("{:d}", "12", dict(d=lambda s: int(s) * 2))
+    r = parse.parse("{:d}", "12", {"d": lambda s: int(s) * 2})
     assert r.fixed == (24,)
     r = parse.parse("{:d}", "12")
     assert r.fixed == (12,)
@@ -180,25 +180,25 @@ def test_mixed():
     # pull a fixed and named values out of string
     r = parse.parse("hello {} {name} {} {spam}", "hello world and other beings")
     assert r.fixed == ("world", "other")
-    assert r.named == dict(name="and", spam="beings")
+    assert r.named == {"name": "and", "spam": "beings"}
 
 
 def test_named_typed():
     # pull a named, typed values out of string
     r = parse.parse("hello {number:d} {things}", "hello 12 people")
-    assert r.named == dict(number=12, things="people")
+    assert r.named == {"number": 12, "things": "people"}
     r = parse.parse("hello {number:w} {things}", "hello 12 people")
-    assert r.named == dict(number="12", things="people")
+    assert r.named == {"number": "12", "things": "people"}
 
 
 def test_named_aligned_typed():
     # pull a named, typed values out of string
     r = parse.parse("hello {number:<d} {things}", "hello 12      people")
-    assert r.named == dict(number=12, things="people")
+    assert r.named == {"number": 12, "things": "people"}
     r = parse.parse("hello {number:>d} {things}", "hello      12 people")
-    assert r.named == dict(number=12, things="people")
+    assert r.named == {"number": 12, "things": "people"}
     r = parse.parse("hello {number:^d} {things}", "hello      12      people")
-    assert r.named == dict(number=12, things="people")
+    assert r.named == {"number": 12, "things": "people"}
 
 
 def test_multiline():

@@ -72,7 +72,7 @@ def test_pattern_should_be_used2():
 
 
 def test_with_pattern():
-    ab_vals = dict(a=1, b=2)
+    ab_vals = {"a": 1, "b": 2}
 
     @parse.with_pattern(r"[ab]")
     def ab(text):
@@ -96,7 +96,7 @@ def test_with_pattern_and_regex_group_count():
     def parse_number(text):
         return int(text)
 
-    type_converters = dict(Number=parse_number, Unit=parse_unit)
+    type_converters = {"Number": parse_number, "Unit": parse_unit}
     # -- CASE: Unnamed-params (affected)
     parser = parse.Parser("test {:Unit}-{:Number}", type_converters)
     assert_fixed_match(parser, "test meter-10", ("meter", 10))
@@ -132,7 +132,7 @@ def test_with_pattern_and_wrong_regex_group_count_raises_error():
     ]
     for bad_regex_group_count, error_class in BAD_REGEX_GROUP_COUNTS_AND_ERRORS:
         parse_unit.regex_group_count = bad_regex_group_count  # -- OVERRIDE-HERE
-        type_converters = dict(Number=parse_number, Unit=parse_unit)
+        type_converters = {"Number": parse_number, "Unit": parse_unit}
         parser = parse.Parser("test {:Unit}-{:Number}", type_converters)
         with pytest.raises(error_class):
             parser.parse("test meter-10")
@@ -140,7 +140,7 @@ def test_with_pattern_and_wrong_regex_group_count_raises_error():
 
 def test_with_pattern_and_regex_group_count_is_none():
     # -- CORNER-CASE: Increase code-coverage.
-    data_values = dict(a=1, b=2)
+    data_values = {"a": 1, "b": 2}
 
     @parse.with_pattern(r"[ab]")
     def parse_data(text):

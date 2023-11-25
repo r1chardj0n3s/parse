@@ -339,7 +339,7 @@ with the same identifier:
     >>> def shouty(string):
     ...    return string.upper()
     ...
-    >>> parse('{:shouty} world', 'hello world', dict(shouty=shouty))
+    >>> parse('{:shouty} world', 'hello world', {"shouty": shouty})
     <Result ('HELLO',) {}>
 
 If the type converter has the optional ``pattern`` attribute, it is used as
@@ -350,9 +350,9 @@ regular expression for better pattern matching (instead of the default one):
     >>> def parse_number(text):
     ...    return int(text)
     >>> parse_number.pattern = r'\d+'
-    >>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+    >>> parse('Answer: {number:Number}', 'Answer: 42', {"Number": parse_number})
     <Result () {'number': 42}>
-    >>> _ = parse('Answer: {:Number}', 'Answer: Alice', dict(Number=parse_number))
+    >>> _ = parse('Answer: {:Number}', 'Answer: Alice', {"Number": parse_number})
     >>> assert _ is None, "MISMATCH"
 
 You can also use the ``with_pattern(pattern)`` decorator to add this
@@ -364,7 +364,7 @@ information to a type converter function:
     >>> @with_pattern(r'\d+')
     ... def parse_number(text):
     ...    return int(text)
-    >>> parse('Answer: {number:Number}', 'Answer: 42', dict(Number=parse_number))
+    >>> parse('Answer: {number:Number}', 'Answer: 42', {"Number": parse_number})
     <Result () {'number': 42}>
 
 A more complete example of a custom type might be:
@@ -390,7 +390,7 @@ in the ``with_pattern()`` decorator:
     >>> @with_pattern(r'((\d+))', regex_group_count=2)
     ... def parse_number2(text):
     ...    return int(text)
-    >>> parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', dict(Number2=parse_number2))
+    >>> parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', {"Number2": parse_number2})
     <Result (42, 43) {}>
 
 Otherwise, this may cause parsing problems with unnamed/fixed parameters.

@@ -56,11 +56,11 @@ def test_user_type_with_group_count_issue60():
         return int(text)
 
     # -- CASE: Use named (OK)
-    type_map = dict(Name=parse_word_and_covert_to_uppercase, Number=parse_number)
+    type_map = {"Name": parse_word_and_covert_to_uppercase, "Number": parse_number}
     r = parse.parse(
         "Hello {name:Name} {number:Number}", "Hello Alice 42", extra_types=type_map
     )
-    assert r.named == dict(name="ALICE", number=42)
+    assert r.named == {"name": "ALICE", "number": 42}
 
     # -- CASE: Use unnamed/fixed (problematic)
     r = parse.parse("Hello {:Name} {:Number}", "Hello Alice 42", extra_types=type_map)

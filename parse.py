@@ -141,31 +141,31 @@ class FixedTzOffset(tzinfo):
         return self._name == other._name and self._offset == other._offset
 
 
-MONTHS_MAP = dict(
-    Jan=1,
-    January=1,
-    Feb=2,
-    February=2,
-    Mar=3,
-    March=3,
-    Apr=4,
-    April=4,
-    May=5,
-    Jun=6,
-    June=6,
-    Jul=7,
-    July=7,
-    Aug=8,
-    August=8,
-    Sep=9,
-    September=9,
-    Oct=10,
-    October=10,
-    Nov=11,
-    November=11,
-    Dec=12,
-    December=12,
-)
+MONTHS_MAP = {
+    "Jan": 1,
+    "January": 1,
+    "Feb": 2,
+    "February": 2,
+    "Mar": 3,
+    "March": 3,
+    "Apr": 4,
+    "April": 4,
+    "May": 5,
+    "Jun": 6,
+    "June": 6,
+    "Jul": 7,
+    "July": 7,
+    "Aug": 8,
+    "August": 8,
+    "Sep": 9,
+    "September": 9,
+    "Oct": 10,
+    "October": 10,
+    "Nov": 11,
+    "November": 11,
+    "Dec": 12,
+    "December": 12,
+}
 DAYS_PAT = r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)"
 MONTHS_PAT = r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
 ALL_MONTHS_PAT = r"(%s)" % "|".join(MONTHS_MAP)
@@ -585,7 +585,7 @@ class Parser(object):
             named_fields[korig] = value
 
         # now figure the match spans
-        spans = dict((n, m.span(name_map[n])) for n in named_fields)
+        spans = {n: m.span(name_map[n]) for n in named_fields}
         spans.update((i, m.span(n + 1)) for i, n in enumerate(self._fixed_fields))
 
         # and that's our result

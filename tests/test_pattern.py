@@ -48,23 +48,23 @@ def test_format_variety():
             assert d.get(k) == matches[k]
 
     for t in "%obxegfdDwWsS":
-        _(t, dict(type=t))
-        _("10" + t, dict(type=t, width="10"))
-    _("05d", dict(type="d", width="5", zero=True))
-    _("<", dict(align="<"))
-    _(".<", dict(align="<", fill="."))
-    _(">", dict(align=">"))
-    _(".>", dict(align=">", fill="."))
-    _("^", dict(align="^"))
-    _(".^", dict(align="^", fill="."))
-    _("x=d", dict(type="d", align="=", fill="x"))
-    _("d", dict(type="d"))
-    _("ti", dict(type="ti"))
-    _("spam", dict(type="spam"))
+        _(t, {"type": t})
+        _("10" + t, {"type": t, "width": "10"})
+    _("05d", {"type": "d", "width": "5", "zero": True})
+    _("<", {"align": "<"})
+    _(".<", {"align": "<", "fill": "."})
+    _(">", {"align": ">"})
+    _(".>", {"align": ">", "fill": "."})
+    _("^", {"align": "^"})
+    _(".^", {"align": "^", "fill": "."})
+    _("x=d", {"type": "d", "align": "=", "fill": "x"})
+    _("d", {"type": "d"})
+    _("ti", {"type": "ti"})
+    _("spam", {"type": "spam"})
 
-    _(".^010d", dict(type="d", width="10", align="^", fill=".", zero=True))
-    _(".2f", dict(type="f", precision="2"))
-    _("10.2f", dict(type="f", width="10", precision="2"))
+    _(".^010d", {"type": "d", "width": "10", "align": "^", "fill": ".", "zero": True})
+    _(".2f", {"type": "f", "precision": "2"})
+    _("10.2f", {"type": "f", "width": "10", "precision": "2"})
 
 
 def test_dot_separated_fields():
