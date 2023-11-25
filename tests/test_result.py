@@ -19,7 +19,7 @@ def test_slice_access():
     assert r[-5:5] == (1, 2, 3, 4)
     assert r[:4:2] == (1, 3)
     assert r[::-2] == (4, 2)
-    assert r[5:10] == tuple()
+    assert r[5:10] == ()
 
 
 def test_named_access():

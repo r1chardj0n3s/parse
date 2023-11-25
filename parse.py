@@ -342,8 +342,7 @@ class RepeatedNameError(ValueError):
 
 
 # note: {} are handled separately
-# note: I don't use r'' here because Sublime Text 2 syntax highlight has a fit
-REGEX_SAFETY = re.compile(r"([?\\\\.[\]()*+\^$!\|])")
+REGEX_SAFETY = re.compile(r"([?\\.[\]()*+^$!|])")
 
 # allowed field types
 ALLOWED_TYPES = set(list("nbox%fFegwWdDsSl") + ["t" + c for c in "ieahgcts"])
@@ -399,7 +398,7 @@ def extract_format(format, extra_types):
     return locals()
 
 
-PARSE_RE = re.compile(r"""({{|}}|{\w*(?:(?:\.\w+)|(?:\[[^\]]+\]))*(?::[^}]+)?})""")
+PARSE_RE = re.compile(r"({{|}}|{\w*(?:\.\w+|\[[^]]+])*(?::[^}]+)?})")
 
 
 class Parser(object):
@@ -407,7 +406,7 @@ class Parser(object):
 
     def __init__(self, format, extra_types=None, case_sensitive=False):
         # a mapping of a name as in {hello.world} to a regex-group compatible
-        # name, like hello__world Its used to prevent the transformation of
+        # name, like hello__world. It's used to prevent the transformation of
         # name-to-group and group to name to fail subtly, such as in:
         # hello_.world-> hello___world->hello._world
         self._group_to_name_map = {}
@@ -553,7 +552,7 @@ class Parser(object):
             k = basename
 
             if subkeys:
-                for subkey in re.findall(r"\[[^\]]+\]", subkeys):
+                for subkey in re.findall(r"\[[^]]+]", subkeys):
                     d = d.setdefault(k, {})
                     k = subkey[1:-1]
 
