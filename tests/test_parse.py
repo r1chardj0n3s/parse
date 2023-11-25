@@ -1170,6 +1170,14 @@ class TestParseType(unittest.TestCase):
         self.assertEqual(parser.parse("0b1011")[0], 0b1011)
 
 
+def test_strftime_strptime_roundtrip():
+    dt = datetime.now()
+    fmt = "_".join([k for k in parse.dt_format_to_regex if k != "%z"])
+    s = dt.strftime(fmt)
+    [res] = parse.parse("{:" + fmt + "}", s)
+    assert res == dt
+
+
 if __name__ == "__main__":
     unittest.main()
 
