@@ -209,7 +209,7 @@ tt    Time                                        time
 The type can also be a datetime format string, following the
 `1989 C standard format codes`_, e.g. ``%Y-%m-%d``. Depending on the
 directives contained in the format string, parsed output may be an instance
-``datetime.datetime``, ``datetime.time``, or ``datetime.date``.
+of ``datetime.datetime``, ``datetime.time``, or ``datetime.date``.
 
 .. code-block:: pycon
 
