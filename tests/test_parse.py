@@ -531,6 +531,7 @@ class TestParse(object):
                 pytest.fail("%r matched %r" % (fmt, s))
 
         utc = parse.FixedTzOffset(0, "UTC")
+        assert repr(utc) == '<FixedTzOffset UTC 0:00:00>'
         aest = parse.FixedTzOffset(10 * 60, "+1000")
         tz60 = parse.FixedTzOffset(60, "+01:00")
 
