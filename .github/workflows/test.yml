@@ -31,12 +31,12 @@ jobs:
           pip install -r tests/requirements.txt --editable .
           pytest
       - name: Upload coverage to Codecov
-        uses: "codecov/codecov-action@v3"
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   tests-27:
-    name: "Python 2.7 on ubuntu-20.04"
+    name: Python 2.7 on ubuntu-20.04
     runs-on: ubuntu-20.04
     container:
       image: python:2.7-buster
@@ -47,6 +47,6 @@ jobs:
           pip install -r tests/requirements.txt
           python -m pytest
       - name: Upload coverage to Codecov
-        uses: "codecov/codecov-action@v3"
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

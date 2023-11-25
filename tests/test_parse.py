@@ -5,56 +5,55 @@ This code is copyright 2011 eKit.com Inc (http://www.ekit.com/)
 See the end of the source file for the license of use.
 """
 import sys
-import unittest
 from datetime import datetime, time, date
 from decimal import Decimal
 import pickle
 import re
 
+import pytest
+
 import parse
 
 
-class TestPattern(unittest.TestCase):
-    def _test_expression(self, format, expression):
-        self.assertEqual(parse.Parser(format)._expression, expression)
+def _test_expression(format, expression):
+    assert parse.Parser(format)._expression == expression
+
+
+class TestPattern(object):
 
     def test_braces(self):
         # pull a simple string out of another string
-        self._test_expression("{{ }}", r"\{ \}")
+        _test_expression("{{ }}", r"\{ \}")
 
     def test_fixed(self):
         # pull a simple string out of another string
-        self._test_expression("{}", r"(.+?)")
-        self._test_expression("{} {}", r"(.+?) (.+?)")
+        _test_expression("{}", r"(.+?)")
+        _test_expression("{} {}", r"(.+?) (.+?)")
 
     def test_named(self):
         # pull a named string out of another string
-        self._test_expression("{name}", r"(?P<name>.+?)")
-        self._test_expression("{name} {other}", r"(?P<name>.+?) (?P<other>.+?)")
+        _test_expression("{name}", r"(?P<name>.+?)")
+        _test_expression("{name} {other}", r"(?P<name>.+?) (?P<other>.+?)")
 
     def test_named_typed(self):
         # pull a named string out of another string
-        self._test_expression("{name:w}", r"(?P<name>\w+)")
-        self._test_expression("{name:w} {other:w}", r"(?P<name>\w+) (?P<other>\w+)")
+        _test_expression("{name:w}", r"(?P<name>\w+)")
+        _test_expression("{name:w} {other:w}", r"(?P<name>\w+) (?P<other>\w+)")
 
     def test_numbered(self):
-        self._test_expression("{0}", r"(.+?)")
-        self._test_expression("{0} {1}", r"(.+?) (.+?)")
-        self._test_expression("{0:f} {1:f}", r"([-+ ]?\d*\.\d+) ([-+ ]?\d*\.\d+)")
+        _test_expression("{0}", r"(.+?)")
+        _test_expression("{0} {1}", r"(.+?) (.+?)")
+        _test_expression("{0:f} {1:f}", r"([-+ ]?\d*\.\d+) ([-+ ]?\d*\.\d+)")
 
     def test_bird(self):
         # skip some trailing whitespace
-        self._test_expression("{:>}", r" *(.+?)")
+        _test_expression("{:>}", r" *(.+?)")
 
     def test_format_variety(self):
         def _(fmt, matches):
             d = parse.extract_format(fmt, {"spam": "spam"})
             for k in matches:
-                self.assertEqual(
-                    d.get(k),
-                    matches[k],
-                    'm["%s"]=%r, expect %r' % (k, d.get(k), matches[k]),
-                )
+                assert d.get(k) == matches[k]
 
         for t in "%obxegfdDwWsS":
             _(t, dict(type=t))
@@ -97,136 +96,139 @@ class TestPattern(unittest.TestCase):
         assert res.named["a___b"] == "d"
 
     def test_invalid_groupnames_are_handled_gracefully(self):
-        self.assertRaises(
-            NotImplementedError, parse.parse, "{hello['world']}", "doesn't work"
-        )
+        with pytest.raises(NotImplementedError):
+            parse.parse("{hello['world']}", "doesn't work")
 
 
-class TestResult(unittest.TestCase):
+class TestResult(object):
     def test_fixed_access(self):
         r = parse.Result((1, 2), {}, None)
-        self.assertEqual(r[0], 1)
-        self.assertEqual(r[1], 2)
-        self.assertRaises(IndexError, r.__getitem__, 2)
-        self.assertRaises(KeyError, r.__getitem__, "spam")
+        assert r[0] == 1
+        assert r[1] == 2
+        with pytest.raises(IndexError):
+            r[2]
+        with pytest.raises(KeyError):
+            r["spam"]
 
     def test_slice_access(self):
         r = parse.Result((1, 2, 3, 4), {}, None)
-        self.assertEqual(r[1:3], (2, 3))
-        self.assertEqual(r[-5:5], (1, 2, 3, 4))
-        self.assertEqual(r[:4:2], (1, 3))
-        self.assertEqual(r[::-2], (4, 2))
-        self.assertEqual(r[5:10], tuple())
+        assert r[1:3] == (2, 3)
+        assert r[-5:5] == (1, 2, 3, 4)
+        assert r[:4:2] == (1, 3)
+        assert r[::-2] == (4, 2)
+        assert r[5:10] == tuple()
 
     def test_named_access(self):
         r = parse.Result((), {"spam": "ham"}, None)
-        self.assertEqual(r["spam"], "ham")
-        self.assertRaises(KeyError, r.__getitem__, "ham")
-        self.assertRaises(IndexError, r.__getitem__, 0)
+        assert r["spam"] == "ham"
+        with pytest.raises(KeyError):
+            r["ham"]
+        with pytest.raises(IndexError):
+            r[0]
 
     def test_contains(self):
         r = parse.Result(("cat",), {"spam": "ham"}, None)
-        self.assertTrue("spam" in r)
-        self.assertTrue("cat" not in r)
-        self.assertTrue("ham" not in r)
+        assert "spam" in r
+        assert "cat" not in r
+        assert "ham" not in r
 
 
-class TestParse(unittest.TestCase):
+class TestParse(object):
     def test_no_match(self):
         # string does not match format
-        self.assertEqual(parse.parse("{{hello}}", "hello"), None)
+        assert parse.parse("{{hello}}", "hello") is None
 
     def test_nothing(self):
         # do no actual parsing
         r = parse.parse("{{hello}}", "{hello}")
-        self.assertEqual(r.fixed, ())
-        self.assertEqual(r.named, {})
+        assert r.fixed == ()
+        assert r.named == {}
 
     def test_no_evaluate_result(self):
         # pull a fixed value out of string
         match = parse.parse("hello {}", "hello world", evaluate_result=False)
         r = match.evaluate_result()
-        self.assertEqual(r.fixed, ("world",))
+        assert r.fixed == ("world",)
 
     def test_regular_expression(self):
         # match an actual regular expression
         s = r"^(hello\s[wW]{}!+.*)$"
         e = s.replace("{}", "orld")
         r = parse.parse(s, e)
-        self.assertEqual(r.fixed, ("orld",))
+        assert r.fixed == ("orld",)
         e = s.replace("{}", ".*?")
         r = parse.parse(s, e)
-        self.assertEqual(r.fixed, (".*?",))
+        assert r.fixed == (".*?",)
 
     def test_question_mark(self):
         # issue9: make sure a ? in the parse string is handled correctly
         r = parse.parse('"{}"?', '"teststr"?')
-        self.assertEqual(r[0], "teststr")
+        assert r[0] == "teststr"
 
     def test_pipe(self):
         # issue22: make sure a | in the parse string is handled correctly
         r = parse.parse("| {}", "| teststr")
-        self.assertEqual(r[0], "teststr")
+        assert r[0] == "teststr"
 
     def test_unicode(self):
         # issue29: make sure unicode is parsable
         r = parse.parse("{}", "t€ststr")
-        self.assertEqual(r[0], "t€ststr")
+        assert r[0] == "t€ststr"
 
     def test_hexadecimal(self):
         # issue42: make sure bare hexadecimal isn't matched as "digits"
         r = parse.parse("{:d}", "abcdef")
-        self.assertIsNone(r)
+        assert r is None
 
     def test_fixed(self):
         # pull a fixed value out of string
         r = parse.parse("hello {}", "hello world")
-        self.assertEqual(r.fixed, ("world",))
+        assert r.fixed == ("world",)
 
     def test_left(self):
         # pull left-aligned text out of string
         r = parse.parse("{:<} world", "hello       world")
-        self.assertEqual(r.fixed, ("hello",))
+        assert r.fixed == ("hello",)
 
     def test_right(self):
         # pull right-aligned text out of string
         r = parse.parse("hello {:>}", "hello       world")
-        self.assertEqual(r.fixed, ("world",))
+        assert r.fixed == ("world",)
 
     def test_center(self):
         # pull center-aligned text out of string
         r = parse.parse("hello {:^} world", "hello  there     world")
-        self.assertEqual(r.fixed, ("there",))
+        assert r.fixed == ("there",)
 
     def test_typed(self):
         # pull a named, typed values out of string
         r = parse.parse("hello {:d} {:w}", "hello 12 people")
-        self.assertEqual(r.fixed, (12, "people"))
+        assert r.fixed == (12, "people")
         r = parse.parse("hello {:w} {:w}", "hello 12 people")
-        self.assertEqual(r.fixed, ("12", "people"))
+        assert r.fixed == ("12", "people")
 
     def test_sign(self):
         # sign is ignored
         r = parse.parse("Pi = {:.7f}", "Pi = 3.1415926")
-        self.assertEqual(r.fixed, (3.1415926,))
+        assert r.fixed == (3.1415926,)
         r = parse.parse("Pi = {:+.7f}", "Pi = 3.1415926")
-        self.assertEqual(r.fixed, (3.1415926,))
+        assert r.fixed == (3.1415926,)
         r = parse.parse("Pi = {:-.7f}", "Pi = 3.1415926")
-        self.assertEqual(r.fixed, (3.1415926,))
+        assert r.fixed == (3.1415926,)
         r = parse.parse("Pi = {: .7f}", "Pi = 3.1415926")
-        self.assertEqual(r.fixed, (3.1415926,))
+        assert r.fixed == (3.1415926,)
 
     def test_precision(self):
         # pull a float out of a string
         r = parse.parse("Pi = {:.7f}", "Pi = 3.1415926")
-        self.assertEqual(r.fixed, (3.1415926,))
+        assert r.fixed == (3.1415926,)
         r = parse.parse("Pi/10 = {:8.5f}", "Pi/10 =  0.31415")
-        self.assertEqual(r.fixed, (0.31415,))
+        assert r.fixed == (0.31415,)
         # float may have not leading zero
         r = parse.parse("Pi/10 = {:8.5f}", "Pi/10 =  .31415")
-        self.assertEqual(r.fixed, (0.31415,))
+        assert r.fixed == (0.31415,)
         r = parse.parse("Pi/10 = {:8.5f}", "Pi/10 = -.31415")
-        self.assertEqual(r.fixed, (-0.31415,))
+        assert r.fixed == (-0.31415,)
 
     def test_custom_type(self):
         # use a custom type
@@ -235,96 +237,95 @@ class TestParse(unittest.TestCase):
             "hello world",
             dict(shouty=lambda s: s.upper(), spam=lambda s: "".join(reversed(s))),
         )
-        self.assertEqual(r.fixed, ("HELLO", "dlrow"))
+        assert r.fixed == ("HELLO", "dlrow")
         r = parse.parse("{:d}", "12", dict(d=lambda s: int(s) * 2))
-        self.assertEqual(r.fixed, (24,))
+        assert r.fixed == (24,)
         r = parse.parse("{:d}", "12")
-        self.assertEqual(r.fixed, (12,))
+        assert r.fixed == (12,)
 
     def test_typed_fail(self):
         # pull a named, typed values out of string
-        self.assertEqual(parse.parse("hello {:d} {:w}", "hello people 12"), None)
+        assert parse.parse("hello {:d} {:w}", "hello people 12") is None
 
     def test_named(self):
         # pull a named value out of string
         r = parse.parse("hello {name}", "hello world")
-        self.assertEqual(r.named, {"name": "world"})
+        assert r.named == {"name": "world"}
 
     def test_named_repeated(self):
         # test a name may be repeated
         r = parse.parse("{n} {n}", "x x")
-        self.assertEqual(r.named, {"n": "x"})
+        assert r.named == {"n": "x"}
 
     def test_named_repeated_type(self):
         # test a name may be repeated with type conversion
         r = parse.parse("{n:d} {n:d}", "1 1")
-        self.assertEqual(r.named, {"n": 1})
+        assert r.named == {"n": 1}
 
     def test_named_repeated_fail_value(self):
         # test repeated name fails if value mismatches
         r = parse.parse("{n} {n}", "x y")
-        self.assertEqual(r, None)
+        assert r is None
 
     def test_named_repeated_type_fail_value(self):
         # test repeated name with type conversion fails if value mismatches
         r = parse.parse("{n:d} {n:d}", "1 2")
-        self.assertEqual(r, None)
+        assert r is None
 
     def test_named_repeated_type_mismatch(self):
         # test repeated name with mismatched type
-        self.assertRaises(parse.RepeatedNameError, parse.compile, "{n:d} {n:w}")
+        with pytest.raises(parse.RepeatedNameError):
+            parse.compile("{n:d} {n:w}")
 
     def test_mixed(self):
         # pull a fixed and named values out of string
         r = parse.parse("hello {} {name} {} {spam}", "hello world and other beings")
-        self.assertEqual(r.fixed, ("world", "other"))
-        self.assertEqual(r.named, dict(name="and", spam="beings"))
+        assert r.fixed == ("world", "other")
+        assert r.named == dict(name="and", spam="beings")
 
     def test_named_typed(self):
         # pull a named, typed values out of string
         r = parse.parse("hello {number:d} {things}", "hello 12 people")
-        self.assertEqual(r.named, dict(number=12, things="people"))
+        assert r.named == dict(number=12, things="people")
         r = parse.parse("hello {number:w} {things}", "hello 12 people")
-        self.assertEqual(r.named, dict(number="12", things="people"))
+        assert r.named == dict(number="12", things="people")
 
     def test_named_aligned_typed(self):
         # pull a named, typed values out of string
         r = parse.parse("hello {number:<d} {things}", "hello 12      people")
-        self.assertEqual(r.named, dict(number=12, things="people"))
+        assert r.named == dict(number=12, things="people")
         r = parse.parse("hello {number:>d} {things}", "hello      12 people")
-        self.assertEqual(r.named, dict(number=12, things="people"))
+        assert r.named == dict(number=12, things="people")
         r = parse.parse("hello {number:^d} {things}", "hello      12      people")
-        self.assertEqual(r.named, dict(number=12, things="people"))
+        assert r.named == dict(number=12, things="people")
 
     def test_multiline(self):
         r = parse.parse("hello\n{}\nworld", "hello\nthere\nworld")
-        self.assertEqual(r.fixed[0], "there")
+        assert r.fixed[0] == "there"
 
     def test_spans(self):
         # test the string sections our fields come from
         string = "hello world"
         r = parse.parse("hello {}", string)
-        self.assertEqual(r.spans, {0: (6, 11)})
+        assert r.spans == {0: (6, 11)}
         start, end = r.spans[0]
-        self.assertEqual(string[start:end], r.fixed[0])
+        assert string[start:end] == r.fixed[0]
 
         string = "hello     world"
         r = parse.parse("hello {:>}", string)
-        self.assertEqual(r.spans, {0: (10, 15)})
+        assert r.spans == {0: (10, 15)}
         start, end = r.spans[0]
-        self.assertEqual(string[start:end], r.fixed[0])
+        assert string[start:end] == r.fixed[0]
 
         string = "hello 0x12 world"
         r = parse.parse("hello {val:x} world", string)
-        self.assertEqual(r.spans, {"val": (6, 10)})
+        assert r.spans == {"val": (6, 10)}
         start, end = r.spans["val"]
-        self.assertEqual(string[start:end], "0x%x" % r.named["val"])
+        assert string[start:end] == "0x%x" % r.named["val"]
 
         string = "hello world and other beings"
         r = parse.parse("hello {} {name} {} {spam}", string)
-        self.assertEqual(
-            r.spans, {0: (6, 11), "name": (12, 15), 1: (16, 21), "spam": (22, 28)}
-        )
+        assert r.spans == {0: (6, 11), "name": (12, 15), 1: (16, 21), "spam": (22, 28)}
 
     def test_numbers(self):
         # pull a numbers out of a string
@@ -332,18 +333,16 @@ class TestParse(unittest.TestCase):
             p = parse.compile(fmt)
             r = p.parse(s)
             if r is None:
-                self.fail("%r (%r) did not match %r" % (fmt, p._expression, s))
+                pytest.fail("%r (%r) did not match %r" % (fmt, p._expression, s))
             r = r.fixed[0]
             if str_equals:
-                self.assertEqual(
-                    str(r), str(e), "%r found %r in %r, not %r" % (fmt, r, s, e)
-                )
+                assert str(r) == str(e)
             else:
-                self.assertEqual(r, e, "%r found %r in %r, not %r" % (fmt, r, s, e))
+                assert r == e
 
         def n(fmt, s, e):
             if parse.parse(fmt, s) is not None:
-                self.fail("%r matched %r" % (fmt, s))
+                pytest.fail("%r matched %r" % (fmt, s))
 
         y("a {:d} b", "a 0 b", 0)
         y("a {:d} b", "a 12 b", 12)
@@ -440,102 +439,96 @@ class TestParse(unittest.TestCase):
 
     def test_two_datetimes(self):
         r = parse.parse("a {:ti} {:ti} b", "a 1997-07-16 2012-08-01 b")
-        self.assertEqual(len(r.fixed), 2)
-        self.assertEqual(r[0], datetime(1997, 7, 16))
-        self.assertEqual(r[1], datetime(2012, 8, 1))
+        assert len(r.fixed) == 2
+        assert r[0] == datetime(1997, 7, 16)
+        assert r[1] == datetime(2012, 8, 1)
 
     def test_flexible_datetimes(self):
         r = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
-        self.assertEqual(len(r.fixed), 1)
-        self.assertEqual(r[0], date(1997, 7, 16))
+        assert len(r.fixed) == 1
+        assert r[0] == date(1997, 7, 16)
 
         r = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
-        self.assertEqual(len(r.fixed), 1)
-        self.assertEqual(r[0], date(1997, 2, 16))
+        assert len(r.fixed) == 1
+        assert r[0] == date(1997, 2, 16)
 
         r = parse.parse("a {:%Y-%b-%d} {:d} b", "a 1997-Feb-16 8 b")
-        self.assertEqual(len(r.fixed), 2)
-        self.assertEqual(r[0], date(1997, 2, 16))
+        assert len(r.fixed) == 2
+        assert r[0] == date(1997, 2, 16)
 
         r = parse.parse("a {my_date:%Y-%b-%d} {num:d} b", "a 1997-Feb-16 8 b")
-        self.assertEqual((r.named["my_date"]), date(1997, 2, 16))
-        self.assertEqual((r.named["num"]), 8)
+        assert (r.named["my_date"]) == date(1997, 2, 16)
+        assert (r.named["num"]) == 8
 
         r = parse.parse("a {:%Y-%B-%d} b", "a 1997-February-16 b")
-        self.assertEqual(r[0], date(1997, 2, 16))
+        assert r[0] == date(1997, 2, 16)
 
         r = parse.parse("a {:%Y%m%d} b", "a 19970716 b")
-        self.assertEqual(r[0], date(1997, 7, 16))
+        assert r[0] == date(1997, 7, 16)
 
     def test_flexible_datetime_with_colon(self):
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S}", "2023-11-21 13:23:27")
-        self.assertEqual(r.named["dt"], datetime(2023, 11, 21, 13, 23, 27))
+        assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27)
 
-    @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
+    @pytest.mark.skipif(sys.version_info[0] < 3, reason="Python 3+ required for timezone support")
     def test_flexible_datetime_with_timezone(self):
         from datetime import timezone
 
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +0000")
-        self.assertEqual(
-            r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
-        )
+        assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
 
-    @unittest.skipIf(sys.version_info[0] < 3, "Python 3+ required for timezone support")
+    @pytest.mark.skipif(sys.version_info[0] < 3, reason="Python 3+ required for timezone support")
     def test_flexible_datetime_with_timezone_that_has_colons(self):
         from datetime import timezone
 
         r = parse.parse("{dt:%Y-%m-%d %H:%M:%S %z}", "2023-11-21 13:23:27 +00:00:00")
-        self.assertEqual(
-            r.named["dt"], datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
-        )
+        assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, tzinfo=timezone.utc)
 
     def test_flexible_time(self):
         r = parse.parse("a {time:%H:%M:%S} b", "a 13:23:27 b")
-        self.assertEqual(r.named["time"], time(13, 23, 27))
+        assert r.named["time"] == time(13, 23, 27)
 
     def test_flexible_time_no_hour(self):
         r = parse.parse("a {time:%M:%S} b", "a 23:27 b")
-        self.assertEqual(r.named["time"], time(0, 23, 27))
+        assert r.named["time"] == time(0, 23, 27)
 
     def test_flexible_time_ms(self):
         r = parse.parse("a {time:%M:%S:%f} b", "a 23:27:123456 b")
-        self.assertEqual(r.named["time"], time(0, 23, 27, 123456))
+        assert r.named["time"] == time(0, 23, 27, 123456)
 
     def test_flexible_dates_single_digit(self):
         r = parse.parse("{dt:%Y/%m/%d}", "2023/1/1")
-        self.assertEqual(r.named["dt"], date(2023, 1, 1))
+        assert r.named["dt"] == date(2023, 1, 1)
 
     def test_flexible_dates_j(self):
         r = parse.parse("{dt:%Y/%j}", "2023/9")
-        self.assertEqual(r.named["dt"], date(2023, 1, 9))
+        assert r.named["dt"] == date(2023, 1, 9)
 
         r = parse.parse("{dt:%Y/%j}", "2023/009")
-        self.assertEqual(r.named["dt"], date(2023, 1, 9))
+        assert r.named["dt"] == date(2023, 1, 9)
 
     def test_flexible_dates_year_current_year_inferred(self):
         r = parse.parse("{dt:%j}", "9")
-        self.assertEqual(r.named["dt"], date(datetime.today().year, 1, 9))
+        assert r.named["dt"] == date(datetime.today().year, 1, 9)
 
     def test_datetimes(self):
         def y(fmt, s, e, tz=None):
             p = parse.compile(fmt)
             r = p.parse(s)
             if r is None:
-                self.fail("%r (%r) did not match %r" % (fmt, p._expression, s))
+                pytest.fail("%r (%r) did not match %r" % (fmt, p._expression, s))
             r = r.fixed[0]
             try:
-                self.assertEqual(r, e, "%r found %r in %r, not %r" % (fmt, r, s, e))
+                assert r == e, "%r found %r in %r, not %r" % (fmt, r, s, e)
             except ValueError:
-                self.fail("%r found %r in %r, not %r" % (fmt, r, s, e))
+                pytest.fail("%r found %r in %r, not %r" % (fmt, r, s, e))
 
             if tz is not None:
-                self.assertEqual(
-                    r.tzinfo, tz, "%r found TZ %r in %r, not %r" % (fmt, r.tzinfo, s, e)
-                )
+                assert r.tzinfo == tz, "%r found TZ %r in %r, not %r" % (fmt, r.tzinfo, s, e)
 
         def n(fmt, s, e):
             if parse.parse(fmt, s) is not None:
-                self.fail("%r matched %r" % (fmt, s))
+                pytest.fail("%r matched %r" % (fmt, s))
 
         utc = parse.FixedTzOffset(0, "UTC")
         aest = parse.FixedTzOffset(10 * 60, "+1000")
@@ -689,19 +682,19 @@ class TestParse(unittest.TestCase):
     def test_datetime_group_count(self):
         # test we increment the group count correctly for datetimes
         r = parse.parse("{:ti} {}", "1972-01-01 spam")
-        self.assertEqual(r.fixed[1], "spam")
+        assert r.fixed[1] == "spam"
         r = parse.parse("{:tg} {}", "1-1-1972 spam")
-        self.assertEqual(r.fixed[1], "spam")
+        assert r.fixed[1] == "spam"
         r = parse.parse("{:ta} {}", "1-1-1972 spam")
-        self.assertEqual(r.fixed[1], "spam")
+        assert r.fixed[1] == "spam"
         r = parse.parse("{:th} {}", "21/Nov/2011:10:21:36 +1000 spam")
-        self.assertEqual(r.fixed[1], "spam")
+        assert r.fixed[1] == "spam"
         r = parse.parse("{:te} {}", "21 Nov 2011 10:21:36 +1000 spam")
-        self.assertEqual(r.fixed[1], "spam")
+        assert r.fixed[1] == "spam"
         r = parse.parse("{:tc} {}", "Mon Nov 21 10:21:36 2011 spam")
-        self.assertEqual(r.fixed[1], "spam")
+        assert r.fixed[1] == "spam"
         r = parse.parse("{:tt} {}", "10:21 spam")
-        self.assertEqual(r.fixed[1], "spam")
+        assert r.fixed[1] == "spam"
 
     def test_mixed_types(self):
         # stress-test: pull one of everything out of a string
@@ -753,8 +746,8 @@ class TestParse(unittest.TestCase):
             final value: spam
         """,
         )
-        self.assertNotEqual(r, None)
-        self.assertEqual(r.fixed[22], "spam")
+        assert r is not None
+        assert r.fixed[22] == "spam"
 
     def test_mixed_type_variant(self):
         r = parse.parse(
@@ -805,8 +798,8 @@ class TestParse(unittest.TestCase):
             final value: spam
         """,
         )
-        self.assertNotEqual(r, None)
-        self.assertEqual(r.fixed[21], "spam")
+        assert r is not None
+        assert r.fixed[21] == "spam"
 
     def test_too_many_fields(self):
         # Python 3.5 removed the limit of 100 named groups in a regular expression,
@@ -815,50 +808,51 @@ class TestParse(unittest.TestCase):
             re.compile("".join("(?P<n{n}>{n}-)".format(n=i) for i in range(101)))
         except AssertionError:
             p = parse.compile("{:ti}" * 15)
-            self.assertRaises(parse.TooManyFields, p.parse, "")
+            with pytest.raises(parse.TooManyFields):
+                p.parse("")
 
     def test_letters(self):
         res = parse.parse("{:l}", "")
-        self.assertIsNone(res)
+        assert res is None
         res = parse.parse("{:l}", "sPaM")
-        self.assertEqual(res.fixed, ("sPaM",))
+        assert res.fixed == ("sPaM",)
         res = parse.parse("{:l}", "sP4M")
-        self.assertIsNone(res)
+        assert res is None
         res = parse.parse("{:l}", "sP_M")
-        self.assertIsNone(res)
+        assert res is None
 
 
-class TestSearch(unittest.TestCase):
+class TestSearch(object):
     def test_basic(self):
         # basic search() test
         r = parse.search("a {} c", " a b c ")
-        self.assertEqual(r.fixed, ("b",))
+        assert r.fixed == ("b",)
 
     def test_multiline(self):
         # multiline search() test
         r = parse.search("age: {:d}\n", "name: Rufus\nage: 42\ncolor: red\n")
-        self.assertEqual(r.fixed, (42,))
+        assert r.fixed == (42,)
 
     def test_pos(self):
         # basic search() test
         r = parse.search("a {} c", " a b c ", 2)
-        self.assertEqual(r, None)
+        assert r is None
 
     def test_no_evaluate_result(self):
         match = parse.search(
             "age: {:d}\n", "name: Rufus\nage: 42\ncolor: red\n", evaluate_result=False
         )
         r = match.evaluate_result()
-        self.assertEqual(r.fixed, (42,))
+        assert r.fixed == (42,)
 
 
-class TestFindall(unittest.TestCase):
+class TestFindall(object):
     def test_findall(self):
         # basic findall() test
         s = "".join(
             r.fixed[0] for r in parse.findall(">{}<", "<p>some <b>bold</b> text</p>")
         )
-        self.assertEqual(s, "some bold text")
+        assert s == "some bold text"
 
     def test_no_evaluate_result(self):
         # basic findall() test
@@ -868,53 +862,53 @@ class TestFindall(unittest.TestCase):
                 ">{}<", "<p>some <b>bold</b> text</p>", evaluate_result=False
             )
         )
-        self.assertEqual(s, "some bold text")
+        assert s == "some bold text"
 
     def test_case_sensitivity(self):
         l = [r.fixed[0] for r in parse.findall("x({})x", "X(hi)X")]
-        self.assertEqual(l, ["hi"])
+        assert l == ["hi"]
 
         l = [r.fixed[0] for r in parse.findall("x({})x", "X(hi)X", case_sensitive=True)]
-        self.assertEqual(l, [])
+        assert l == []
 
 
-class TestBugs(unittest.TestCase):
+class TestBugs(object):
     def test_tz_compare_to_None(self):
         utc = parse.FixedTzOffset(0, "UTC")
-        self.assertNotEqual(utc, None)
-        self.assertNotEqual(utc, "spam")
+        assert utc is not None
+        assert utc != "spam"
 
     def test_named_date_issue7(self):
         r = parse.parse("on {date:ti}", "on 2012-09-17")
-        self.assertEqual(r["date"], datetime(2012, 9, 17, 0, 0, 0))
+        assert r["date"] == datetime(2012, 9, 17, 0, 0, 0)
 
         # fix introduced regressions
         r = parse.parse("a {:ti} b", "a 1997-07-16T19:20 b")
-        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, 0))
+        assert r[0] == datetime(1997, 7, 16, 19, 20, 0)
         r = parse.parse("a {:ti} b", "a 1997-07-16T19:20Z b")
         utc = parse.FixedTzOffset(0, "UTC")
-        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
+        assert r[0] == datetime(1997, 7, 16, 19, 20, tzinfo=utc)
         r = parse.parse("a {date:ti} b", "a 1997-07-16T19:20Z b")
-        self.assertEqual(r["date"], datetime(1997, 7, 16, 19, 20, tzinfo=utc))
+        assert r["date"] == datetime(1997, 7, 16, 19, 20, tzinfo=utc)
 
     def test_dotted_type_conversion_pull_8(self):
         # test pull request 8 which fixes type conversion related to dotted
         # names being applied correctly
         r = parse.parse("{a.b:d}", "1")
-        self.assertEqual(r["a.b"], 1)
+        assert r["a.b"] == 1
         r = parse.parse("{a_b:w} {a.b:d}", "1 2")
-        self.assertEqual(r["a_b"], "1")
-        self.assertEqual(r["a.b"], 2)
+        assert r["a_b"] == "1"
+        assert r["a.b"] == 2
 
     def test_pm_overflow_issue16(self):
         r = parse.parse("Meet at {:tg}", "Meet at 1/2/2011 12:45 PM")
-        self.assertEqual(r[0], datetime(2011, 2, 1, 12, 45))
+        assert r[0] == datetime(2011, 2, 1, 12, 45)
 
     def test_pm_handling_issue57(self):
         r = parse.parse("Meet at {:tg}", "Meet at 1/2/2011 12:15 PM")
-        self.assertEqual(r[0], datetime(2011, 2, 1, 12, 15))
+        assert r[0] == datetime(2011, 2, 1, 12, 15)
         r = parse.parse("Meet at {:tg}", "Meet at 1/2/2011 12:15 AM")
-        self.assertEqual(r[0], datetime(2011, 2, 1, 0, 15))
+        assert r[0] == datetime(2011, 2, 1, 0, 15)
 
     def test_user_type_with_group_count_issue60(self):
         @parse.with_pattern(r"((\w+))", regex_group_count=2)
@@ -930,18 +924,18 @@ class TestBugs(unittest.TestCase):
         r = parse.parse(
             "Hello {name:Name} {number:Number}", "Hello Alice 42", extra_types=type_map
         )
-        self.assertEqual(r.named, dict(name="ALICE", number=42))
+        assert r.named == dict(name="ALICE", number=42)
 
         # -- CASE: Use unnamed/fixed (problematic)
         r = parse.parse(
             "Hello {:Name} {:Number}", "Hello Alice 42", extra_types=type_map
         )
-        self.assertEqual(r[0], "ALICE")
-        self.assertEqual(r[1], 42)
+        assert r[0] == "ALICE"
+        assert r[1] == 42
 
     def test_unmatched_brace_doesnt_match(self):
         r = parse.parse("{who.txt", "hello")
-        self.assertIsNone(r)
+        assert r is None
 
     def test_pickling_bug_110(self):
         p = parse.compile("{a:d}")
@@ -950,45 +944,47 @@ class TestBugs(unittest.TestCase):
 
     def test_unused_centered_alignment_bug(self):
         r = parse.parse("{:^2S}", "foo")
-        self.assertEqual(r[0], "foo")
+        assert r[0] == "foo"
         r = parse.search("{:^2S}", "foo")
-        self.assertEqual(r[0], "foo")
+        assert r[0] == "foo"
 
         # specifically test for the case in issue #118 as well
         r = parse.parse("Column {:d}:{:^}", "Column 1: Timestep")
-        self.assertEqual(r[0], 1)
-        self.assertEqual(r[1], "Timestep")
+        assert r[0] == 1
+        assert r[1] == "Timestep"
 
     def test_unused_left_alignment_bug(self):
         r = parse.parse("{:<2S}", "foo")
-        self.assertEqual(r[0], "foo")
+        assert r[0] == "foo"
         r = parse.search("{:<2S}", "foo")
-        self.assertEqual(r[0], "foo")
+        assert r[0] == "foo"
 
     def test_match_trailing_newline(self):
         r = parse.parse("{}", "test\n")
-        self.assertEqual(r[0], "test\n")
+        assert r[0] == "test\n"
 
 
-# -----------------------------------------------------------------------------
-# TEST SUPPORT FOR: TestParseType
-# -----------------------------------------------------------------------------
-class TestParseType(unittest.TestCase):
-    def assert_match(self, parser, text, param_name, expected):
-        result = parser.parse(text)
-        self.assertEqual(result[param_name], expected)
+def assert_match(parser, text, param_name, expected):
+    result = parser.parse(text)
+    assert result[param_name] == expected
 
-    def assert_mismatch(self, parser, text, param_name):
-        result = parser.parse(text)
-        self.assertTrue(result is None)
 
-    def assert_fixed_match(self, parser, text, expected):
-        result = parser.parse(text)
-        self.assertEqual(result.fixed, expected)
+def assert_mismatch(parser, text, param_name):
+    result = parser.parse(text)
+    assert result is None
 
-    def assert_fixed_mismatch(self, parser, text):
-        result = parser.parse(text)
-        self.assertEqual(result, None)
+
+def assert_fixed_match(parser, text, expected):
+    result = parser.parse(text)
+    assert result.fixed == expected
+
+
+def assert_fixed_mismatch(parser, text):
+    result = parser.parse(text)
+    assert result is None
+
+
+class TestParseType(object):
 
     def test_pattern_should_be_used(self):
         def parse_number(text):
@@ -1001,10 +997,10 @@ class TestParseType(unittest.TestCase):
         format = "Value is {number:Number} and..."
         parser = parse.Parser(format, extra_types)
 
-        self.assert_match(parser, "Value is 42 and...", "number", 42)
-        self.assert_match(parser, "Value is 00123 and...", "number", 123)
-        self.assert_mismatch(parser, "Value is ALICE and...", "number")
-        self.assert_mismatch(parser, "Value is -123 and...", "number")
+        assert_match(parser, "Value is 42 and...", "number", 42)
+        assert_match(parser, "Value is 00123 and...", "number", 123)
+        assert_mismatch(parser, "Value is ALICE and...", "number")
+        assert_mismatch(parser, "Value is -123 and...", "number")
 
     def test_pattern_should_be_used2(self):
         def parse_yesno(text):
@@ -1028,11 +1024,11 @@ class TestParseType(unittest.TestCase):
         # -- ENSURE: Known enum values are correctly extracted.
         for value_name, value in parse_yesno.mapping.items():
             text = "Answer: %s" % value_name
-            self.assert_match(parser, text, "answer", value)
+            assert_match(parser, text, "answer", value)
 
         # -- IGNORE-CASE: In parsing, calls type converter function !!!
-        self.assert_match(parser, "Answer: YES", "answer", True)
-        self.assert_mismatch(parser, "Answer: __YES__", "answer")
+        assert_match(parser, "Answer: YES", "answer", True)
+        assert_mismatch(parser, "Answer: __YES__", "answer")
 
     def test_with_pattern(self):
         ab_vals = dict(a=1, b=2)
@@ -1042,9 +1038,9 @@ class TestParseType(unittest.TestCase):
             return ab_vals[text]
 
         parser = parse.Parser("test {result:ab}", {"ab": ab})
-        self.assert_match(parser, "test a", "result", 1)
-        self.assert_match(parser, "test b", "result", 2)
-        self.assert_mismatch(parser, "test c", "result")
+        assert_match(parser, "test a", "result", 1)
+        assert_match(parser, "test b", "result", 2)
+        assert_mismatch(parser, "test c", "result")
 
     def test_with_pattern_and_regex_group_count(self):
         # -- SPECIAL-CASE: Regex-grouping is used in user-defined type
@@ -1061,18 +1057,18 @@ class TestParseType(unittest.TestCase):
         type_converters = dict(Number=parse_number, Unit=parse_unit)
         # -- CASE: Unnamed-params (affected)
         parser = parse.Parser("test {:Unit}-{:Number}", type_converters)
-        self.assert_fixed_match(parser, "test meter-10", ("meter", 10))
-        self.assert_fixed_match(parser, "test kilometer-20", ("kilometer", 20))
-        self.assert_fixed_mismatch(parser, "test liter-30")
+        assert_fixed_match(parser, "test meter-10", ("meter", 10))
+        assert_fixed_match(parser, "test kilometer-20", ("kilometer", 20))
+        assert_fixed_mismatch(parser, "test liter-30")
 
         # -- CASE: Named-params (uncritical; should not be affected)
         # REASON: Named-params have additional, own grouping.
         parser2 = parse.Parser("test {unit:Unit}-{value:Number}", type_converters)
-        self.assert_match(parser2, "test meter-10", "unit", "meter")
-        self.assert_match(parser2, "test meter-10", "value", 10)
-        self.assert_match(parser2, "test kilometer-20", "unit", "kilometer")
-        self.assert_match(parser2, "test kilometer-20", "value", 20)
-        self.assert_mismatch(parser2, "test liter-30", "unit")
+        assert_match(parser2, "test meter-10", "unit", "meter")
+        assert_match(parser2, "test meter-10", "value", 10)
+        assert_match(parser2, "test kilometer-20", "unit", "kilometer")
+        assert_match(parser2, "test kilometer-20", "value", 20)
+        assert_mismatch(parser2, "test liter-30", "unit")
 
     def test_with_pattern_and_wrong_regex_group_count_raises_error(self):
         # -- SPECIAL-CASE:
@@ -1095,7 +1091,8 @@ class TestParseType(unittest.TestCase):
             parse_unit.regex_group_count = bad_regex_group_count  # -- OVERRIDE-HERE
             type_converters = dict(Number=parse_number, Unit=parse_unit)
             parser = parse.Parser("test {:Unit}-{:Number}", type_converters)
-            self.assertRaises(error_class, parser.parse, "test meter-10")
+            with pytest.raises(error_class):
+                parser.parse("test meter-10")
 
     def test_with_pattern_and_regex_group_count_is_none(self):
         # -- CORNER-CASE: Increase code-coverage.
@@ -1109,65 +1106,63 @@ class TestParseType(unittest.TestCase):
 
         # -- CASE: Unnamed-params
         parser = parse.Parser("test {:Data}", {"Data": parse_data})
-        self.assert_fixed_match(parser, "test a", (1,))
-        self.assert_fixed_match(parser, "test b", (2,))
-        self.assert_fixed_mismatch(parser, "test c")
+        assert_fixed_match(parser, "test a", (1,))
+        assert_fixed_match(parser, "test b", (2,))
+        assert_fixed_mismatch(parser, "test c")
 
         # -- CASE: Named-params
         parser2 = parse.Parser("test {value:Data}", {"Data": parse_data})
-        self.assert_match(parser2, "test a", "value", 1)
-        self.assert_match(parser2, "test b", "value", 2)
-        self.assert_mismatch(parser2, "test c", "value")
+        assert_match(parser2, "test a", "value", 1)
+        assert_match(parser2, "test b", "value", 2)
+        assert_mismatch(parser2, "test c", "value")
 
     def test_case_sensitivity(self):
         r = parse.parse("SPAM {} SPAM", "spam spam spam")
-        self.assertEqual(r[0], "spam")
-        self.assertEqual(
-            parse.parse("SPAM {} SPAM", "spam spam spam", case_sensitive=True), None
-        )
+        assert r[0] == "spam"
+        assert parse.parse("SPAM {} SPAM", "spam spam spam", case_sensitive=True) is None
 
     def test_decimal_value(self):
         value = Decimal("5.5")
         str_ = "test {}".format(value)
         parser = parse.Parser("test {:F}")
-        self.assertEqual(parser.parse(str_)[0], value)
+        assert parser.parse(str_)[0] == value
 
     def test_width_str(self):
         res = parse.parse("{:.2}{:.2}", "look")
-        self.assertEqual(res.fixed, ("lo", "ok"))
+        assert res.fixed == ("lo", "ok")
         res = parse.parse("{:2}{:2}", "look")
-        self.assertEqual(res.fixed, ("lo", "ok"))
+        assert res.fixed == ("lo", "ok")
         res = parse.parse("{:4}{}", "look at that")
-        self.assertEqual(res.fixed, ("look", " at that"))
+        assert res.fixed == ("look", " at that")
 
     def test_width_constraints(self):
         res = parse.parse("{:4}", "looky")
-        self.assertEqual(res.fixed, ("looky",))
+        assert res.fixed == ("looky",)
         res = parse.parse("{:4.4}", "looky")
-        self.assertIsNone(res)
+        assert res is None
         res = parse.parse("{:4.4}", "ook")
-        self.assertIsNone(res)
+        assert res is None
         res = parse.parse("{:4}{:.4}", "look at that")
-        self.assertEqual(res.fixed, ("look at ", "that"))
+        assert res.fixed == ("look at ", "that")
 
     def test_width_multi_int(self):
         res = parse.parse("{:02d}{:02d}", "0440")
-        self.assertEqual(res.fixed, (4, 40))
+        assert res.fixed == (4, 40)
         res = parse.parse("{:03d}{:d}", "04404")
-        self.assertEqual(res.fixed, (44, 4))
+        assert res.fixed == (44, 4)
 
     def test_width_empty_input(self):
         res = parse.parse("{:.2}", "")
-        self.assertIsNone(res)
+        assert res is None
         res = parse.parse("{:2}", "l")
-        self.assertIsNone(res)
+        assert res is None
         res = parse.parse("{:2d}", "")
-        self.assertIsNone(res)
+        assert res is None
 
     def test_int_convert_stateless_base(self):
         parser = parse.Parser("{:d}")
-        self.assertEqual(parser.parse("1234")[0], 1234)
-        self.assertEqual(parser.parse("0b1011")[0], 0b1011)
+        assert parser.parse("1234")[0] == 1234
+        assert parser.parse("0b1011")[0] == 0b1011
 
 
 def test_strftime_strptime_roundtrip():
@@ -1176,10 +1171,6 @@ def test_strftime_strptime_roundtrip():
     s = dt.strftime(fmt)
     [res] = parse.parse("{:" + fmt + "}", s)
     assert res == dt
-
-
-if __name__ == "__main__":
-    unittest.main()
 
 
 # Copyright (c) 2011 eKit.com Inc (http://www.ekit.com/)
