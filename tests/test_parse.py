@@ -1,5 +1,4 @@
 # coding: utf-8
-import re
 import sys
 from datetime import date
 from datetime import datetime
@@ -236,8 +235,7 @@ def test_numbers():
     def y(fmt, s, e, str_equals=False):
         p = parse.compile(fmt)
         r = p.parse(s)
-        if r is None:
-            pytest.fail("%r (%r) did not match %r" % (fmt, p._expression, s))
+        assert r is not None
         r = r.fixed[0]
         if str_equals:
             assert str(r) == str(e)
@@ -245,8 +243,7 @@ def test_numbers():
             assert r == e
 
     def n(fmt, s, e):
-        if parse.parse(fmt, s) is not None:
-            pytest.fail("%r matched %r" % (fmt, s))
+        assert parse.parse(fmt, s) is None
 
     y("a {:d} b", "a 0 b", 0)
     y("a {:d} b", "a 12 b", 12)
@@ -435,25 +432,10 @@ def test_datetimes():
     def y(fmt, s, e, tz=None):
         p = parse.compile(fmt)
         r = p.parse(s)
-        if r is None:
-            pytest.fail("%r (%r) did not match %r" % (fmt, p._expression, s))
+        assert r is not None
         r = r.fixed[0]
-        try:
-            assert r == e, "%r found %r in %r, not %r" % (fmt, r, s, e)
-        except ValueError:
-            pytest.fail("%r found %r in %r, not %r" % (fmt, r, s, e))
-
-        if tz is not None:
-            assert r.tzinfo == tz, "%r found TZ %r in %r, not %r" % (
-                fmt,
-                r.tzinfo,
-                s,
-                e,
-            )
-
-    def n(fmt, s, e):
-        if parse.parse(fmt, s) is not None:
-            pytest.fail("%r matched %r" % (fmt, s))
+        assert r == e
+        assert tz is None or r.tzinfo == tz
 
     utc = parse.FixedTzOffset(0, "UTC")
     assert repr(utc) == "<FixedTzOffset UTC 0:00:00>"
@@ -731,15 +713,13 @@ def test_mixed_type_variant():
     assert r.fixed[21] == "spam"
 
 
+@pytest.mark.skipif(sys.version_info >= (3, 5), reason="Python 3.5 removed the limit of 100 named groups in a regular expression")
 def test_too_many_fields():
     # Python 3.5 removed the limit of 100 named groups in a regular expression,
     # so only test for the exception if the limit exists.
-    try:
-        re.compile("".join("(?P<n{n}>{n}-)".format(n=i) for i in range(101)))
-    except AssertionError:
-        p = parse.compile("{:ti}" * 15)
-        with pytest.raises(parse.TooManyFields):
-            p.parse("")
+    p = parse.compile("{:ti}" * 15)
+    with pytest.raises(parse.TooManyFields):
+        p.parse("")
 
 
 def test_letters():
