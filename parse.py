@@ -482,6 +482,10 @@ class Parser(object):
     def fixed_fields(self):
         return self._fixed_fields.copy()
 
+    @property
+    def format(self):
+        return self._format
+
     def parse(self, string, evaluate_result=True):
         """Match my format to the string exactly.
 

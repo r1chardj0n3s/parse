@@ -739,3 +739,10 @@ def test_strftime_strptime_roundtrip():
     s = dt.strftime(fmt)
     [res] = parse.parse("{:" + fmt + "}", s)
     assert res == dt
+
+
+def test_parser_format():
+    parser = parse.compile("hello {}")
+    assert parser.format.format("world") == "hello world"
+    with pytest.raises(AttributeError):
+        parser.format = "hi {}"
