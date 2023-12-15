@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "parse"
 dynamic = ["version"]
 readme = "README.rst"
-authors = [{name = "Richard Jones", email = "richard@python.org"}]
 description = "parse() is the opposite of format()"
 license = {file = "LICENSE"}
 classifiers = [
@@ -17,6 +16,14 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: MIT License",
 ]
+
+[[project.authors]]
+name = "Richard Jones"
+email = "richard@python.org"
+
+[[project.maintainers]]
+name = "Wim Glenn"
+email = "hey@wimglenn.com"
 
 [project.urls]
 homepage = "https://github.com/r1chardj0n3s/parse"
