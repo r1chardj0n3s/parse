@@ -375,6 +375,23 @@ def test_flexible_datetime_with_colon():
     assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27)
 
 
+def test_datetime_with_various_subsecond_precision():
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S.%f}", "2023-11-21 13:23:27.123456")
+    assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, 123456)
+
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S.%f}", "2023-11-21 13:23:27.12345")
+    assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, 123450)
+
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S.%f}", "2023-11-21 13:23:27.1234")
+    assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, 123400)
+
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S.%f}", "2023-11-21 13:23:27.123")
+    assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, 123000)
+
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S.%f}", "2023-11-21 13:23:27.0")
+    assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, 0)
+
+
 @pytest.mark.skipif(
     sys.version_info[0] < 3, reason="Python 3+ required for timezone support"
 )
