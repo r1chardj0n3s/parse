@@ -441,6 +441,7 @@ To run the tests locally:
 Changelog
 ---------
 
+- 1.20.2 Template field names can now contain - character i.e. HYPHEN-MINUS, chr(0x2d)
 - 1.20.1 The `%f` directive accepts 1-6 digits, like strptime (thanks @bbertincourt)
 - 1.20.0 Added support for strptime codes (thanks @bendichter)
 - 1.19.1 Added support for sign specifiers in number formats (thanks @anntzer)

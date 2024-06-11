@@ -10,10 +10,10 @@ jobs:
   run-test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version:
-        - "3.7"
         - "3.8"
         - "3.9"
         - "3.10"
@@ -30,6 +30,22 @@ jobs:
         run: |
           pip install -r tests/requirements.txt --editable .
           pytest
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  tests-37:
+    name: Python 3.7 on ubuntu-20.04
+    runs-on: ubuntu-20.04
+    container:
+      image: python:3.7
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          pip install -r tests/requirements.txt
+          python -m pytest
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

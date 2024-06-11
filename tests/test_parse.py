@@ -763,3 +763,23 @@ def test_parser_format():
     assert parser.format.format("world") == "hello world"
     with pytest.raises(AttributeError):
         parser.format = "hi {}"
+
+
+def test_hyphen_inside_field_name():
+    # https://github.com/r1chardj0n3s/parse/issues/86
+    # https://github.com/python-openapi/openapi-core/issues/672
+    template = "/local/sub/{user-id}/duration"
+    assert parse.Parser(template).named_fields == ["user_id"]
+    string = "https://dummy_server.com/local/sub/1647222638/duration"
+    result = parse.search(template, string)
+    assert result["user-id"] == "1647222638"
+
+
+def test_hyphen_inside_field_name_collision_handling():
+    template = "/foo/{user-id}/{user_id}/{user.id}/bar/"
+    assert parse.Parser(template).named_fields == ["user_id", "user__id", "user___id"]
+    string = "/foo/1/2/3/bar/"
+    result = parse.search(template, string)
+    assert result["user-id"] == "1"
+    assert result["user_id"] == "2"
+    assert result["user.id"] == "3"
