@@ -398,7 +398,7 @@ def extract_format(format, extra_types):
     return locals()
 
 
-PARSE_RE = re.compile(r"({{|}}|{\w*(?:\.\w+|\[[^]]+])*(?::[^}]+)?})")
+PARSE_RE = re.compile(r"({{|}}|{[\w-]*(?:\.[\w-]+|\[[^]]+])*(?::[^}]+)?})")
 
 
 class Parser(object):
@@ -619,7 +619,7 @@ class Parser(object):
     def _to_group_name(self, field):
         # return a version of field which can be used as capture group, even
         # though it might contain '.'
-        group = field.replace(".", "_").replace("[", "_").replace("]", "_")
+        group = field.replace(".", "_").replace("[", "_").replace("]", "_").replace("-", "_")
 
         # make sure we don't collide ("a.b" colliding with "a_b")
         n = 1
@@ -629,6 +629,8 @@ class Parser(object):
                 group = field.replace(".", "_" * n)
             elif "_" in field:
                 group = field.replace("_", "_" * n)
+            elif "-" in field:
+                group = field.replace("-", "_" * n)
             else:
                 raise KeyError("duplicated group name %r" % (field,))
 
