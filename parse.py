@@ -476,11 +476,11 @@ class Parser(object):
 
     @property
     def named_fields(self):
-        return self._named_fields.copy()
+        return self._named_fields[:]
 
     @property
     def fixed_fields(self):
-        return self._fixed_fields.copy()
+        return self._fixed_fields[:]
 
     @property
     def format(self):
