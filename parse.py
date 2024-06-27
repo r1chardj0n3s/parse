@@ -401,7 +401,7 @@ def extract_format(format, extra_types):
 PARSE_RE = re.compile(r"({{|}}|{[\w-]*(?:\.[\w-]+|\[[^]]+])*(?::[^}]+)?})")
 
 
-class Parser(object):
+class Parser:
     """Encapsulate a format string that may be used to parse other strings."""
 
     def __init__(self, format, extra_types=None, case_sensitive=False):
@@ -855,7 +855,7 @@ class Parser(object):
         return s
 
 
-class Result(object):
+class Result:
     """The result of a parse() or search().
 
     Fixed results may be looked up using `result[index]`.
@@ -883,7 +883,7 @@ class Result(object):
         return name in self.named
 
 
-class Match(object):
+class Match:
     """The result of a parse() or search() if no results are generated.
 
     This class is only used to expose internal used regex match objects
@@ -899,7 +899,7 @@ class Match(object):
         return self.parser.evaluate_result(self.match)
 
 
-class ResultIterator(object):
+class ResultIterator:
     """The result of a findall() operation.
 
     Each element is a Result instance.
