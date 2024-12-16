@@ -175,7 +175,7 @@ w     Letters, numbers and underscore             str
 W     Not letters, numbers and underscore         str
 s     Whitespace                                  str
 S     Non-whitespace                              str
-d     Digits (effectively integer numbers)        int
+d     Integer numbers (optional sign, digits)     int
 D     Non-digit                                   str
 n     Numbers with thousands separators (, or .)  int
 %     Percentage (converted to value/100.0)       float
