@@ -134,7 +134,8 @@ sense of the result:
     to seek the holy grail!
 
 If the text you're matching has braces in it you can match those by including
-a double-brace ``{{`` or ``}}`` in your format string, just like format() does.
+a double-brace ``{{`` or ``}}`` in your format string, the same escaping method
+used in the ``format()`` syntax.
 
 
 Format Specification
