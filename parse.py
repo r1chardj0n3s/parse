@@ -9,6 +9,7 @@ from datetime import timedelta
 from datetime import tzinfo
 from decimal import Decimal
 from functools import partial
+from typing import Generic, Literal, Union, overload, Optional, TypeVar
 
 
 __version__ = "1.20.2"
@@ -485,6 +486,12 @@ class Parser(object):
     @property
     def format(self):
         return self._format
+    
+    @overload
+    def parse(self, string: str, evaluate_result: Literal[True] = True) -> Optional["Result"]: ...
+
+    @overload
+    def parse(self, string: str, evaluate_result: Literal[False]) -> Optional["Match"]: ...
 
     def parse(self, string, evaluate_result=True):
         """Match my format to the string exactly.
@@ -499,6 +506,12 @@ class Parser(object):
             return self.evaluate_result(m)
         else:
             return Match(self, m)
+        
+    @overload
+    def search(self, string, pos=0, endpos=None, evaluate_result: Literal[True] = True) -> Optional["Result"]: ...
+
+    @overload
+    def search(self, string, pos=0, endpos=None, *, evaluate_result: Literal[False]) -> Optional["Match"]: ...
 
     def search(self, string, pos=0, endpos=None, evaluate_result=True):
         """Search the string for my format.
@@ -522,6 +535,12 @@ class Parser(object):
             return self.evaluate_result(m)
         else:
             return Match(self, m)
+        
+    @overload
+    def findall(self, string, pos=0, endpos=None, extra_types=None, evaluate_result: Literal[True] = True) -> "ResultIterator[Result]": ...
+
+    @overload   
+    def findall(self, string, pos=0, endpos=None, extra_types=None, *, evaluate_result: Literal[False]) -> "ResultIterator[Match]": ...
 
     def findall(
         self, string, pos=0, endpos=None, extra_types=None, evaluate_result=True
@@ -899,7 +918,9 @@ class Match(object):
         return self.parser.evaluate_result(self.match)
 
 
-class ResultIterator(object):
+T = TypeVar("T", bound=Union["Result", "Match"])
+
+class ResultIterator(Generic[T]):
     """The result of a findall() operation.
 
     Each element is a Result instance.
@@ -915,7 +936,7 @@ class ResultIterator(object):
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> T:
         m = self.parser._search_re.search(self.string, self.pos, self.endpos)
         if m is None:
             raise StopIteration()
@@ -924,7 +945,7 @@ class ResultIterator(object):
         if self.evaluate_result:
             return self.parser.evaluate_result(m)
         else:
-            return Match(self.parser, m)
+            return Match(self.parser, m) # type: ignore
 
     # pre-py3k compat
     next = __next__
