@@ -456,7 +456,7 @@ class Parser(object):
         return self.__search_re
 
     @property
-    def _match_re(self):
+    def _match_re(self) -> re.Pattern:
         if self.__match_re is None:
             expression = r"\A%s\Z" % self._expression
             try:
@@ -473,7 +473,7 @@ class Parser(object):
                     "Group names (e.g. (?P<name>) can "
                     "cause failure, as they are not escaped properly: '%s'" % expression
                 )
-        return self.__match_re
+        return self.__match_re # type: ignore
 
     @property
     def named_fields(self):
@@ -489,6 +489,9 @@ class Parser(object):
     
     @overload
     def parse(self, string: str, evaluate_result: Literal[True] = True) -> Optional["Result"]: ...
+
+    @overload
+    def parse(self, string: str, *, evaluate_result: Literal[False]) -> Optional["Match"]: ...
 
     @overload
     def parse(self, string: str, evaluate_result: Literal[False]) -> Optional["Match"]: ...
@@ -512,6 +515,9 @@ class Parser(object):
 
     @overload
     def search(self, string, pos=0, endpos=None, *, evaluate_result: Literal[False]) -> Optional["Match"]: ...
+
+    @overload
+    def search(self, string, pos, endpos, evaluate_result: Literal[False]) -> Optional["Match"]: ...
 
     def search(self, string, pos=0, endpos=None, evaluate_result=True):
         """Search the string for my format.
@@ -541,6 +547,9 @@ class Parser(object):
 
     @overload   
     def findall(self, string, pos=0, endpos=None, extra_types=None, *, evaluate_result: Literal[False]) -> "ResultIterator[Match]": ...
+
+    @overload   
+    def findall(self, string, pos, endpos, extra_types, evaluate_result: Literal[False]) -> "ResultIterator[Match]": ...
 
     def findall(
         self, string, pos=0, endpos=None, extra_types=None, evaluate_result=True
@@ -951,6 +960,15 @@ class ResultIterator(Generic[T]):
     next = __next__
 
 
+@overload
+def parse(format: str, string: str, extra_types=..., evaluate_result: Literal[True] = True, case_sensitive: bool = ...) -> Optional["Result"]: ...
+
+@overload
+def parse(format: str, string: str, extra_types=..., *, evaluate_result: Literal[False], case_sensitive: bool = ...) -> Optional["Match"]: ...
+
+@overload
+def parse(format: str, string: str, extra_types, evaluate_result: Literal[False], case_sensitive: bool = ...) -> Optional["Match"]: ...
+
 def parse(format, string, extra_types=None, evaluate_result=True, case_sensitive=False):
     """Using "format" attempt to pull values from "string".
 
@@ -980,6 +998,39 @@ def parse(format, string, extra_types=None, evaluate_result=True, case_sensitive
     p = Parser(format, extra_types=extra_types, case_sensitive=case_sensitive)
     return p.parse(string, evaluate_result=evaluate_result)
 
+@overload
+def search(
+    format: str,
+    string: str,
+    pos: int = 0,
+    endpos: Optional[int] = None,
+    extra_types = None,
+    evaluate_result: Literal[True] = True,
+    case_sensitive: bool = False,
+) -> Optional[Result]: ...
+
+@overload
+def search(
+    format: str,
+    string: str,
+    pos: int = 0,
+    endpos: Optional[int] = None,
+    extra_types = None,
+    *,
+    evaluate_result: Literal[False],
+    case_sensitive: bool = False,
+) -> Optional[Match]: ...
+
+@overload
+def search(
+    format: str,
+    string: str,
+    pos: int,
+    endpos: Optional[int],
+    extra_types,
+    evaluate_result: Literal[False],
+    case_sensitive: bool = False,
+) -> Optional[Match]: ...
 
 def search(
     format,
