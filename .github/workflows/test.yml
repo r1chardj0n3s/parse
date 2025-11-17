@@ -68,3 +68,19 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  type-stubs:
+    name: Check stub file with stubtest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+      - name: Install parse and mypy
+        run: |
+          pip install . mypy
+      - name: Run stubtest
+        run: |
+          python -m mypy.stubtest parse
