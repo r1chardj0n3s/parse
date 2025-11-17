@@ -81,6 +81,16 @@ jobs:
       - name: Install parse and mypy
         run: |
           pip install . mypy
+          
+      # Run mypy to type-check the package implementation itself
+      # --check-untyped-defs ensures unannotated functions are checked
+      # --disallow-any-generics prevents missing generic parameters
+      - name: Check types with mypy
+        run: |
+          python -m mypy --check-untyped-defs --disallow-any-generics parse
+
+      # Run mypy's stubtest to verify that the .pyi stubs
+      # accurately describe the runtime behavior of the package
       - name: Run stubtest
         run: |
           python -m mypy.stubtest parse
