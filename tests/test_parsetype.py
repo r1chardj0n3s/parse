@@ -203,7 +203,7 @@ def test_width_multi_int():
 
 def test_width_empty_input():
     res = parse.parse("{:.2}", "")
-    assert res is None
+    assert res.fixed == ("",)
     res = parse.parse("{:2}", "l")
     assert res is None
     res = parse.parse("{:2d}", "")

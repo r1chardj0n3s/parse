@@ -681,7 +681,7 @@ class Parser(object):
         # simplest case: no type specifier ({} or {name})
         if not format:
             self._group_index += 1
-            return wrap % r".+?"
+            return wrap % r".*?"
 
         # decode the format specification
         format = extract_format(format, self._extra_types)
@@ -692,7 +692,7 @@ class Parser(object):
         conv = self._type_conversions
         if type in self._extra_types:
             type_converter = self._extra_types[type]
-            s = getattr(type_converter, "pattern", r".+?")
+            s = getattr(type_converter, "pattern", r".*?")
             regex_group_count = getattr(type_converter, "regex_group_count", 0)
             if regex_group_count is None:
                 regex_group_count = 0
@@ -795,18 +795,18 @@ class Parser(object):
             conv[group] = partial(date_convert, mm=n + 1, dd=n + 3, hms=n + 5)
             self._group_index += 5
         elif type == "l":
-            s = r"[A-Za-z]+"
+            s = r"[A-Za-z]*"
         elif type:
-            s = r"\%s+" % type
+            s = r"\%s*" % type
         elif format.get("precision"):
             if format.get("width"):
                 s = r".{%s,%s}?" % (format["width"], format["precision"])
             else:
-                s = r".{1,%s}?" % format["precision"]
+                s = r".{0,%s}?" % format["precision"]
         elif format.get("width"):
             s = r".{%s,}?" % format["width"]
         else:
-            s = r".+?"
+            s = r".*?"
 
         align = format["align"]
         fill = format["fill"]

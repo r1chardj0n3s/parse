@@ -741,7 +741,7 @@ def test_too_many_fields():
 
 def test_letters():
     res = parse.parse("{:l}", "")
-    assert res is None
+    assert res.fixed == ("",)
     res = parse.parse("{:l}", "sPaM")
     assert res.fixed == ("sPaM",)
     res = parse.parse("{:l}", "sP4M")
