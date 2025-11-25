@@ -94,3 +94,8 @@ jobs:
       - name: Run stubtest
         run: |
           python -m mypy.stubtest parse
+
+      # Run mypy to type-check the test files themselves
+      - name: Check test types with mypy
+        run: |
+          python -m mypy tests/test_typing.py
