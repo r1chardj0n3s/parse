@@ -69,3 +69,34 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  type-stubs:
+    name: Check stub file with stubtest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+      - name: Install parse and mypy
+        run: |
+          pip install . mypy
+          
+      # Run mypy to type-check the package implementation itself
+      # --check-untyped-defs ensures unannotated functions are checked
+      # --disallow-any-generics prevents missing generic parameters
+      - name: Check types with mypy
+        run: |
+          python -m mypy --check-untyped-defs --disallow-any-generics parse
+
+      # Run mypy's stubtest to verify that the .pyi stubs
+      # accurately describe the runtime behavior of the package
+      - name: Run stubtest
+        run: |
+          python -m mypy.stubtest parse
+
+      # Run mypy to type-check the test files themselves
+      - name: Check test types with mypy
+        run: |
+          python -m mypy tests/test_typing.py
