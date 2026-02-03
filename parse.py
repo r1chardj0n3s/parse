@@ -349,7 +349,7 @@ ALLOWED_TYPES = set(list("nbox%fFegwWdDsSl") + ["t" + c for c in "ieahgcts"])
 
 
 def extract_format(format, extra_types):
-    """Pull apart the format [[fill]align][sign][0][width][.precision][type]"""
+    """Pull apart the format [[fill]align][sign][0][width][grouping][.precision][type]"""
     fill = align = None
     if format[0] in "<>=^":
         align = format[0]
@@ -373,6 +373,14 @@ def extract_format(format, extra_types):
             break
         width += format[0]
         format = format[1:]
+
+    # Extract grouping option
+    if format.startswith(","):
+        format = format[1:]
+        grouping = ","
+    elif format.startswith("_"):
+        format = format[1:]
+        grouping = "_"
 
     if format.startswith("."):
         # Precision isn't needed but we need to capture it so that

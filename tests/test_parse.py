@@ -338,6 +338,9 @@ def test_numbers():
     y("a {:b} b", "a +1010 b", 10)
     y("a {:x} b", "a +1010 b", 0x1010)
 
+    # Test that grouping is handled correctly
+    y("a {:,d} b", "a 1,000,000 b", 1_000_000, str_equals=True)
+
 
 def test_two_datetimes():
     r = parse.parse("a {:ti} {:ti} b", "a 1997-07-16 2012-08-01 b")
