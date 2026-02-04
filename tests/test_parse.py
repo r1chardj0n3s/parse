@@ -235,7 +235,7 @@ def test_numbers():
     def y(fmt, s, e, str_equals=False):
         p = parse.compile(fmt)
         r = p.parse(s)
-        assert r is not None, f"{s!r} does not match {fmt!r} ({p._expression!r})"
+        assert r is not None, "{!r} does not match {!r} ({!r})".format(s, fmt, p._expression)
         r = r.fixed[0]
         if str_equals:
             assert str(r) == str(e)
