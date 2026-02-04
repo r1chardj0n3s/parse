@@ -339,8 +339,8 @@ def test_numbers():
     y("a {:x} b", "a +1010 b", 0x1010)
 
     # Test that grouping is handled correctly
-    y("a {:,d} b", "a 1,000,000 b", 1_000_000, str_equals=True)
-    y("a {:,d} b", "a -1,000,000 b", -1_000_000, str_equals=True)
+    y("a {:,d} b", "a 1,000,000 b", 1000000, str_equals=True)
+    y("a {:,d} b", "a -1,000,000 b", -1000000, str_equals=True)
 
 
 def test_two_datetimes():
