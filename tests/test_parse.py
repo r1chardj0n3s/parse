@@ -235,7 +235,7 @@ def test_numbers():
     def y(fmt, s, e, str_equals=False):
         p = parse.compile(fmt)
         r = p.parse(s)
-        assert r is not None
+        assert r is not None, f"{s!r} does not match {fmt!r} ({p._expression!r})"
         r = r.fixed[0]
         if str_equals:
             assert str(r) == str(e)
@@ -340,6 +340,7 @@ def test_numbers():
 
     # Test that grouping is handled correctly
     y("a {:,d} b", "a 1,000,000 b", 1_000_000, str_equals=True)
+    y("a {:,d} b", "a -1,000,000 b", -1_000_000, str_equals=True)
 
 
 def test_two_datetimes():

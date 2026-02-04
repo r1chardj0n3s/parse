@@ -744,12 +744,9 @@ class Parser(object):
                 width = r"{1,%s}" % int(format["width"])
             else:
                 width = "+"
-            if format.get("grouping"):
-                # TODO: allow for grouping characters like ',' or '_'
-                ...
-
-            s = r"\d{w}|[-+ ]?0[xX][0-9a-fA-F]{w}|[-+ ]?0[bB][01]{w}|[-+ ]?0[oO][0-7]{w}".format(
-                w=width
+            s = r"[-+ ]?[0-9{g}]{w}|[-+ ]?0[xX][0-9a-fA-F{g}]{w}|[-+ ]?0[bB][01{g}]{w}|[-+ ]?0[oO][0-7{g}]{w}".format(
+                w=width,
+                g=format.get("grouping", ""),
             )
             conv[group] = int_convert()
             # do not specify number base, determine it automatically
