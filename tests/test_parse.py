@@ -342,6 +342,10 @@ def test_numbers():
     y("a {:,d} b", "a 1,000,000 b", 1000000, str_equals=True)
     y("a {:,d} b", "a -1,000,000 b", -1000000, str_equals=True)
 
+    # Py 3.6+ (https://peps.python.org/pep-0515/)
+    y("a {:_d} b", "a 1_000_000 b", 1000000, str_equals=True)
+    y("a {:_d} b", "a -1_000_000 b", -1000000, str_equals=True)
+
 
 def test_two_datetimes():
     r = parse.parse("a {:ti} {:ti} b", "a 1997-07-16 2012-08-01 b")
