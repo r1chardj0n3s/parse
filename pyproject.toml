@@ -22,7 +22,7 @@ name = "Richard Jones"
 email = "richard@python.org"
 
 [[project.maintainers]]
-name = "Wim Glenn"
+name = "Wim Jeantine-Glenn"
 email = "hey@wimglenn.com"
 
 [project.urls]

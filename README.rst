@@ -146,7 +146,7 @@ format specification might have been used.
 
 Most of `format()`'s `Format Specification Mini-Language`_ is supported:
 
-   [[fill]align][sign][0][width][.precision][type]
+   [[fill]align][sign][0][width][grouping][.precision][type]
 
 The differences between `parse()` and `format()` are:
 
@@ -442,6 +442,7 @@ To run the tests locally:
 Changelog
 ---------
 
+- 1.21.0 Allow grouping char (,_) in decimal format string (thanks @moi90)
 - 1.20.2 Template field names can now contain - character i.e. HYPHEN-MINUS, chr(0x2d)
 - 1.20.1 The `%f` directive accepts 1-6 digits, like strptime (thanks @bbertincourt)
 - 1.20.0 Added support for strptime codes (thanks @bendichter)

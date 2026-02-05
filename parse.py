@@ -11,7 +11,7 @@ from decimal import Decimal
 from functools import partial
 
 
-__version__ = "1.20.2"
+__version__ = "1.21.0"
 __all__ = ["parse", "search", "findall", "with_pattern"]
 
 log = logging.getLogger(__name__)
