@@ -235,7 +235,7 @@ def test_numbers():
     def y(fmt, s, e, str_equals=False):
         p = parse.compile(fmt)
         r = p.parse(s)
-        assert r is not None
+        assert r is not None, "{!r} does not match {!r} ({!r})".format(s, fmt, p._expression)
         r = r.fixed[0]
         if str_equals:
             assert str(r) == str(e)
@@ -337,6 +337,14 @@ def test_numbers():
     y("a {:o} b", "a +10 b", 8)
     y("a {:b} b", "a +1010 b", 10)
     y("a {:x} b", "a +1010 b", 0x1010)
+
+    # Test that grouping is handled correctly
+    y("a {:,d} b", "a 1,000,000 b", 1000000, str_equals=True)
+    y("a {:,d} b", "a -1,000,000 b", -1000000, str_equals=True)
+
+    # Py 3.6+ (https://peps.python.org/pep-0515/)
+    y("a {:_d} b", "a 1_000_000 b", 1000000, str_equals=True)
+    y("a {:_d} b", "a -1_000_000 b", -1000000, str_equals=True)
 
 
 def test_two_datetimes():
