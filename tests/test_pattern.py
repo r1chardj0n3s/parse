@@ -14,31 +14,31 @@ def test_braces():
 
 def test_fixed():
     # pull a simple string out of another string
-    _test_expression("{}", r"(.+?)")
-    _test_expression("{} {}", r"(.+?) (.+?)")
+    _test_expression("{}", r"(.*?)")
+    _test_expression("{} {}", r"(.*?) (.*?)")
 
 
 def test_named():
     # pull a named string out of another string
-    _test_expression("{name}", r"(?P<name>.+?)")
-    _test_expression("{name} {other}", r"(?P<name>.+?) (?P<other>.+?)")
+    _test_expression("{name}", r"(?P<name>.*?)")
+    _test_expression("{name} {other}", r"(?P<name>.*?) (?P<other>.*?)")
 
 
 def test_named_typed():
     # pull a named string out of another string
-    _test_expression("{name:w}", r"(?P<name>\w+)")
-    _test_expression("{name:w} {other:w}", r"(?P<name>\w+) (?P<other>\w+)")
+    _test_expression("{name:w}", r"(?P<name>\w*)")
+    _test_expression("{name:w} {other:w}", r"(?P<name>\w*) (?P<other>\w*)")
 
 
 def test_numbered():
-    _test_expression("{0}", r"(.+?)")
-    _test_expression("{0} {1}", r"(.+?) (.+?)")
+    _test_expression("{0}", r"(.*?)")
+    _test_expression("{0} {1}", r"(.*?) (.*?)")
     _test_expression("{0:f} {1:f}", r"([-+ ]?\d*\.\d+) ([-+ ]?\d*\.\d+)")
 
 
 def test_bird():
     # skip some trailing whitespace
-    _test_expression("{:>}", r" *(.+?)")
+    _test_expression("{:>}", r" *(.*?)")
 
 
 def test_format_variety():
