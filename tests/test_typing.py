@@ -5,7 +5,7 @@ from parse import Parser, Result, Match, parse, search, findall, ResultIterator
 # because the "real" ResultIterator is not a generic type at runtime.
 
 
-def test_parse():
+def test_parse() -> None:
     result = parse("{:d} {:d}", "123 456")
     assert_type(result, Result | None)
 
@@ -16,7 +16,7 @@ def test_parse():
     assert_type(match, Match | None)
 
 
-def test_search():
+def test_search() -> None:
     result = search("{:d} {:d}", "123 456")
     assert_type(result, Result | None)
 
@@ -27,7 +27,7 @@ def test_search():
     assert_type(match, Match | None)
 
 
-def test_findall():
+def test_findall() -> None:
     result_iterator = findall("{:d} {:d}", "123 456 789 012")
     assert_type(result_iterator, "ResultIterator[Result]")
 
@@ -38,7 +38,7 @@ def test_findall():
     assert_type(match_iterator, "ResultIterator[Match]")
 
 
-def test_parser():
+def test_parser() -> None:
     parser = Parser("{a:d} {:d}")
 
     result = parser.parse("123 456")
