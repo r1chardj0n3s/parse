@@ -1,12 +1,12 @@
 import re
-from typing import Any, Callable, Generic, Literal, Protocol, Self, TypeVar, overload
+from typing import Any, Callable, Generic, Literal, Protocol, TypeVar, overload
 
 
 __all__ = ['parse', 'search', 'findall', 'with_pattern']
 
 _T = TypeVar('_T')
 
-class _TypeConverter[_T](Protocol):
+class _TypeConverter(Protocol[_T]):
 	def __call__(self, string: str) -> _T: ...
 
 
@@ -44,7 +44,7 @@ class ResultIterator(Generic[_T]):
 	next = __next__
 
 	def __init__(self, parser: "Parser", string: str, pos: int, endpos: int | None, evaluate_result: bool = True) -> None: ...
-	def __iter__(self) -> Self: ...
+	def __iter__(self) -> "ResultIterator[_T]": ...
 
 
 class TooManyFields(ValueError): ...
