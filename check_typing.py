@@ -1,3 +1,6 @@
+# This file contains tests that check the type annotations in parse/__init__.pyi.
+# It is not to be run with pytest, but is instead meant to be checked with mypy.
+
 # Use typing_extensions because we want to be compatible with Python 3.10
 from typing_extensions import assert_type
 

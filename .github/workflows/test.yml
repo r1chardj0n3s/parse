@@ -101,4 +101,4 @@ jobs:
       # Run mypy to type-check the test files themselves
       - name: Check test types with mypy
         run: |
-          python -m mypy tests/test_typing.py
+          python -m mypy check_typing.py
