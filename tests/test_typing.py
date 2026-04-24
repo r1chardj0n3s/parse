@@ -1,4 +1,7 @@
-from typing import assert_type
+# Use typing_extensions because we want to be compatible with Python 3.10
+from typing_extensions import assert_type
+
+
 from parse import Parser, Result, Match, parse, search, findall, ResultIterator
 
 # NB: When checking for ResultIterator[Result], we need to use a string literal,
