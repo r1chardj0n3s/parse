@@ -442,6 +442,7 @@ To run the tests locally:
 Changelog
 ---------
 
+- 1.22.0 Convert into a package and add type stubs (thanks @moi90)
 - 1.21.1 Fix microsecond precision loss in timestamp parsing (thanks @karthiksai109)
 - 1.21.0 Allow grouping char (,_) in decimal format string (thanks @moi90)
 - 1.20.2 Template field names can now contain - character i.e. HYPHEN-MINUS, chr(0x2d)
