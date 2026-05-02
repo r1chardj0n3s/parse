@@ -4,8 +4,13 @@
 # Use typing_extensions because we want to be compatible with Python 3.10
 from typing_extensions import assert_type
 
-
-from parse import Parser, Result, Match, parse, search, findall, ResultIterator
+from parse import findall
+from parse import Match
+from parse import parse
+from parse import Parser
+from parse import Result
+from parse import ResultIterator
+from parse import search
 
 # NB: When checking for ResultIterator[Result], we need to use a string literal,
 # because the "real" ResultIterator is not a generic type at runtime.
