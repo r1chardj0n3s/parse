@@ -809,11 +809,17 @@ class Parser(object):
         elif type:
             s = r"\%s+" % type
         elif format.get("precision"):
-            if format.get("width"):
+            # An explicit alignment means the width is only a strip hint (the
+            # fill/align handling below removes the padding), not a content
+            # minimum - so don't bake it into the capture group. Doing so would
+            # swallow the padding (e.g. "{:>10}") and, when width > precision,
+            # produce an impossible ".{width,precision}" range that fails to
+            # compile (e.g. "{:>10.4}").
+            if format.get("width") and not format.get("align"):
                 s = r".{%s,%s}?" % (format["width"], format["precision"])
             else:
                 s = r".{1,%s}?" % format["precision"]
-        elif format.get("width"):
+        elif format.get("width") and not format.get("align"):
             s = r".{%s,}?" % format["width"]
         else:
             s = r".+?"
