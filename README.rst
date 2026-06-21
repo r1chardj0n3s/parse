@@ -184,10 +184,13 @@ f     Fixed-point numbers                         float
 F     Decimal numbers                             Decimal
 e     Floating-point numbers with exponent        float
       e.g. 1.1e-10, NAN (all case insensitive)
+E     Same as e                                   float
 g     General number format (either d, f or e)    float
+G     Same as g                                   float
 b     Binary numbers                              int
 o     Octal numbers                               int
 x     Hexadecimal numbers (lower and upper case)  int
+X     Same as x                                   int
 ti    ISO 8601 format date/time                   datetime
       e.g. 1972-01-20T10:21:36Z ("T" and "Z"
       optional)

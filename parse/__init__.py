@@ -345,7 +345,7 @@ class RepeatedNameError(ValueError):
 REGEX_SAFETY = re.compile(r"([?\\.[\]()*+^$!|])")
 
 # allowed field types
-ALLOWED_TYPES = set(list("nbox%fFegwWdDsSl") + ["t" + c for c in "ieahgcts"])
+ALLOWED_TYPES = set(list("nboxX%fFeEgGwWdDsSl") + ["t" + c for c in "ieahgcts"])
 
 
 def extract_format(format, extra_types):
@@ -696,7 +696,7 @@ class Parser(object):
 
         # figure type conversions, if any
         type = format["type"]
-        is_numeric = type and type in "n%fegdobx"
+        is_numeric = type and type in "n%fegdobxEGX"
         conv = self._type_conversions
         if type in self._extra_types:
             type_converter = self._extra_types[type]
@@ -718,7 +718,7 @@ class Parser(object):
             s = r"(0[oO])?[0-7]+"
             conv[group] = int_convert(8)
             self._group_index += 1
-        elif type == "x":
+        elif type in ("x", "X"):
             s = r"(0[xX])?[0-9a-fA-F]+"
             conv[group] = int_convert(16)
             self._group_index += 1
@@ -733,10 +733,10 @@ class Parser(object):
         elif type == "F":
             s = r"\d+" if format.get("precision") == "0" else r"\d*\.\d+"
             conv[group] = convert_first(Decimal)
-        elif type == "e":
+        elif type in ("e", "E"):
             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
             conv[group] = convert_first(float)
-        elif type == "g":
+        elif type in ("g", "G"):
             s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
             self._group_index += 2
             conv[group] = convert_first(float)
