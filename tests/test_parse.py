@@ -299,10 +299,22 @@ def test_numbers():
     y("a {:e} b", "a +INF b", float("inf"))
     y("a {:e} b", "a -INF b", float("-inf"))
 
+    # uppercase E/G/X behave like their lowercase counterparts, so that the
+    # output of str.format() round-trips back through parse (issue #137)
+    y("a {:E} b", "a 1.0E10 b", 1.0e10)
+    y("a {:E} b", "a 1.0e10 b", 1.0e10)
+    y("a {:E} b", "a 1.10000E10 b", 1.1e10)
+    y("a {:E} b", "a 1.0E-10 b", 1.0e-10)
+    y("a {:E} b", "a -1.0E10 b", -1.0e10)
+    y("a {:E} b", "a INF b", float("inf"))
+
     y("a {:g} b", "a 1 b", 1)
     y("a {:g} b", "a 1e10 b", 1e10)
     y("a {:g} b", "a 1.0e10 b", 1.0e10)
     y("a {:g} b", "a 1.0E10 b", 1.0e10)
+    y("a {:G} b", "a 1 b", 1)
+    y("a {:G} b", "a 1E10 b", 1e10)
+    y("a {:G} b", "a 1.0E10 b", 1.0e10)
 
     y("a {:b} b", "a 1000 b", 8)
     y("a {:b} b", "a 0b1000 b", 8)
@@ -312,6 +324,9 @@ def test_numbers():
     y("a {:x} b", "a 1234567890ABCDEF b", 0x1234567890ABCDEF)
     y("a {:x} b", "a 0x1234567890abcdef b", 0x1234567890ABCDEF)
     y("a {:x} b", "a 0x1234567890ABCDEF b", 0x1234567890ABCDEF)
+    y("a {:X} b", "a 1234567890ABCDEF b", 0x1234567890ABCDEF)
+    y("a {:X} b", "a 1234567890abcdef b", 0x1234567890ABCDEF)
+    y("a {:X} b", "a 0X1234567890ABCDEF b", 0x1234567890ABCDEF)
 
     y("a {:05d} b", "a 00001 b", 1)
     y("a {:05d} b", "a -00001 b", -1)
