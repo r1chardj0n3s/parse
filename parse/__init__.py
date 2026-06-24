@@ -696,6 +696,10 @@ class Parser(object):
 
         # figure type conversions, if any
         type = format["type"]
+        if type == "s":
+            # explicit string type specifier ('{name:s}') — treat as no type
+            # so the default pattern handling applies
+            type = ""
         is_numeric = type and type in "n%fegdobxEGX"
         conv = self._type_conversions
         if type in self._extra_types:
