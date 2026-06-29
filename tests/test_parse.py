@@ -420,6 +420,37 @@ def test_datetime_with_various_subsecond_precision():
     assert r.named["dt"] == datetime(2023, 11, 21, 13, 23, 27, 0)
 
 
+def test_flexible_datetime_with_regex_metacharacters():
+    # Literal text between strftime symbols must be matched literally, not
+    # interpreted as a regex: get_regex_for_datetime_format used to leave the
+    # gaps unescaped, so ".", "+", "[", "(", etc. acted as regex operators.
+    d = date(2023, 3, 7)
+    for sep in [".", "+", "*", "?", "|", "^", "$"]:
+        fmt = "%Y" + sep + "%m" + sep + "%d"
+        text = "2023" + sep + "03" + sep + "07"
+        r = parse.parse("{:" + fmt + "}", text)
+        assert r is not None and r[0] == d, fmt
+
+    # Brackets/parens around a format are literals, not a char-class or group.
+    assert parse.parse("{:[%Y-%m-%d]}", "[2023-03-07]")[0] == d
+    assert parse.parse("{:(%Y-%m-%d)}", "(2023-03-07)")[0] == d
+
+    # A literal "." must not match an arbitrary character, and a non-match must
+    # return None instead of leaking a ValueError out of strptime (the parse()
+    # contract is that the result is either None or a Result).
+    assert parse.parse("{:%Y.%m.%d}", "2023X03X07") is None
+    assert parse.parse("{:%Y.%m.%d}", "2023.03.07")[0] == d
+
+
+def test_flexible_datetime_roundtrips_strftime_output():
+    # parse(fmt, dt.strftime(fmt)) must recover the value even when the format's
+    # literal text contains regex metacharacters.
+    dt = datetime(2023, 3, 7, 9, 5, 42)
+    for fmt in ["%Y-%m-%d %H:%M:%S", "%Y.%m.%d %H:%M:%S", "[%Y-%m-%d] (%H:%M:%S)"]:
+        r = parse.parse("{:" + fmt + "}", dt.strftime(fmt))
+        assert r is not None and r[0] == dt, fmt
+
+
 @pytest.mark.skipif(
     sys.version_info[0] < 3, reason="Python 3+ required for timezone support"
 )
