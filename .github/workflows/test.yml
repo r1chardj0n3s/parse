@@ -23,7 +23,7 @@ jobs:
         - "3.13"
         - "3.14"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
@@ -44,7 +44,7 @@ jobs:
     container:
       image: python:3.7
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run tests
         run: |
           pip install -U pip setuptools
@@ -61,7 +61,7 @@ jobs:
     container:
       image: python:2.7-buster
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run tests
         run: |
           pip install -U pip setuptools
@@ -76,7 +76,7 @@ jobs:
     name: Check stub file with stubtest and mypy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python 3.10
         uses: actions/setup-python@v6
         with:
