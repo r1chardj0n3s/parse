@@ -34,7 +34,7 @@ jobs:
           pip install -r tests/requirements.txt --editable .
           pytest
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -51,7 +51,7 @@ jobs:
           pip install -r tests/requirements.txt
           python -m pytest
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -68,7 +68,7 @@ jobs:
           pip install -r tests/requirements.txt
           python -m pytest
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
