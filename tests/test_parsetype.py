@@ -201,6 +201,23 @@ def test_width_multi_int():
     assert res.fixed == (44, 4)
 
 
+def test_width_multi_int_bases():
+    # width must be honored for x/X/o/b just like d, otherwise a greedy
+    # match steals digits from the following field (issue #149)
+    assert parse.parse("{:03x}{:03x}", "{:03x}{:03x}".format(1, 2)).fixed == (1, 2)
+    assert parse.parse("{:03X}{:03X}", "{:03X}{:03X}".format(10, 11)).fixed == (10, 11)
+    assert parse.parse("{:03o}{:03o}", "{:03o}{:03o}".format(1, 2)).fixed == (1, 2)
+    assert parse.parse("{:04b}{:04b}", "{:04b}{:04b}".format(1, 2)).fixed == (1, 2)
+    # width is a maximum, not a fixed size (mirrors the {:d} behaviour)
+    assert parse.parse("{:2x}", "a").fixed == (10,)
+    assert parse.parse("{:2x}", "ff").fixed == (255,)
+    assert parse.parse("{:2x}", "fff") is None
+    # without a width the greedy behaviour is unchanged
+    assert parse.parse("{:x}", "ff").fixed == (255,)
+    assert parse.parse("{:o}", "100").fixed == (64,)
+    assert parse.parse("{:b}", "1010").fixed == (10,)
+
+
 def test_width_empty_input():
     res = parse.parse("{:.2}", "")
     assert res is None
