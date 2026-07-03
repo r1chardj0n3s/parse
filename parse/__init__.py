@@ -837,12 +837,6 @@ class Parser(object):
         if not fill:
             fill = " "
 
-        # Place into a group now - this captures the value we want to keep.
-        # Everything else from now is just padding to be stripped off
-        if wrap:
-            s = wrap % s
-            self._group_index += 1
-
         if format["width"]:
             # all we really care about is that if the format originally
             # specified a width then there will probably be padding - without
@@ -850,6 +844,37 @@ class Parser(object):
             # padding
             if not align:
                 align = ">"
+
+        if align and format["width"] and not is_numeric:
+            # When an explicit width AND alignment are both in effect for a
+            # non-numeric field, the total field (fill chars + content) must
+            # be exactly ``width`` characters.  Capture the full width as a
+            # fixed-length group and register a converter that strips the fill
+            # character according to the alignment direction.  This prevents
+            # the unbounded ``fill*`` pattern from allowing strings that are
+            # wider than the declared field width.
+            if align == "<":
+                strip_fn = lambda v, m, fc=fill: v.rstrip(fc)
+            elif align == ">":
+                strip_fn = lambda v, m, fc=fill: v.lstrip(fc)
+            else:  # "^"
+                strip_fn = lambda v, m, fc=fill: v.strip(fc)
+            if group in conv:
+                orig_conv = conv[group]
+                conv[group] = lambda v, m, fn=strip_fn, c=orig_conv: c(fn(v, m), m)
+            else:
+                conv[group] = strip_fn
+            s = r".{%s}" % format["width"]
+            if wrap:
+                s = wrap % s
+                self._group_index += 1
+            return s
+
+        # Place into a group now - this captures the value we want to keep.
+        # Everything else from now is just padding to be stripped off
+        if wrap:
+            s = wrap % s
+            self._group_index += 1
 
         if fill in r".\+?*[](){}^$":
             fill = "\\" + fill
