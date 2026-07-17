@@ -366,6 +366,14 @@ def test_numbers():
     y("a {:_d} b", "a 1_000_000 b", 1000000, str_equals=True)
     y("a {:_d} b", "a -1_000_000 b", -1000000, str_equals=True)
 
+    # A separator-only string must not match a grouped int: the pattern used to
+    # accept it and then int('', base) raised ValueError instead of returning None.
+    n("{:,d}", ",", None)
+    n("{:,d}", ",,", None)
+    n("{:_d}", "_", None)
+    assert parse.parse("{:,d}", ",") is None
+    y("{:,d}", "1,000", 1000)
+
 
 def test_two_datetimes():
     r = parse.parse("a {:ti} {:ti} b", "a 1997-07-16 2012-08-01 b")

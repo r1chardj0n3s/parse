@@ -745,7 +745,7 @@ class Parser(object):
                 width = r"{1,%s}" % int(format["width"])
             else:
                 width = "+"
-            s = r"[-+ ]?[0-9{g}]{w}|[-+ ]?0[xX][0-9a-fA-F{g}]{w}|[-+ ]?0[bB][01{g}]{w}|[-+ ]?0[oO][0-7{g}]{w}".format(
+            s = r"[-+ ]?(?=[0-9{g}]*[0-9])[0-9{g}]{w}|[-+ ]?0[xX][0-9a-fA-F{g}]{w}|[-+ ]?0[bB][01{g}]{w}|[-+ ]?0[oO][0-7{g}]{w}".format(
                 w=width,
                 g=format.get("grouping", ""),
             )
