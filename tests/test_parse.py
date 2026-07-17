@@ -270,6 +270,12 @@ def test_numbers():
     n("a {:n} b", "a 100,00 b", None)
     y("a {:n} b", "a 100.000 b", 100000)
     y("a {:n} b", "a 1.000.000 b", 1000000)
+    # Unicode digits must not match: int_convert only handles ASCII, so a
+    # non-ASCII digit used to reduce to "" and raise ValueError instead of None.
+    n("{:n}", "٠", None)
+    n("{:n}", "۰", None)
+    assert parse.parse("{:n}", "٠") is None
+    assert list(parse.findall("{:n}", "٠")) == []
 
     y("a {:f} b", "a 12.0 b", 12.0)
     y("a {:f} b", "a -12.1 b", -12.1)
