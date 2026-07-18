@@ -967,19 +967,18 @@ class ResultIterator(object):
         return self
 
     def __next__(self):
-        m = self.parser._search_re.search(self.string, self.pos, self.endpos)
-        if m is None:
-            raise StopIteration()
-        self.pos = m.end()
+        while True:
+            m = self.parser._search_re.search(self.string, self.pos, self.endpos)
+            if m is None:
+                raise StopIteration()
+            self.pos = m.end()
 
-        if self.evaluate_result:
+            if not self.evaluate_result:
+                return Match(self.parser, m)
             try:
                 return self.parser.evaluate_result(m)
             except ConversionFailure:
-                # Skip this match and keep searching.
-                return next(self)
-        else:
-            return Match(self.parser, m)
+                continue
 
     # pre-py3k compat
     next = __next__

@@ -796,6 +796,9 @@ def test_invalid_date_conversion_returns_none():
     # Valid values still convert.
     assert parse.parse("{:%Y-%m-%d}", "2020-01-15")[0] == datetime(2020, 1, 15).date()
     assert parse.parse("{:ti}", "2020-01-01T00:00:00")[0] == datetime(2020, 1, 1, 0, 0, 0)
+    results = list(parse.findall("{:%Y-%m-%d}", "2020-13-01 2020-01-15"))
+    assert len(results) == 1
+    assert results[0][0] == datetime(2020, 1, 15).date()
 
 
 def test_parser_format():
