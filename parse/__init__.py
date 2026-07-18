@@ -17,6 +17,10 @@ __all__ = ["parse", "search", "findall", "with_pattern"]
 log = logging.getLogger(__name__)
 
 
+class ConversionFailure(Exception):
+    """Internal: a type converter rejected a string that matched its regex."""
+
+
 def with_pattern(pattern, regex_group_count=None):
     r"""Attach a regular expression pattern matcher to a custom type converter
     function.
@@ -190,6 +194,30 @@ def date_convert(
     """Convert the incoming string containing some date / time info into a
     datetime instance.
     """
+    try:
+        return _date_convert(
+            string, match, ymd, mdy, dmy, d_m_y, hms, am, tz, mm, dd
+        )
+    except (ValueError, OverflowError) as e:
+        raise ConversionFailure from e
+
+
+def _date_convert(
+    string,
+    match,
+    ymd=None,
+    mdy=None,
+    dmy=None,
+    d_m_y=None,
+    hms=None,
+    am=None,
+    tz=None,
+    mm=None,
+    dd=None,
+):
+    """Convert the incoming string containing some date / time info into a
+    datetime instance.
+    """
     groups = match.groups()
     time_only = False
     if mm and dd:
@@ -277,18 +305,22 @@ def strf_date_convert(x, _, type):
     is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
     is_time = any("%" + x in type for x in "HIpMSfz")
 
-    dt = datetime.strptime(x, type)
-    if "%y" not in type and "%Y" not in type:  # year not specified
-        dt = dt.replace(year=datetime.today().year)
+    if not is_date and not is_time:
+        raise ValueError("Datetime not a date nor a time?")
+
+    try:
+        dt = datetime.strptime(x, type)
+        if "%y" not in type and "%Y" not in type:  # year not specified
+            dt = dt.replace(year=datetime.today().year)
+    except ValueError as e:
+        raise ConversionFailure from e
 
     if is_date and is_time:
         return dt
     elif is_date:
         return dt.date()
-    elif is_time:
-        return dt.time()
     else:
-        raise ValueError("Datetime not a date nor a time?")
+        return dt.time()
 
 
 # ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
@@ -504,7 +536,10 @@ class Parser(object):
             return None
 
         if evaluate_result:
-            return self.evaluate_result(m)
+            try:
+                return self.evaluate_result(m)
+            except ConversionFailure:
+                return None
         else:
             return Match(self, m)
 
@@ -527,7 +562,10 @@ class Parser(object):
             return None
 
         if evaluate_result:
-            return self.evaluate_result(m)
+            try:
+                return self.evaluate_result(m)
+            except ConversionFailure:
+                return None
         else:
             return Match(self, m)
 
@@ -906,7 +944,10 @@ class Match(object):
 
     def evaluate_result(self):
         """Generate results for this Match"""
-        return self.parser.evaluate_result(self.match)
+        try:
+            return self.parser.evaluate_result(self.match)
+        except ConversionFailure:
+            return None
 
 
 class ResultIterator(object):
@@ -932,7 +973,11 @@ class ResultIterator(object):
         self.pos = m.end()
 
         if self.evaluate_result:
-            return self.parser.evaluate_result(m)
+            try:
+                return self.parser.evaluate_result(m)
+            except ConversionFailure:
+                # Skip this match and keep searching.
+                return next(self)
         else:
             return Match(self.parser, m)
 
