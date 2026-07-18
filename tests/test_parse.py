@@ -789,13 +789,17 @@ def test_strftime_strptime_roundtrip():
 def test_invalid_date_conversion_returns_none():
     # Regex can match calendar-invalid values; conversion must not raise.
     assert parse.parse("{:%Y-%m-%d}", "2020-13-01") is None
+    assert parse.parse("{:%Y-%m-%d}", "2020-02-30") is None
     assert parse.parse("{:%H:%M}", "25:61") is None
     assert parse.parse("{:ti}", "2020-13-01T00:00:00") is None
+    assert parse.parse("{:ti}", "2020-02-30") is None
+    assert parse.parse("{:tt}", "25:00:00") is None
     assert parse.parse("{:tg}", "40/13/2020") is None
     assert parse.parse("{:ta}", "13/40/2020") is None
     # Valid values still convert.
     assert parse.parse("{:%Y-%m-%d}", "2020-01-15")[0] == datetime(2020, 1, 15).date()
     assert parse.parse("{:ti}", "2020-01-01T00:00:00")[0] == datetime(2020, 1, 1, 0, 0, 0)
+    assert parse.parse("{:tt}", "12:00:00")[0].hour == 12
     results = list(parse.findall("{:%Y-%m-%d}", "2020-13-01 2020-01-15"))
     assert len(results) == 1
     assert results[0][0] == datetime(2020, 1, 15).date()
