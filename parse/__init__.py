@@ -707,7 +707,7 @@ class Parser(object):
             self._group_index += regex_group_count
             conv[group] = convert_first(type_converter)
         elif type == "n":
-            s = r"\d{1,3}([,.]\d{3})*"
+            s = r"(?:\d{1,3}([,.]\d{3})*|\d+)"
             self._group_index += 1
             conv[group] = int_convert(10)
         elif type == "b":
