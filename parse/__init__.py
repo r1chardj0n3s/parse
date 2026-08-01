@@ -329,8 +329,17 @@ def get_regex_for_datetime_format(format_):
     Returns:
         str: A regex pattern corresponding to the datetime format string.
     """
-    # Replace all format symbols with their regex patterns.
-    return dt_format_symbols_re.sub(lambda m: dt_format_to_regex[m.group(0)], format_)
+    # Replace all format symbols with their regex patterns, escaping the literal
+    # text between symbols so that regex metacharacters in the format (e.g. ".",
+    # "+", "[", "(") are matched literally rather than interpreted as operators.
+    result = []
+    last = 0
+    for match in dt_format_symbols_re.finditer(format_):
+        result.append(re.escape(format_[last : match.start()]))
+        result.append(dt_format_to_regex[match.group(0)])
+        last = match.end()
+    result.append(re.escape(format_[last:]))
+    return "".join(result)
 
 
 class TooManyFields(ValueError):
