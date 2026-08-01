@@ -200,6 +200,25 @@ def test_named_aligned_typed():
     assert r.named == {"number": 12, "things": "people"}
 
 
+def test_aligned_with_width_strips_padding():
+    # An explicit alignment strips the fill padding even when a width is
+    # given: the width is only a strip hint, not a content minimum (README).
+    # parse should invert the padding produced by format().
+    for spec in (">10", "<10", "^12", "_>10", "*<11", "x^12"):
+        padded = format("hi", spec)
+        assert parse.parse("{:" + spec + "}", padded).fixed[0] == "hi", spec
+    # width with no explicit alignment keeps the fixed-width behaviour
+    assert parse.parse("{:4}", "ab  ").fixed[0] == "ab  "
+
+
+def test_aligned_with_width_and_precision():
+    # width > precision with an explicit alignment must not build an
+    # impossible ".{width,precision}" regex range (which fails to compile).
+    for spec in (">10.4", "<10.4", "^11.4", "_>10.4"):
+        padded = format("spam", spec)
+        assert parse.parse("{:" + spec + "}", padded).fixed[0] == "spam", spec
+
+
 def test_multiline():
     r = parse.parse("hello\n{}\nworld", "hello\nthere\nworld")
     assert r.fixed[0] == "there"
