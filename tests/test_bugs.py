@@ -119,3 +119,13 @@ def test_microsecond_precision_issue162():
     # more than 6 fractional digits should be truncated
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.1234567Z")
     assert r[0].microsecond == 123456
+
+
+def test_integer_precision_limits_digits_issue107():
+    r = parse.parse("#{:2.2x}{:2.2x}{:2.2x}", "#FFFFFF")
+    assert r.fixed == (255, 255, 255)
+
+    assert parse.parse("#{:2.2x}{:2.2x}{:2.2x}", "#FFFF") is None
+    assert parse.parse("#{:2.2x}{:2.2x}{:2.2x}", "#FFF") is None
+    assert parse.parse("{:2.2d}{:2.2d}{:2.2d}", "9999") is None
+    assert parse.parse("{:2.2d}{:2.2d}{:2.2d}", "999") is None

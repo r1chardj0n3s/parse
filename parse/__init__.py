@@ -697,6 +697,17 @@ class Parser(object):
         # figure type conversions, if any
         type = format["type"]
         is_numeric = type and type in "n%fegdobxEGX"
+        precision = format.get("precision")
+
+        def repeated_digits(default="+"):
+            if precision:
+                minimum = int(format.get("width") or 1)
+                maximum = int(precision)
+                if minimum > maximum:
+                    minimum = maximum
+                return r"{%s,%s}" % (minimum, maximum)
+            return default
+
         conv = self._type_conversions
         if type in self._extra_types:
             type_converter = self._extra_types[type]
@@ -711,15 +722,15 @@ class Parser(object):
             self._group_index += 1
             conv[group] = int_convert(10)
         elif type == "b":
-            s = r"(0[bB])?[01]+"
+            s = r"(0[bB])?[01]%s" % repeated_digits()
             conv[group] = int_convert(2)
             self._group_index += 1
         elif type == "o":
-            s = r"(0[oO])?[0-7]+"
+            s = r"(0[oO])?[0-7]%s" % repeated_digits()
             conv[group] = int_convert(8)
             self._group_index += 1
         elif type in ("x", "X"):
-            s = r"(0[xX])?[0-9a-fA-F]+"
+            s = r"(0[xX])?[0-9a-fA-F]%s" % repeated_digits()
             conv[group] = int_convert(16)
             self._group_index += 1
         elif type == "%":
@@ -741,7 +752,9 @@ class Parser(object):
             self._group_index += 2
             conv[group] = convert_first(float)
         elif type == "d":
-            if format.get("width"):
+            if precision:
+                width = repeated_digits()
+            elif format.get("width"):
                 width = r"{1,%s}" % int(format["width"])
             else:
                 width = "+"
