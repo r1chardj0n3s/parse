@@ -351,13 +351,16 @@ ALLOWED_TYPES = set(list("nboxX%fFeEgGwWdDsSl") + ["t" + c for c in "ieahgcts"])
 def extract_format(format, extra_types):
     """Pull apart the format [[fill]align][sign][0][width][grouping][.precision][type]"""
     fill = align = None
-    if format[0] in "<>=^":
-        align = format[0]
-        format = format[1:]
-    elif len(format) > 1 and format[1] in "<>=^":
+    # Note the fill character is checked first, matching the behaviour of
+    # format() itself: a fill character may itself be an alignment character,
+    # as in "{:^^10}" (center-aligned, padded with "^").
+    if len(format) > 1 and format[1] in "<>=^":
         fill = format[0]
         align = format[1]
         format = format[2:]
+    elif format[0] in "<>=^":
+        align = format[0]
+        format = format[1:]
 
     if format.startswith(("+", "-", " ")):
         format = format[1:]
@@ -821,6 +824,12 @@ class Parser(object):
         align = format["align"]
         fill = format["fill"]
 
+        # The fill character is interpolated into the regular expression
+        # below, so escape it if it has a special meaning there. This has to
+        # happen before the "=" alignment uses it.
+        if fill:
+            fill = re.escape(fill)
+
         # handle some numeric-specific things like fill and sign
         if is_numeric:
             # prefix with something (align "=" trumps zero)
@@ -850,9 +859,6 @@ class Parser(object):
             # padding
             if not align:
                 align = ">"
-
-        if fill in r".\+?*[](){}^$":
-            fill = "\\" + fill
 
         # align "=" has been handled
         if align == "<":
