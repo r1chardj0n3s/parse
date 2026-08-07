@@ -119,3 +119,32 @@ def test_microsecond_precision_issue162():
     # more than 6 fractional digits should be truncated
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.1234567Z")
     assert r[0].microsecond == 123456
+
+
+def test_regex_special_fill_character():
+    # the fill character is interpolated into the generated regular
+    # expression, so one that is a regex metacharacter has to be escaped;
+    # previously these raised NotImplementedError or failed to match
+    for fill in "*+?.()[]{}|^$\\/!#~":
+        for align in "<>=^":
+            spec = fill + align + "6d"
+            text = format(42, spec)
+            r = parse.parse("{:" + spec + "}", text)
+            assert r is not None, "no match for {!r} against {!r}".format(spec, text)
+            assert r[0] == 42, spec
+
+
+def test_fill_character_that_is_an_alignment_character():
+    # a fill character may itself be an alignment character, as in "{:^^6d}"
+    # (centered, padded with "^"). The leading "^" used to be read as the
+    # alignment, leaving "^6d" to be rejected as an unknown format spec.
+    for fill in "<>=^":
+        for align in "<>=^":
+            spec = fill + align + "6d"
+            text = format(42, spec)
+            r = parse.parse("{:" + spec + "}", text)
+            assert r is not None, "no match for {!r} against {!r}".format(spec, text)
+            assert r[0] == 42, spec
+
+    # the same applies to non-numeric fields
+    assert parse.parse("{:^^10}", format("spam", "^^10")) is not None

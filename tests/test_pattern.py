@@ -58,6 +58,10 @@ def test_format_variety():
     _("^", {"align": "^"})
     _(".^", {"align": "^", "fill": "."})
     _("x=d", {"type": "d", "align": "=", "fill": "x"})
+    # a fill character may itself be an alignment character
+    _("^^d", {"type": "d", "align": "^", "fill": "^"})
+    _("<<d", {"type": "d", "align": "<", "fill": "<"})
+    _("==d", {"type": "d", "align": "=", "fill": "="})
     _("d", {"type": "d"})
     _("ti", {"type": "ti"})
     _("spam", {"type": "spam"})
