@@ -741,7 +741,19 @@ class Parser(object):
             self._group_index += 2
             conv[group] = convert_first(float)
         elif type == "d":
-            if format.get("width"):
+            if format.get("width") and format.get("zero"):
+                # Zero-padding shares the digit character class with the
+                # value itself, so the minimum digit count enforces the
+                # padding. But width is only a minimum -- format() pads
+                # short values with zeros, it never truncates longer
+                # ones -- so there must be no upper bound here.
+                width = r"{%s,}" % int(format["width"])
+            elif format.get("width"):
+                # No zero flag: any padding is a fill character (default
+                # space) handled separately by the align logic below, not
+                # part of the digit run itself. Keep the original capped
+                # behaviour here so width can still disambiguate adjacent
+                # unseparated int fields (see README / test_width_multi_int).
                 width = r"{1,%s}" % int(format["width"])
             else:
                 width = "+"

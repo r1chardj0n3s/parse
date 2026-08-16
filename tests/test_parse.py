@@ -333,6 +333,15 @@ def test_numbers():
     y("a {:05d} b", "a +00001 b", 1)
     y("a {:02d} b", "a 10 b", 10)
 
+    # width is a minimum, not a maximum: format() only pads short values
+    # with zeros, it never truncates longer ones, so values with more
+    # digits than the specified width must still parse (issue #142)
+    y("a {:02d} b", "a 100 b", 100)
+    y("a {:05d} b", "a 123456 b", 123456)
+    y("a {:04x} b", "a abcdef b", 0xABCDEF)
+    y("a {:04o} b", "a 1234567 b", int("1234567", 8))
+    y("a {:04b} b", "a 101010101 b", int("101010101", 2))
+
     y("a {:=d} b", "a 000012 b", 12)
     y("a {:x=5d} b", "a xxx12 b", 12)
     y("a {:x=5d} b", "a -xxx12 b", -12)
