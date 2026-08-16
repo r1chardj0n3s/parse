@@ -747,20 +747,36 @@ class Parser(object):
                 # padding. But width is only a minimum -- format() pads
                 # short values with zeros, it never truncates longer
                 # ones -- so there must be no upper bound here.
-                width = r"{%s,}" % int(format["width"])
-            elif format.get("width"):
-                # No zero flag: any padding is a fill character (default
-                # space) handled separately by the align logic below, not
-                # part of the digit run itself. Keep the original capped
-                # behaviour here so width can still disambiguate adjacent
-                # unseparated int fields (see README / test_width_multi_int).
-                width = r"{1,%s}" % int(format["width"])
+                #
+                # A sign character, when present, occupies one of the
+                # zero-padded width columns (e.g. '{:05d}'.format(-1) ==
+                # '-0001', not '-00001'), so a signed value only needs
+                # width-1 digits to satisfy the same minimum width.
+                w = int(format["width"])
+                width = r"{%s,}" % w
+                sign_width = r"{%s,}" % max(w - 1, 0)
+                g = format.get("grouping", "")
+                s = (
+                    r"[-+ ][0-9{g}]{sw}|[0-9{g}]{w}"
+                    r"|[-+ ]0[xX][0-9a-fA-F{g}]{sw}|0[xX][0-9a-fA-F{g}]{w}"
+                    r"|[-+ ]0[bB][01{g}]{sw}|0[bB][01{g}]{w}"
+                    r"|[-+ ]0[oO][0-7{g}]{sw}|0[oO][0-7{g}]{w}"
+                ).format(w=width, sw=sign_width, g=g)
             else:
-                width = "+"
-            s = r"[-+ ]?[0-9{g}]{w}|[-+ ]?0[xX][0-9a-fA-F{g}]{w}|[-+ ]?0[bB][01{g}]{w}|[-+ ]?0[oO][0-7{g}]{w}".format(
-                w=width,
-                g=format.get("grouping", ""),
-            )
+                if format.get("width"):
+                    # No zero flag: any padding is a fill character
+                    # (default space) handled separately by the align
+                    # logic below, not part of the digit run itself. Keep
+                    # the original capped behaviour here so width can
+                    # still disambiguate adjacent unseparated int fields
+                    # (see README / test_width_multi_int).
+                    width = r"{1,%s}" % int(format["width"])
+                else:
+                    width = "+"
+                s = r"[-+ ]?[0-9{g}]{w}|[-+ ]?0[xX][0-9a-fA-F{g}]{w}|[-+ ]?0[bB][01{g}]{w}|[-+ ]?0[oO][0-7{g}]{w}".format(
+                    w=width,
+                    g=format.get("grouping", ""),
+                )
             conv[group] = int_convert()
             # do not specify number base, determine it automatically
         elif any(k in type for k in dt_format_to_regex):

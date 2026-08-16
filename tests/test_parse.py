@@ -342,6 +342,25 @@ def test_numbers():
     y("a {:04o} b", "a 1234567 b", int("1234567", 8))
     y("a {:04b} b", "a 101010101 b", int("101010101", 2))
 
+    # A sign character occupies one of the zero-padded width columns, just
+    # as it does for str.format() itself, so a signed value only needs
+    # width-1 digits to satisfy the same minimum width. Exercise the
+    # digit-count == width-1 (exact round-trip), == width, and > width
+    # boundaries for '-' and '+' signs (issue #142 regression).
+    y("a {:05d} b", "a -0001 b", -1)  # digits == width - 1 (sign fills a column)
+    y("a {:05d} b", "a +0001 b", 1)
+    y("a {:03d} b", "a -07 b", -7)
+    y("a {:05d} b", "a -00001 b", -1)  # digits == width
+    y("a {:05d} b", "a +00001 b", 1)
+    y("a {:05d} b", "a -100000 b", -100000)  # digits > width
+    y("a {:05d} b", "a +100000 b", 100000)
+    y("a {:04x} b", "a -abc b", -0xABC)
+    y("a {:04x} b", "a -abcdef b", -0xABCDEF)
+    y("a {:04o} b", "a -123 b", -int("123", 8))
+    y("a {:04o} b", "a -1234567 b", -int("1234567", 8))
+    y("a {:04b} b", "a -101 b", -int("101", 2))
+    y("a {:04b} b", "a -101010101 b", -int("101010101", 2))
+
     y("a {:=d} b", "a 000012 b", 12)
     y("a {:x=5d} b", "a xxx12 b", 12)
     y("a {:x=5d} b", "a -xxx12 b", -12)
