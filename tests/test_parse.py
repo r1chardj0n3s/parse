@@ -361,6 +361,16 @@ def test_numbers():
     y("a {:04b} b", "a -101 b", -int("101", 2))
     y("a {:04b} b", "a -101010101 b", -int("101010101", 2))
 
+    # width == 1 means width - 1 == 0 zero-padded columns are needed for
+    # the digits after a sign; the sign alternative must still require at
+    # least one digit and must not match a bare sign with none (issue
+    # #142 regression: this previously raised IndexError from
+    # int_convert instead of matching or failing to match).
+    y("a {:01d} b", "a -5 b", -5)
+    y("a {:01d} b", "a 5 b", 5)
+    assert parse.parse("a {:01d} b", "a - b") is None
+    assert parse.parse("val={:01d}!", "val=-!") is None
+
     y("a {:=d} b", "a 000012 b", 12)
     y("a {:x=5d} b", "a xxx12 b", 12)
     y("a {:x=5d} b", "a -xxx12 b", -12)

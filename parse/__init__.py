@@ -751,10 +751,14 @@ class Parser(object):
                 # A sign character, when present, occupies one of the
                 # zero-padded width columns (e.g. '{:05d}'.format(-1) ==
                 # '-0001', not '-00001'), so a signed value only needs
-                # width-1 digits to satisfy the same minimum width.
+                # width-1 digits to satisfy the same minimum width. But
+                # at least one digit is always required -- a bare sign
+                # with no digits (e.g. width==1, so width-1==0) must not
+                # match, or int_convert() will crash on the sign-only
+                # string.
                 w = int(format["width"])
                 width = r"{%s,}" % w
-                sign_width = r"{%s,}" % max(w - 1, 0)
+                sign_width = r"{%s,}" % max(w - 1, 1)
                 g = format.get("grouping", "")
                 s = (
                     r"[-+ ][0-9{g}]{sw}|[0-9{g}]{w}"
