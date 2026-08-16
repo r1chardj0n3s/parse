@@ -333,6 +333,44 @@ def test_numbers():
     y("a {:05d} b", "a +00001 b", 1)
     y("a {:02d} b", "a 10 b", 10)
 
+    # width is a minimum, not a maximum: format() only pads short values
+    # with zeros, it never truncates longer ones, so values with more
+    # digits than the specified width must still parse (issue #142)
+    y("a {:02d} b", "a 100 b", 100)
+    y("a {:05d} b", "a 123456 b", 123456)
+    y("a {:04x} b", "a abcdef b", 0xABCDEF)
+    y("a {:04o} b", "a 1234567 b", int("1234567", 8))
+    y("a {:04b} b", "a 101010101 b", int("101010101", 2))
+
+    # A sign character occupies one of the zero-padded width columns, just
+    # as it does for str.format() itself, so a signed value only needs
+    # width-1 digits to satisfy the same minimum width. Exercise the
+    # digit-count == width-1 (exact round-trip), == width, and > width
+    # boundaries for '-' and '+' signs (issue #142 regression).
+    y("a {:05d} b", "a -0001 b", -1)  # digits == width - 1 (sign fills a column)
+    y("a {:05d} b", "a +0001 b", 1)
+    y("a {:03d} b", "a -07 b", -7)
+    y("a {:05d} b", "a -00001 b", -1)  # digits == width
+    y("a {:05d} b", "a +00001 b", 1)
+    y("a {:05d} b", "a -100000 b", -100000)  # digits > width
+    y("a {:05d} b", "a +100000 b", 100000)
+    y("a {:04x} b", "a -abc b", -0xABC)
+    y("a {:04x} b", "a -abcdef b", -0xABCDEF)
+    y("a {:04o} b", "a -123 b", -int("123", 8))
+    y("a {:04o} b", "a -1234567 b", -int("1234567", 8))
+    y("a {:04b} b", "a -101 b", -int("101", 2))
+    y("a {:04b} b", "a -101010101 b", -int("101010101", 2))
+
+    # width == 1 means width - 1 == 0 zero-padded columns are needed for
+    # the digits after a sign; the sign alternative must still require at
+    # least one digit and must not match a bare sign with none (issue
+    # #142 regression: this previously raised IndexError from
+    # int_convert instead of matching or failing to match).
+    y("a {:01d} b", "a -5 b", -5)
+    y("a {:01d} b", "a 5 b", 5)
+    assert parse.parse("a {:01d} b", "a - b") is None
+    assert parse.parse("val={:01d}!", "val=-!") is None
+
     y("a {:=d} b", "a 000012 b", 12)
     y("a {:x=5d} b", "a xxx12 b", 12)
     y("a {:x=5d} b", "a -xxx12 b", -12)
