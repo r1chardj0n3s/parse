@@ -651,6 +651,38 @@ def test_datetime_group_count():
     assert r.fixed[1] == "spam"
 
 
+def test_datetime_case_insensitive():
+    # the default is to match case insensitively, so whatever the regex
+    # accepts, the conversion must accept too: lower case AM/PM, month names
+    # and "Z" used to be matched and then either mis-converted or raise
+    r = parse.parse("Meet at {:tg}", "Meet at 1/2/2011 11:00 pm")
+    assert r[0] == datetime(2011, 2, 1, 23, 0)
+    r = parse.parse("Meet at {:tg}", "Meet at 1/2/2011 12:15 am")
+    assert r[0] == datetime(2011, 2, 1, 0, 15)
+    r = parse.parse("{:tt}", "10:21:36 pm")
+    assert r[0] == time(22, 21, 36)
+    r = parse.parse("{:tg}", "21/nov/2011")
+    assert r[0] == datetime(2011, 11, 21)
+    r = parse.parse("{:ta}", "NOVEMBER-21-2011")
+    assert r[0] == datetime(2011, 11, 21)
+    aest = parse.FixedTzOffset(10 * 60, "+1000")
+    aest_d = datetime(2011, 11, 21, 10, 21, 36, tzinfo=aest)
+    r = parse.parse("{:te}", "mon, 21 nov 2011 10:21:36 +1000")
+    assert r[0] == aest_d
+    r = parse.parse("{:th}", "21/nov/2011:10:21:36 +1000")
+    assert r[0] == aest_d
+    r = parse.parse("{:tc}", "mon nov 21 10:21:36 2011")
+    assert r[0] == datetime(2011, 11, 21, 10, 21, 36)
+    r = parse.parse("{:ts}", "nov 21 10:21:36")
+    assert r[0] == datetime(datetime.today().year, 11, 21, 10, 21, 36)
+    utc = parse.FixedTzOffset(0, "UTC")
+    r = parse.parse("{:ti}", "1997-07-16t19:20z")
+    assert r[0] == datetime(1997, 7, 16, 19, 20, tzinfo=utc)
+    # and with case_sensitive=True they are simply not matched
+    assert parse.parse("{:tg}", "21/nov/2011", case_sensitive=True) is None
+    assert parse.parse("{:tt}", "10:21:36 pm", case_sensitive=True) is None
+
+
 def test_mixed_types():
     # stress-test: pull one of everything out of a string
     r = parse.parse(
