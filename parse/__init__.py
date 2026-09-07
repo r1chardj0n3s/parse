@@ -227,7 +227,7 @@ def date_convert(
     if am is not None:
         am = groups[am]
         if am:
-            am = am.strip()
+            am = am.strip().upper()
         if am == "AM" and H == 12:
             # correction for "12" hour functioning as "0" hour: 12:15 AM = 00:15 by 24 hr clock
             H -= 12
@@ -239,7 +239,7 @@ def date_convert(
 
     if tz is not None:
         tz = groups[tz]
-    if tz == "Z":
+    if tz and tz.upper() == "Z":
         tz = FixedTzOffset(0, "UTC")
     elif tz:
         tz = tz.strip()
@@ -266,7 +266,7 @@ def date_convert(
         if m.isdigit():
             m = int(m)
         else:
-            m = MONTHS_MAP[m]
+            m = MONTHS_MAP[m.capitalize()]
         d = int(d)
         d = datetime(y, m, d, H, M, S, u, tzinfo=tz)
 
