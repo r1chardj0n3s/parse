@@ -362,6 +362,14 @@ def extract_format(format, extra_types):
     if format.startswith(("+", "-", " ")):
         format = format[1:]
 
+    # Alternate form ('#'), e.g. {:#x}/{:#o}/{:#b}. Captured and skipped so it
+    # does not fall through to the type check as an unrecognised spec: the
+    # converters already accept the 0x/0o/0b prefix it produces.
+    alternate = False
+    if format.startswith("#"):
+        alternate = True
+        format = format[1:]
+
     zero = False
     if format and format[0] == "0":
         zero = True
@@ -711,17 +719,17 @@ class Parser(object):
             self._group_index += 1
             conv[group] = int_convert(10)
         elif type == "b":
-            s = r"(0[bB])?[01]+"
+            # The '#' alternate form requires the 0b/0B prefix; the plain form
+            # accepts only bare digits. This mirrors str.format, where '{:#b}'
+            # always emits the prefix and '{:b}' never does.
+            s = r"0[bB][01]+" if format.get("alternate") else r"[01]+"
             conv[group] = int_convert(2)
-            self._group_index += 1
         elif type == "o":
-            s = r"(0[oO])?[0-7]+"
+            s = r"0[oO][0-7]+" if format.get("alternate") else r"[0-7]+"
             conv[group] = int_convert(8)
-            self._group_index += 1
         elif type in ("x", "X"):
-            s = r"(0[xX])?[0-9a-fA-F]+"
+            s = r"0[xX][0-9a-fA-F]+" if format.get("alternate") else r"[0-9a-fA-F]+"
             conv[group] = int_convert(16)
-            self._group_index += 1
         elif type == "%":
             s = r"\d+(\.\d+)?%"
             self._group_index += 1

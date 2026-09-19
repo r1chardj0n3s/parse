@@ -221,7 +221,7 @@ def test_spans():
     assert string[start:end] == r.fixed[0]
 
     string = "hello 0x12 world"
-    r = parse.parse("hello {val:x} world", string)
+    r = parse.parse("hello {val:#x} world", string)
     assert r.spans == {"val": (6, 10)}
     start, end = r.spans["val"]
     assert string[start:end] == "0x%x" % r.named["val"]
@@ -331,16 +331,31 @@ def test_numbers():
     y("a {:G} b", "a 1.0E10 b", 1.0e10)
 
     y("a {:b} b", "a 1000 b", 8)
-    y("a {:b} b", "a 0b1000 b", 8)
+    y("a {:#b} b", "a 0b1000 b", 8)
     y("a {:o} b", "a 12345670 b", int("12345670", 8))
-    y("a {:o} b", "a 0o12345670 b", int("12345670", 8))
+    y("a {:#o} b", "a 0o12345670 b", int("12345670", 8))
     y("a {:x} b", "a 1234567890abcdef b", 0x1234567890ABCDEF)
     y("a {:x} b", "a 1234567890ABCDEF b", 0x1234567890ABCDEF)
-    y("a {:x} b", "a 0x1234567890abcdef b", 0x1234567890ABCDEF)
-    y("a {:x} b", "a 0x1234567890ABCDEF b", 0x1234567890ABCDEF)
+    y("a {:#x} b", "a 0x1234567890abcdef b", 0x1234567890ABCDEF)
+    y("a {:#x} b", "a 0x1234567890ABCDEF b", 0x1234567890ABCDEF)
     y("a {:X} b", "a 1234567890ABCDEF b", 0x1234567890ABCDEF)
     y("a {:X} b", "a 1234567890abcdef b", 0x1234567890ABCDEF)
-    y("a {:X} b", "a 0X1234567890ABCDEF b", 0x1234567890ABCDEF)
+    y("a {:#X} b", "a 0X1234567890ABCDEF b", 0x1234567890ABCDEF)
+
+    # issue247: the '#' alternate-form flag is supported, and it is strict:
+    # like str.format (where '{:#x}' always emits the 0x prefix and '{:x}'
+    # never does), the alternate form REQUIRES the prefix and the plain form
+    # rejects it.
+    y("a {:#x} b", "a 0xff b", 0xFF)
+    y("a {:#X} b", "a 0XFF b", 0xFF)
+    y("a {:#o} b", "a 0o17 b", 0o17)
+    y("a {:#b} b", "a 0b101 b", 0b101)
+    y("a {:#06x} b", "a 0x00ff b", 0xFF)
+    y("a {:x} b", "a ff b", 0xFF)          # plain form, bare digits
+    n("a {:x} b", "a 0xff b", None)        # plain form rejects the prefix
+    n("a {:#x} b", "a ff b", None)         # alternate form requires the prefix
+    n("a {:#o} b", "a 17 b", None)
+    n("a {:#b} b", "a 101 b", None)
 
     y("a {:05d} b", "a 00001 b", 1)
     y("a {:05d} b", "a -00001 b", -1)
@@ -679,9 +694,9 @@ def test_mixed_types():
         fixed-point: {:f}
         floating-point: {:e}
         general numbers: {:g} {:g}
-        binary: {:b}
-        octal: {:o}
-        hex: {:x}
+        binary: {:#b}
+        octal: {:#o}
+        hex: {:#x}
         ISO 8601 e.g. {:ti}
         RFC2822 e.g. {:te}
         Global e.g. {:tg}
@@ -732,9 +747,9 @@ def test_mixed_type_variant():
         fixed-point: {:f}
         floating-point: {:e}
         general numbers: {:g} {:g}
-        binary: {:b}
-        octal: {:o}
-        hex: {:x}
+        binary: {:#b}
+        octal: {:#o}
+        hex: {:#x}
         ISO 8601 e.g. {:ti}
         RFC2822 e.g. {:te}
         Global e.g. {:tg}
