@@ -341,6 +341,9 @@ class RepeatedNameError(ValueError):
     pass
 
 
+_MIXED_FIELD = "field %r is used both as a value and as a container"
+
+
 # note: {} are handled separately
 REGEX_SAFETY = re.compile(r"([?\\.[\]()*+^$!|])")
 
@@ -565,10 +568,21 @@ class Parser(object):
 
             if subkeys:
                 for subkey in re.findall(r"\[[^]]+]", subkeys):
-                    d = d.setdefault(k, {})
+                    nxt = d.get(k, {})
+                    if not isinstance(nxt, dict):
+                        # the base name was already used as a plain value, e.g.
+                        # "{a} {a[b]}" -- do not raise a raw TypeError from the
+                        # str/int assignment below.
+                        raise RepeatedNameError(_MIXED_FIELD % k)
+                    d[k] = nxt
+                    d = nxt
                     k = subkey[1:-1]
 
-            # assign the value to the last key
+            # assign the value to the last key, unless that name is already a
+            # container (the reverse order, "{a[b]} {a}", which would otherwise
+            # silently drop the nested value)
+            if isinstance(d.get(k), dict):
+                raise RepeatedNameError(_MIXED_FIELD % k)
             d[k] = value
 
         return result

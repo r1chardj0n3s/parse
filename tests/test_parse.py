@@ -176,6 +176,19 @@ def test_named_repeated_type_mismatch():
         parse.compile("{n:d} {n:w}")
 
 
+def test_mixed_leaf_and_indexed_field():
+    # issue251: a name used as both a plain value and an indexed container is
+    # contradictory. It must raise a clear error, not a raw TypeError (or, in
+    # the other field order, silently drop the nested value).
+    with pytest.raises(parse.RepeatedNameError):
+        parse.parse("{a} {a[b]}", "x y")
+    with pytest.raises(parse.RepeatedNameError):
+        parse.parse("{a[b]} {a}", "x y")
+    # the ordinary indexed cases still nest correctly
+    assert parse.parse("{a[b]} {a[c]}", "x y").named == {"a": {"b": "x", "c": "y"}}
+    assert parse.parse("{a[b][c]}", "x").named == {"a": {"b": {"c": "x"}}}
+
+
 def test_mixed():
     # pull a fixed and named values out of string
     r = parse.parse("hello {} {name} {} {spam}", "hello world and other beings")
