@@ -380,6 +380,13 @@ def test_numbers():
     y("a {:_d} b", "a 1_000_000 b", 1000000, str_equals=True)
     y("a {:_d} b", "a -1_000_000 b", -1000000, str_equals=True)
 
+    # Underscore grouping for non-decimal bases (only "_" is valid for x/o/b)
+    y("a {:_x} b", "a 123_4567 b", 0x1234567)
+    y("a {:_X} b", "a AB_CDEF b", 0xABCDEF)
+    y("a {:_o} b", "a 177_7777 b", 0o1777777)
+    y("a {:_b} b", "a 1111_0000 b", 0b11110000)
+    y("a {:_x} b", "a 0x12_34 b", 0x1234)
+
 
 def test_two_datetimes():
     r = parse.parse("a {:ti} {:ti} b", "a 1997-07-16 2012-08-01 b")

@@ -711,15 +711,15 @@ class Parser(object):
             self._group_index += 1
             conv[group] = int_convert(10)
         elif type == "b":
-            s = r"(0[bB])?[01]+"
+            s = r"(0[bB])?[01{g}]+".format(g=format.get("grouping", ""))
             conv[group] = int_convert(2)
             self._group_index += 1
         elif type == "o":
-            s = r"(0[oO])?[0-7]+"
+            s = r"(0[oO])?[0-7{g}]+".format(g=format.get("grouping", ""))
             conv[group] = int_convert(8)
             self._group_index += 1
         elif type in ("x", "X"):
-            s = r"(0[xX])?[0-9a-fA-F]+"
+            s = r"(0[xX])?[0-9a-fA-F{g}]+".format(g=format.get("grouping", ""))
             conv[group] = int_convert(16)
             self._group_index += 1
         elif type == "%":
