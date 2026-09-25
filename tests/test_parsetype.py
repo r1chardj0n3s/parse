@@ -197,7 +197,11 @@ def test_width_constraints():
 def test_width_multi_int():
     res = parse.parse("{:02d}{:02d}", "0440")
     assert res.fixed == (4, 40)
-    res = parse.parse("{:03d}{:d}", "04404")
+    # "0444" is the actual round-trip of '{:03d}{:d}'.format(44, 4); a
+    # zero-padded width is a minimum, not a maximum (issue #142), so with
+    # no separator between fields the greedy match favours the earlier
+    # (zero-padded) field consuming as many digits as it can.
+    res = parse.parse("{:03d}{:d}", "0444")
     assert res.fixed == (44, 4)
 
 
