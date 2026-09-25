@@ -925,14 +925,13 @@ class ResultIterator(object):
         self.pos = pos
         self.endpos = endpos
         self.evaluate_result = evaluate_result
+        self._matches = parser._search_re.finditer(string, pos, endpos)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        m = self.parser._search_re.search(self.string, self.pos, self.endpos)
-        if m is None:
-            raise StopIteration()
+        m = next(self._matches)
         self.pos = m.end()
 
         if self.evaluate_result:
