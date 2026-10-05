@@ -825,3 +825,26 @@ def test_hyphen_inside_field_name_collision_handling():
     assert result["user-id"] == "1"
     assert result["user_id"] == "2"
     assert result["user.id"] == "3"
+
+
+def test_width_greater_than_precision_raises():
+    # width means "minimum characters" and precision means "maximum
+    # characters" for untyped fields, so a spec where the minimum exceeds
+    # the maximum can never match anything. It used to be compiled into an
+    # invalid regular expression (".{10,3}?") that blew up at match time
+    # with a PatternError wrapped in a misleading NotImplementedError that
+    # blamed group-name escaping.
+    with pytest.raises(ValueError, match="minimum of 10 characters"):
+        parse.parse("{:10.3}", "hel")
+
+
+def test_zero_precision_raises():
+    # ".0" previously generated ".{1,0}?" — min repeat greater than max.
+    with pytest.raises(ValueError, match="maximum of 0"):
+        parse.parse("{:.0}", "")
+
+
+def test_width_precision_valid_specs_still_parse():
+    assert parse.parse("{:.3}", "hel").fixed[0] == "hel"
+    assert parse.parse("{:3.10}", "hello").fixed[0] == "hello"
+    assert parse.parse("{:2.4}", "look").fixed[0] == "look"

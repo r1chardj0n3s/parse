@@ -813,10 +813,16 @@ class Parser(object):
         elif type:
             s = r"\%s+" % type
         elif format.get("precision"):
-            if format.get("width"):
-                s = r".{%s,%s}?" % (format["width"], format["precision"])
-            else:
-                s = r".{1,%s}?" % format["precision"]
+            max_chars = int(format["precision"])
+            min_chars = int(format["width"]) if format.get("width") else 1
+            if min_chars > max_chars:
+                raise ValueError(
+                    "format spec cannot match anything: width specifies a "
+                    "minimum of {} characters but precision a maximum of {}".format(
+                        min_chars, max_chars
+                    )
+                )
+            s = r".{%d,%d}?" % (min_chars, max_chars)
         elif format.get("width"):
             s = r".{%s,}?" % format["width"]
         else:
