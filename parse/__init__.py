@@ -277,9 +277,12 @@ def strf_date_convert(x, _, type):
     is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
     is_time = any("%" + x in type for x in "HIpMSfz")
 
-    dt = datetime.strptime(x, type)
     if "%y" not in type and "%Y" not in type:  # year not specified
-        dt = dt.replace(year=datetime.today().year)
+        # Parse against the current year rather than strptime's default of
+        # 1900, so that Feb 29 and %j day numbers resolve in the right year.
+        x = "%s %d" % (x, datetime.today().year)
+        type += " %Y"
+    dt = datetime.strptime(x, type)
 
     if is_date and is_time:
         return dt
