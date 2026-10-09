@@ -487,6 +487,40 @@ def test_flexible_dates_year_current_year_inferred():
     assert r.named["dt"] == date(datetime.today().year, 1, 9)
 
 
+def _freeze_year(monkeypatch, year):
+    class FrozenDatetime(datetime):
+        @classmethod
+        def today(cls):
+            return cls(year, 6, 15)
+
+    monkeypatch.setattr(parse, "datetime", FrozenDatetime)
+
+
+def test_flexible_dates_inferred_year_leap_day(monkeypatch):
+    # The inferred year must be applied before strptime runs, otherwise the
+    # date is validated against strptime's default (non-leap) year 1900.
+    _freeze_year(monkeypatch, 2024)
+    assert parse.parse("{:%m-%d}", "02-29")[0] == date(2024, 2, 29)
+    assert parse.parse("{:%d %b}", "29 Feb")[0] == date(2024, 2, 29)
+    assert parse.parse("{:%m-%d %H:%M}", "02-29 10:30")[0] == datetime(
+        2024, 2, 29, 10, 30
+    )
+
+    # Feb 29 does not exist in a non-leap current year.
+    _freeze_year(monkeypatch, 2023)
+    with pytest.raises(ValueError):
+        parse.parse("{:%m-%d}", "02-29")
+
+
+def test_flexible_dates_inferred_year_day_of_year(monkeypatch):
+    _freeze_year(monkeypatch, 2024)
+    assert parse.parse("{:%j}", "60")[0] == date(2024, 2, 29)
+    assert parse.parse("{:%j}", "366")[0] == date(2024, 12, 31)
+
+    _freeze_year(monkeypatch, 2023)
+    assert parse.parse("{:%j}", "60")[0] == date(2023, 3, 1)
+
+
 def test_datetimes():
     def y(fmt, s, e, tz=None):
         p = parse.compile(fmt)
