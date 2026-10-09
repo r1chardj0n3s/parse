@@ -738,7 +738,9 @@ class Parser(object):
                 s = r"(?:\d*\.\d+|nan|NAN|inf|INF)"
             conv[group] = convert_first(float if type == "f" else Decimal)
         elif type in ("e", "E"):
-            s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
+            # precision 0 formats without a decimal point (e.g. format(1e5, ".0e") == "1e+05")
+            mantissa = r"\d+" if format.get("precision") == "0" else r"\d*\.\d+"
+            s = mantissa + r"[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
             conv[group] = convert_first(float)
         elif type in ("g", "G"):
             s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
