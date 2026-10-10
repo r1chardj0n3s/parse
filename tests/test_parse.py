@@ -825,3 +825,18 @@ def test_hyphen_inside_field_name_collision_handling():
     assert result["user-id"] == "1"
     assert result["user_id"] == "2"
     assert result["user.id"] == "3"
+
+
+@pytest.mark.parametrize('offset', ['+0530', '-0430', '+00:00', '+0000'])
+def test_flexible_time_preserves_timezone(offset):
+    text = '12:34:56' + offset
+    expected = datetime.strptime(text, '%H:%M:%S%z').timetz()
+    result = parse.parse('{:%H:%M:%S%z}', text)
+    assert result.fixed[0] == expected
+    assert result.fixed[0].utcoffset() == expected.utcoffset()
+
+
+def test_flexible_time_without_timezone_stays_naive():
+    result = parse.parse('{:%H:%M:%S}', '12:34:56')
+    assert result.fixed[0] == datetime(1900, 1, 1, 12, 34, 56).time()
+    assert result.fixed[0].tzinfo is None
