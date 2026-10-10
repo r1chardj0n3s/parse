@@ -827,6 +827,7 @@ def test_hyphen_inside_field_name_collision_handling():
     assert result["user.id"] == "3"
 
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
 @pytest.mark.parametrize('offset', ['+0530', '-0430', '+00:00', '+0000'])
 def test_flexible_time_preserves_timezone(offset):
     text = '12:34:56' + offset
