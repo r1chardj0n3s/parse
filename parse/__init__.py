@@ -286,7 +286,7 @@ def strf_date_convert(x, _, type):
     elif is_date:
         return dt.date()
     elif is_time:
-        return dt.time()
+        return dt.timetz()
     else:
         raise ValueError("Datetime not a date nor a time?")
 
