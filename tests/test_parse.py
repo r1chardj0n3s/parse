@@ -231,6 +231,15 @@ def test_spans():
     assert r.spans == {0: (6, 11), "name": (12, 15), 1: (16, 21), "spam": (22, 28)}
 
 
+@pytest.mark.parametrize("code", ["e", "E"])
+@pytest.mark.parametrize("value", [0.0, -0.0])
+def test_zero_precision_exponent_preserves_signed_zero(code, value):
+    rendered = format(value, ".0" + code)
+    result = parse.parse("{:.0" + code + "}", rendered)
+    assert result is not None, "formatted signed zero must parse"
+    assert result.fixed[0].hex() == value.hex()
+
+
 def test_numbers():
     # pull a numbers out of a string
     def y(fmt, s, e, str_equals=False):
