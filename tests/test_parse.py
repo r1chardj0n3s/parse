@@ -487,6 +487,12 @@ def test_flexible_dates_year_current_year_inferred():
     assert r.named["dt"] == date(datetime.today().year, 1, 9)
 
 
+@pytest.mark.parametrize("offset", ["+01:60", "-0199", "+160", "-1:99"])
+def test_invalid_timezone_minutes(offset):
+    with pytest.raises(ValueError, match="timezone minute"):
+        parse.parse("{:tt}", "12:00 " + offset)
+
+
 def test_datetimes():
     def y(fmt, s, e, tz=None):
         p = parse.compile(fmt)

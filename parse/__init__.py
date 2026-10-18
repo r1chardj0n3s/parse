@@ -254,6 +254,8 @@ def date_convert(
                 tzh, tzm = tz[1], tz[2:4]
             else:
                 tzh, tzm = tz[1:3], tz[3:5]
+            if int(tzm) >= 60:
+                raise ValueError("timezone minute must be in 0..59")
             offset = int(tzm) + int(tzh) * 60
             if sign == "-":
                 offset = -offset
