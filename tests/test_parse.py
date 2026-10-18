@@ -841,3 +841,55 @@ def test_flexible_time_without_timezone_stays_naive():
     result = parse.parse('{:%H:%M:%S}', '12:34:56')
     assert result.fixed[0] == datetime(1900, 1, 1, 12, 34, 56).time()
     assert result.fixed[0].tzinfo is None
+
+
+@pytest.mark.parametrize(
+    "fmt,text,expected",
+    [
+        ("{d:%Y} {d:%m} {d:%d}", "1997 07 16", date(1997, 7, 16)),
+        ("the {d:%d}th of {d:%B} {d:%Y}", "the 16th of July 1997", date(1997, 7, 16)),
+        ("{d:%Y-%m-%d} at {d:%H:%M}", "1997-07-16 at 13:23", datetime(1997, 7, 16, 13, 23)),
+        ("{d:%H}h {d:%M}m {d:%S}s", "13h 45m 09s", time(13, 45, 9)),
+        ("{d:%I:%M} {d:%p}", "02:30 PM", time(14, 30)),
+        ("{d:%H} ({d:%I} {d:%p})", "14 (02 PM)", time(14)),
+        ("{d:%Y} day {d:%j}", "2024 day 197", date(2024, 7, 15)),
+        ("{d:%m-%d} {d:%Y}", "02-29 2024", date(2024, 2, 29)),
+        ("{d:%Y} {d:%B} {d:%m}", "1997 July 07", date(1997, 7, 1)),
+        ("{d:%H:%M} {d:%H}", "13:23 13", time(13, 23)),
+    ],
+)
+def test_datetime_repeated_with_different_formats(fmt, text, expected):
+    # a datetime field may be split across several formats
+    assert parse.parse(fmt, text)["d"] == expected
+
+
+@pytest.mark.parametrize(
+    "fmt,text",
+    [
+        ("{d:%Y} {d:%m} {d:%B}", "1997 03 July"),
+        ("{d:%Y} {d:%y}", "1997 98"),
+        ("{d:%Y} {d:%m} {d:%d} {d:%j}", "1997 07 16 100"),
+        ("{d:%H:%M} {d:%H}", "13:23 14"),
+        ("{d:%H} ({d:%I} {d:%p})", "14 (03 PM)"),
+    ],
+)
+def test_datetime_repeated_parts_disagree(fmt, text):
+    assert parse.parse(fmt, text) is None
+
+
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
+def test_datetime_repeated_with_timezone():
+    r = parse.parse("{d:%Y-%m-%d} {d:%H:%M%z}", "2024-01-02 10:30+0200")
+    assert r["d"] == datetime.strptime("2024-01-02 10:30+0200", "%Y-%m-%d %H:%M%z")
+
+
+def test_datetime_repeated_findall():
+    # a match whose parts disagree is skipped
+    text = "2001-01/January; 2002-02/March; 2003-03/March;"
+    results = parse.findall("{d:%Y}-{d:%m}/{d:%B};", text)
+    assert [r["d"] for r in results] == [date(2001, 1, 1), date(2003, 3, 1)]
+
+
+def test_datetime_repeated_with_other_type_fails():
+    with pytest.raises(parse.RepeatedNameError):
+        parse.compile("{d:%Y} {d:d}")
