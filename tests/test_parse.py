@@ -665,6 +665,7 @@ def test_datetime_group_count():
     assert r.fixed[1] == "spam"
 
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
 def test_datetime_group_count_with_timezone():
     # https://github.com/r1chardj0n3s/parse/issues/262
     # "%z" used to add two capture groups to the generated pattern without the
