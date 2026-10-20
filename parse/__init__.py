@@ -11,7 +11,7 @@ from decimal import Decimal
 from functools import partial
 
 
-__version__ = "1.22.2"
+__version__ = "1.22.3"
 __all__ = ["parse", "search", "findall", "with_pattern"]
 
 log = logging.getLogger(__name__)
@@ -227,7 +227,9 @@ def date_convert(
     if am is not None:
         am = groups[am]
         if am:
-            am = am.strip()
+            # matching is case-insensitive (re.IGNORECASE), so normalise the
+            # captured meridiem before the case-sensitive conversion below
+            am = am.strip().upper()
         if am == "AM" and H == 12:
             # correction for "12" hour functioning as "0" hour: 12:15 AM = 00:15 by 24 hr clock
             H -= 12
@@ -239,7 +241,7 @@ def date_convert(
 
     if tz is not None:
         tz = groups[tz]
-    if tz == "Z":
+    if tz and tz.strip().upper() == "Z":
         tz = FixedTzOffset(0, "UTC")
     elif tz:
         tz = tz.strip()
@@ -254,6 +256,8 @@ def date_convert(
                 tzh, tzm = tz[1], tz[2:4]
             else:
                 tzh, tzm = tz[1:3], tz[3:5]
+            if int(tzm) >= 60:
+                raise ValueError("timezone minute must be in 0..59")
             offset = int(tzm) + int(tzh) * 60
             if sign == "-":
                 offset = -offset
@@ -289,7 +293,7 @@ def strf_date_convert(x, _, type):
     elif is_date:
         return dt.date()
     elif is_time:
-        return dt.time()
+        return dt.timetz()
     else:
         raise ValueError("Datetime not a date nor a time?")
 
@@ -311,7 +315,7 @@ dt_format_to_regex = {
     "%M": "[0-9]{2}",
     "%S": "[0-9]{2}",
     "%f": "[0-9]{1,6}",
-    "%z": "[+|-][0-9]{2}(:?[0-9]{2})?(:?[0-9]{2})?",
+    "%z": "[+|-][0-9]{2}(?::?[0-9]{2})?(?::?[0-9]{2})?",
     # "%Z": punt
     "%j": "[0-9]{1,3}",
     "%U": "[0-9]{1,2}",
@@ -761,6 +765,10 @@ class Parser(object):
         elif any(k in type for k in dt_format_to_regex):
             s = get_regex_for_datetime_format(type)
             conv[group] = partial(strf_date_convert, type=type)
+            # the generated pattern may contain capture groups of its own, so
+            # account for them - otherwise the fields after this one are read
+            # from the wrong match groups
+            self._group_index += re.compile(s).groups
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index

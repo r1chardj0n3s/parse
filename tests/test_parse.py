@@ -502,10 +502,7 @@ def test_flexible_dates_inferred_year_leap_day(monkeypatch):
     _freeze_year(monkeypatch, 2024)
     assert parse.parse("{:%m-%d}", "02-29")[0] == date(2024, 2, 29)
     assert parse.parse("{:%d %b}", "29 Feb")[0] == date(2024, 2, 29)
-    assert parse.parse("{:%m-%d %H:%M}", "02-29 10:30")[0] == datetime(
-        2024, 2, 29, 10, 30
-    )
-
+    assert parse.parse("{:%m-%d %H:%M}", "02-29 10:30")[0] == datetime(2024, 2, 29, 10, 30)
     # Feb 29 does not exist in a non-leap current year.
     _freeze_year(monkeypatch, 2023)
     with pytest.raises(ValueError):
@@ -516,9 +513,14 @@ def test_flexible_dates_inferred_year_day_of_year(monkeypatch):
     _freeze_year(monkeypatch, 2024)
     assert parse.parse("{:%j}", "60")[0] == date(2024, 2, 29)
     assert parse.parse("{:%j}", "366")[0] == date(2024, 12, 31)
-
     _freeze_year(monkeypatch, 2023)
     assert parse.parse("{:%j}", "60")[0] == date(2023, 3, 1)
+
+    
+@pytest.mark.parametrize("offset", ["+01:60", "-0199", "+160", "-1:99"])
+def test_invalid_timezone_minutes(offset):
+    with pytest.raises(ValueError, match="timezone minute"):
+        parse.parse("{:tt}", "12:00 " + offset)
 
 
 def test_datetimes():
@@ -680,6 +682,17 @@ def test_datetimes():
     y("a {:tt} b", "a 10:21:36 PM -08:30 b", time(22, 21, 36, tzinfo=t830))
     y("a {:tt} b", "a 10:21:36 PM -0830 b", time(22, 21, 36, tzinfo=t830))
 
+    # lowercase meridiem: parsing is case-insensitive, conversion must be too
+    y("a {:tt} b", "a 10:21:36 pm b", time(22, 21, 36))
+    y("a {:tt} b", "a 10:21:36 am b", time(10, 21, 36))
+    y("a {:tt} b", "a 12:15:00 am b", time(0, 15, 0))
+    y("a {:tt} b", "a 12:15:00 pm b", time(12, 15, 0))
+    # lowercase Zulu offset must be honoured, not crash
+    r = parse.parse("a {:ti} b", "a 2023-01-15T10:30:00z b")
+    assert r[0] == datetime(
+        2023, 1, 15, 10, 30, 0, tzinfo=parse.FixedTzOffset(0, "UTC")
+    )
+
 
 def test_datetime_group_count():
     # test we increment the group count correctly for datetimes
@@ -697,6 +710,24 @@ def test_datetime_group_count():
     assert r.fixed[1] == "spam"
     r = parse.parse("{:tt} {}", "10:21 spam")
     assert r.fixed[1] == "spam"
+
+
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
+def test_datetime_group_count_with_timezone():
+    # https://github.com/r1chardj0n3s/parse/issues/262
+    # "%z" used to add two capture groups to the generated pattern without the
+    # field accounting for them, shifting every following field's group index
+    string = "2020-03-04 05:06:07+0200|abc"
+    r = parse.parse("{:%Y-%m-%d %H:%M:%S%z}|{}", string)
+    assert r.fixed[0] == datetime(2020, 3, 4, 5, 6, 7, tzinfo=parse.FixedTzOffset(120, "+0200"))
+    assert r.fixed[1] == "abc"
+    start, end = r.spans[1]
+    assert string[start:end] == "abc"
+
+    # a named datetime field must not shift a following fixed field either
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S%z} {}", "2020-03-04 05:06:07+0200 x")
+    assert r.named["dt"] == datetime(2020, 3, 4, 5, 6, 7, tzinfo=parse.FixedTzOffset(120, "+0200"))
+    assert r.fixed == ("x",)
 
 
 def test_mixed_types():
@@ -859,3 +890,19 @@ def test_hyphen_inside_field_name_collision_handling():
     assert result["user-id"] == "1"
     assert result["user_id"] == "2"
     assert result["user.id"] == "3"
+
+
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
+@pytest.mark.parametrize('offset', ['+0530', '-0430', '+00:00', '+0000'])
+def test_flexible_time_preserves_timezone(offset):
+    text = '12:34:56' + offset
+    expected = datetime.strptime(text, '%H:%M:%S%z').timetz()
+    result = parse.parse('{:%H:%M:%S%z}', text)
+    assert result.fixed[0] == expected
+    assert result.fixed[0].utcoffset() == expected.utcoffset()
+
+
+def test_flexible_time_without_timezone_stays_naive():
+    result = parse.parse('{:%H:%M:%S}', '12:34:56')
+    assert result.fixed[0] == datetime(1900, 1, 1, 12, 34, 56).time()
+    assert result.fixed[0].tzinfo is None
