@@ -652,6 +652,17 @@ def test_datetimes():
     y("a {:tt} b", "a 10:21:36 PM -08:30 b", time(22, 21, 36, tzinfo=t830))
     y("a {:tt} b", "a 10:21:36 PM -0830 b", time(22, 21, 36, tzinfo=t830))
 
+    # lowercase meridiem: parsing is case-insensitive, conversion must be too
+    y("a {:tt} b", "a 10:21:36 pm b", time(22, 21, 36))
+    y("a {:tt} b", "a 10:21:36 am b", time(10, 21, 36))
+    y("a {:tt} b", "a 12:15:00 am b", time(0, 15, 0))
+    y("a {:tt} b", "a 12:15:00 pm b", time(12, 15, 0))
+    # lowercase Zulu offset must be honoured, not crash
+    r = parse.parse("a {:ti} b", "a 2023-01-15T10:30:00z b")
+    assert r[0] == datetime(
+        2023, 1, 15, 10, 30, 0, tzinfo=parse.FixedTzOffset(0, "UTC")
+    )
+
 
 def test_datetime_group_count():
     # test we increment the group count correctly for datetimes

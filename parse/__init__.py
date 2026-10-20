@@ -227,7 +227,9 @@ def date_convert(
     if am is not None:
         am = groups[am]
         if am:
-            am = am.strip()
+            # matching is case-insensitive (re.IGNORECASE), so normalise the
+            # captured meridiem before the case-sensitive conversion below
+            am = am.strip().upper()
         if am == "AM" and H == 12:
             # correction for "12" hour functioning as "0" hour: 12:15 AM = 00:15 by 24 hr clock
             H -= 12
@@ -239,7 +241,7 @@ def date_convert(
 
     if tz is not None:
         tz = groups[tz]
-    if tz == "Z":
+    if tz and tz.strip().upper() == "Z":
         tz = FixedTzOffset(0, "UTC")
     elif tz:
         tz = tz.strip()
