@@ -308,7 +308,7 @@ dt_format_to_regex = {
     "%M": "[0-9]{2}",
     "%S": "[0-9]{2}",
     "%f": "[0-9]{1,6}",
-    "%z": "[+|-][0-9]{2}(:?[0-9]{2})?(:?[0-9]{2})?",
+    "%z": "[+|-][0-9]{2}(?::?[0-9]{2})?(?::?[0-9]{2})?",
     # "%Z": punt
     "%j": "[0-9]{1,3}",
     "%U": "[0-9]{1,2}",
@@ -758,6 +758,10 @@ class Parser(object):
         elif any(k in type for k in dt_format_to_regex):
             s = get_regex_for_datetime_format(type)
             conv[group] = partial(strf_date_convert, type=type)
+            # the generated pattern may contain capture groups of its own, so
+            # account for them - otherwise the fields after this one are read
+            # from the wrong match groups
+            self._group_index += re.compile(s).groups
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index
