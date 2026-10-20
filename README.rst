@@ -329,8 +329,11 @@ Custom Type Conversions
 -----------------------
 
 If you wish to have matched fields automatically converted to your own type you
-may pass in a dictionary of type conversion information to ``parse()`` and
-``compile()``.
+may pass an ``extra_types`` dictionary to ``parse()``, ``search()``,
+``findall()``, ``compile()`` or ``Parser()``. Each key is a type name used
+after ``:`` in a format field; its value is a callable that converts the
+matched text. Pass it as ``extra_types={"TypeName": converter}`` or as the
+third positional argument to the parsing functions.
 
 The converter will be passed the field string matched. Whatever it returns
 will be substituted in the ``Result`` instance for that field.
@@ -343,7 +346,7 @@ with the same identifier:
     >>> def shouty(string):
     ...    return string.upper()
     ...
-    >>> parse('{:shouty} world', 'hello world', {"shouty": shouty})
+    >>> parse('{:shouty} world', 'hello world', extra_types={"shouty": shouty})
     <Result ('HELLO',) {}>
 
 If the type converter has the optional ``pattern`` attribute, it is used as
@@ -370,6 +373,21 @@ information to a type converter function:
     ...    return int(text)
     >>> parse('Answer: {number:Number}', 'Answer: 42', {"Number": parse_number})
     <Result () {'number': 42}>
+
+For underscore-delimited fields, a custom pattern can allow ASCII letters,
+digits and hyphens while excluding the underscore delimiter (unlike ``:w``):
+
+.. code-block:: pycon
+
+    >>> @with_pattern(r'[A-Za-z0-9-]+')
+    ... def identifier(text):
+    ...     return text
+    >>> parser = compile('{model:Identifier}_{scenario:Identifier}',
+    ...                  extra_types={"Identifier": identifier})
+    >>> parser.parse('CNRM-CM5_rcp45').named
+    {'model': 'CNRM-CM5', 'scenario': 'rcp45'}
+    >>> parser.parse('CNRM.CM5_rcp45') is None
+    True
 
 A more complete example of a custom type might be:
 
