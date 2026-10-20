@@ -665,6 +665,24 @@ def test_datetime_group_count():
     assert r.fixed[1] == "spam"
 
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
+def test_datetime_group_count_with_timezone():
+    # https://github.com/r1chardj0n3s/parse/issues/262
+    # "%z" used to add two capture groups to the generated pattern without the
+    # field accounting for them, shifting every following field's group index
+    string = "2020-03-04 05:06:07+0200|abc"
+    r = parse.parse("{:%Y-%m-%d %H:%M:%S%z}|{}", string)
+    assert r.fixed[0] == datetime(2020, 3, 4, 5, 6, 7, tzinfo=parse.FixedTzOffset(120, "+0200"))
+    assert r.fixed[1] == "abc"
+    start, end = r.spans[1]
+    assert string[start:end] == "abc"
+
+    # a named datetime field must not shift a following fixed field either
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S%z} {}", "2020-03-04 05:06:07+0200 x")
+    assert r.named["dt"] == datetime(2020, 3, 4, 5, 6, 7, tzinfo=parse.FixedTzOffset(120, "+0200"))
+    assert r.fixed == ("x",)
+
+
 def test_mixed_types():
     # stress-test: pull one of everything out of a string
     r = parse.parse(
