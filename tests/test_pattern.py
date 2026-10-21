@@ -94,6 +94,41 @@ def test_dot_separated_fields_name_collisions():
     assert res.named["a___b"] == "d"
 
 
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("field", ["a[b]", "a.b-", "a_b-"])
+def test_normalized_field_name_collisions(field, reverse):
+    # These supported field names all normalize to the existing name a_b_.
+    fields = ["a_b_", field]
+    if reverse:
+        fields.reverse()
+    parser = parse.compile("{%s:d} {%s:d} {%s:d}" % tuple(fields + [fields[1]]))
+    result = parser.parse("1 2 2")
+    literal_value, field_value = (2, 1) if reverse else (1, 2)
+    expected = {"a_b_": literal_value}
+    if field == "a[b]":
+        expected["a"] = {"b": field_value}
+    else:
+        expected[field] = field_value
+    assert result.named == expected
+    assert result.spans == {fields[0]: (0, 1), fields[1]: (2, 3)}
+    assert parser.parse("1 2 3") is None
+
+
+def test_nested_field_name_collisions():
+    result = parse.parse("{a_b__c_:d} {a[b][c]:d}", "1 2")
+    assert result.named == {"a_b__c_": 1, "a": {"b": {"c": 2}}}
+
+
+def test_mixed_separator_collision_chain():
+    fields = ["a_b_c", "a.b-c", "a-b.c", "a_b-c", "a.b_c"]
+    pattern = " ".join("{%s:d}" % field for field in fields + [fields[1]])
+    parser = parse.compile(pattern)
+    result = parser.parse("1 2 3 4 5 2")
+    assert result.named == dict(zip(fields, range(1, 6)))
+    assert result.spans == dict((field, (i * 2, i * 2 + 1)) for i, field in enumerate(fields))
+    assert parser.parse("1 2 3 4 5 6") is None
+
+
 def test_invalid_groupnames_are_handled_gracefully():
     with pytest.raises(NotImplementedError):
         parse.parse("{hello['world']}", "doesn't work")
