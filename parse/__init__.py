@@ -716,8 +716,10 @@ class Parser(object):
         type = extract_format(format, self._extra_types)["type"]
         parts.append((group, type))
         self._group_to_name_map[group] = name
-        self._group_index += 1
-        return r"(?P<%s>%s)" % (group, get_regex_for_datetime_format(type))
+        s = get_regex_for_datetime_format(type)
+        # the pattern may contain capture groups of its own
+        self._group_index += 1 + re.compile(s).groups
+        return r"(?P<%s>%s)" % (group, s)
 
     def _handle_field(self, field):
         # first: lose the braces

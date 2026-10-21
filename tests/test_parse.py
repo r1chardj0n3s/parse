@@ -883,6 +883,19 @@ def test_datetime_repeated_with_timezone():
     assert r["d"] == datetime.strptime("2024-01-02 10:30+0200", "%Y-%m-%d %H:%M%z")
 
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
+def test_datetime_repeated_then_fixed_field():
+    r = parse.parse("{d:%Y-%m-%d} {d:%H:%M%z} {:d}", "2024-01-02 10:30+02:00 7")
+    assert r.fixed == (7,)
+
+
+def test_datetime_repeated_group_name_taken():
+    # "d__dt1" would be the group of the second "d"
+    r = parse.parse("{d__dt1:d} {d:%Y} {d:%m}", "7 2024 05")
+    assert r["d__dt1"] == 7
+    assert r["d"] == date(2024, 5, 1)
+
+
 def test_datetime_repeated_findall():
     # a match whose parts disagree is skipped
     text = "2001-01/January; 2002-02/March; 2003-03/March;"
