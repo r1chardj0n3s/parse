@@ -3,6 +3,7 @@ import sys
 from datetime import date
 from datetime import datetime
 from datetime import time
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
@@ -900,6 +901,23 @@ def test_flexible_time_preserves_timezone(offset):
     result = parse.parse('{:%H:%M:%S%z}', text)
     assert result.fixed[0] == expected
     assert result.fixed[0].utcoffset() == expected.utcoffset()
+
+
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
+@pytest.mark.parametrize('text', ['10:30|0200', '10:30+02', '10:30z'])
+def test_strftime_timezone_rejects_what_strptime_rejects(text):
+    # these used to match the %z pattern and then crash inside strptime
+    assert parse.parse('{:%H:%M%z}', text) is None
+    assert parse.search('at {:%H:%M%z} ok', 'at %s ok' % text) is None
+
+
+@pytest.mark.skipif(sys.version_info.major == 2, reason="%z is an invalid directive in Python 2")
+def test_strftime_timezone_zulu():
+    text = '2024-01-02 10:30Z'
+    expected = datetime.strptime(text, '%Y-%m-%d %H:%M%z')
+    result = parse.parse('{:%Y-%m-%d %H:%M%z}', text)
+    assert result.fixed[0] == expected
+    assert result.fixed[0].utcoffset() == timedelta(0)
 
 
 def test_flexible_time_without_timezone_stays_naive():
