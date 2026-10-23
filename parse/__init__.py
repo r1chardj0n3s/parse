@@ -298,6 +298,50 @@ def strf_date_convert(x, _, type):
         raise ValueError("Datetime not a date nor a time?")
 
 
+def is_date_format(format):
+    return any(k in format for k in dt_format_to_regex)
+
+
+def merge_date_parts(parts):
+    """Combine the parts of a named datetime field that is repeated with
+    different formats, e.g. "{d:%Y} ... {d:%m}".
+
+    parts holds the (text, format) of each occurrence. Every directive is
+    parsed once, all together, so "%I" can use a "%p" and "%j" a "%Y" from
+    another part, and anything missing defaults as it does for a single
+    field. Returns None when the parts disagree, e.g. "%m" with "%B".
+    """
+    found = {}
+    for text, type in parts:
+        names = []
+
+        def group(m):
+            names.append(m.group(0))
+            return "(?P<p%d>%s)" % (len(names), dt_format_to_regex[m.group(0)])
+
+        pattern = dt_format_symbols_re.sub(group, type) + r"\Z"
+        match = re.match(pattern, text, re.IGNORECASE | re.DOTALL)
+        for i, directive in enumerate(names, 1):
+            found.setdefault(directive, []).append(match.group("p%d" % i))
+
+    value = strf_date_convert(
+        " ".join(texts[0] for texts in found.values()), None, " ".join(found)
+    )
+    # every text of every directive must agree with the combined value
+    for directive, texts in found.items():
+        want = parse_date_part(value.strftime(directive), directive)
+        if any(parse_date_part(text, directive) != want for text in texts):
+            return None
+    return value
+
+
+def parse_date_part(text, directive):
+    if directive not in ("%Y", "%y"):
+        # a leap year, so a lone "%j" can be 366 and "%d" has a year to go with
+        text, directive = text + " 2000", directive + " %Y"
+    return datetime.strptime(text, directive)
+
+
 # ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
 dt_format_to_regex = {
     "%a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
@@ -432,6 +476,9 @@ class Parser(object):
         # and to sanity check the repeated instances store away the first
         # field type specification for the named field
         self._name_types = {}
+        # a named datetime field repeated with different formats keeps the
+        # (group, format) of each occurrence, to be merged into one value
+        self._date_parts = {}
 
         self._format = format
         if extra_types is None:
@@ -597,12 +644,20 @@ class Parser(object):
         for k in self._named_fields:
             korig = self._group_to_name_map[k]
             name_map[korig] = k
+            if korig in self._date_parts:
+                continue  # merged below
             if k in self._type_conversions:
                 value = self._type_conversions[k](groupdict[k], m)
             else:
                 value = groupdict[k]
 
             named_fields[korig] = value
+
+        for name, parts in self._date_parts.items():
+            value = merge_date_parts([(m.group(g), type) for g, type in parts])
+            if value is None:
+                return None
+            named_fields[name] = value
 
         # now figure the match spans
         spans = {n: m.span(name_map[n]) for n in named_fields}
@@ -655,6 +710,25 @@ class Parser(object):
         self._name_to_group_map[field] = group
         return group
 
+    def _handle_date_part(self, name, format):
+        # each occurrence gets its own group; evaluate_result merges them
+        first = self._name_to_group_map[name]
+        parts = self._date_parts.setdefault(name, [])
+        if not parts:
+            parts.append((first, extract_format(self._name_types[name], self._extra_types)["type"]))
+        n = len(parts)
+        group = "%s__dt%d" % (first, n)
+        while group in self._group_to_name_map:
+            n += 1
+            group = "%s__dt%d" % (first, n)
+        type = extract_format(format, self._extra_types)["type"]
+        parts.append((group, type))
+        self._group_to_name_map[group] = name
+        s = get_regex_for_datetime_format(type)
+        # the pattern may contain capture groups of its own
+        self._group_index += 1 + re.compile(s).groups
+        return r"(?P<%s>%s)" % (group, s)
+
     def _handle_field(self, field):
         # first: lose the braces
         field = field[1:-1]
@@ -675,6 +749,8 @@ class Parser(object):
         if name and name[0].isalpha():
             if name in self._name_to_group_map:
                 if self._name_types[name] != format:
+                    if is_date_format(self._name_types[name]) and is_date_format(format):
+                        return self._handle_date_part(name, format)
                     raise RepeatedNameError(
                         'field type %r for field "%s" '
                         "does not match previous seen type %r"
@@ -942,15 +1018,18 @@ class ResultIterator(object):
         return self
 
     def __next__(self):
-        m = self.parser._search_re.search(self.string, self.pos, self.endpos)
-        if m is None:
-            raise StopIteration()
-        self.pos = m.end()
+        while True:
+            m = self.parser._search_re.search(self.string, self.pos, self.endpos)
+            if m is None:
+                raise StopIteration()
+            self.pos = m.end()
 
-        if self.evaluate_result:
-            return self.parser.evaluate_result(m)
-        else:
-            return Match(self.parser, m)
+            if not self.evaluate_result:
+                return Match(self.parser, m)
+            result = self.parser.evaluate_result(m)
+            # None when the parts of a repeated datetime field disagree
+            if result is not None:
+                return result
 
     # pre-py3k compat
     next = __next__

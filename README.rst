@@ -224,6 +224,16 @@ of ``datetime.datetime``, ``datetime.time``, or ``datetime.date``.
     >>> parse("{:%Y/%m/%d}", "2023/11/25")
     <Result (datetime.date(2023, 11, 25),) {}>
 
+A named datetime field may be repeated with different formats, each giving
+part of the value. The parts are combined into one value, and the parse fails
+if they disagree:
+
+.. code-block:: pycon
+
+    >>> parse("{d:%d} of {d:%B}, {d:%Y} at {d:%H:%M}", "16 of July, 1997 at 13:23")
+    <Result () {'d': datetime.datetime(1997, 7, 16, 13, 23)}>
+    >>> parse("{d:%Y-%m} ({d:%B})", "1997-03 (July)")
+
 
 Some examples of typed parsing with ``None`` returned if the typing
 does not match:
