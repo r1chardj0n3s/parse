@@ -270,7 +270,9 @@ def date_convert(
         if m.isdigit():
             m = int(m)
         else:
-            m = MONTHS_MAP[m]
+            # matching is case-insensitive (re.IGNORECASE), so normalise the
+            # captured month name before the case-sensitive lookup below
+            m = MONTHS_MAP[m.capitalize()]
         d = int(d)
         d = datetime(y, m, d, H, M, S, u, tzinfo=tz)
 

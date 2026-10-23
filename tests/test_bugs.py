@@ -103,6 +103,28 @@ def test_match_trailing_newline():
     assert r[0] == "test\n"
 
 
+def test_case_insensitive_month_names():
+    # matching is case-insensitive by default, so a month name may arrive in
+    # any case and the conversion must not be case-sensitive
+    cases = [
+        ("{:tg}", "1/jul/2011", datetime(2011, 7, 1)),
+        ("{:tg}", "1/jULy/2011 13:05", datetime(2011, 7, 1, 13, 5)),
+        ("{:ta}", "JUL/16/2011", datetime(2011, 7, 16)),
+        ("{:te}", "Mon, 16 jul 1997 19:20 +0200", datetime(1997, 7, 16, 19, 20)),
+        ("{:th}", "16/JUL/1997:19:20 +0000", datetime(1997, 7, 16, 19, 20)),
+        ("{:tc}", "mon jul 16 19:20 1997", datetime(1997, 7, 16, 19, 20)),
+    ]
+    for format, string, expected in cases:
+        result = parse.parse(format, string)
+        assert result is not None, (format, string)
+        assert result[0].replace(tzinfo=None) == expected, (format, string)
+
+    # the ts type carries no year, so just check the month/day it resolved
+    result = parse.parse("{:ts}", "jul 16 19:20:20")
+    assert result is not None
+    assert (result[0].month, result[0].day) == (7, 16)
+
+
 def test_microsecond_precision_issue162():
     # fractional seconds that previously suffered floating-point rounding
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.501902Z")
