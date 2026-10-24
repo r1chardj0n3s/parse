@@ -141,3 +141,24 @@ def test_microsecond_precision_issue162():
     # more than 6 fractional digits should be truncated
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.1234567Z")
     assert r[0].microsecond == 123456
+
+
+def test_grouping_in_float_types():
+    from decimal import Decimal
+
+    cases = [
+        (",f", -3494.23),
+        (",.2f", 1234567.89),
+        ("_f", 6448.4),
+        (",.0f", 1234567.0),
+        (",F", Decimal("-1234.5")),
+        (",g", 7113.95),
+        (",.1%", 12.345),
+        (">14,.2f", -1234.5),
+    ]
+    for spec, value in cases:
+        text = format(value, spec)
+        r = parse.parse("{:%s}" % spec, text)
+        assert r is not None, (spec, text)
+        assert r[0] == value, (spec, text)
+    assert parse.parse("{:,f} and {:d}", "1,234.5 and 7").fixed == (1234.5, 7)

@@ -114,6 +114,13 @@ def percentage(string, match):
     return float(string[:-1]) / 100.0
 
 
+def ungroup(convert, grouping):
+    """Drop the "," or "_" thousands separators before converting."""
+    if not grouping:
+        return convert
+    return lambda string, *args: convert(string.replace(grouping, ""), *args)
+
+
 class FixedTzOffset(tzinfo):
     """Fixed offset in minutes east from UTC."""
 
@@ -707,6 +714,9 @@ class Parser(object):
         # figure type conversions, if any
         type = format["type"]
         is_numeric = type and type in "n%fFegdobxEGX"
+        # "," or "_" thousands separators, accepted wherever a digit is
+        grouping = format.get("grouping") or ""
+        digit = r"[\d%s]" % grouping if grouping else r"\d"
         conv = self._type_conversions
         if type in self._extra_types:
             type_converter = self._extra_types[type]
@@ -733,9 +743,9 @@ class Parser(object):
             conv[group] = int_convert(16)
             self._group_index += 1
         elif type == "%":
-            s = r"\d+(\.\d+)?%"
+            s = digit + r"+(\.\d+)?%"
             self._group_index += 1
-            conv[group] = percentage
+            conv[group] = ungroup(percentage, grouping)
         elif type in ("f", "F"):
             # precision 0 formats without a decimal point (e.g. format(20.0, ".0f") == "20")
             # Non-capturing group so the shared "[-+ ]?" sign prefix (added below
@@ -743,17 +753,19 @@ class Parser(object):
             # it, "[-+ ]?\d*\.\d+|nan|..." would bind the sign to the first branch
             # only, breaking negative parsing. nan/inf match the e/g types too.
             if format.get("precision") == "0":
-                s = r"(?:\d+|nan|NAN|inf|INF)"
+                s = r"(?:%s+|nan|NAN|inf|INF)" % digit
             else:
-                s = r"(?:\d*\.\d+|nan|NAN|inf|INF)"
-            conv[group] = convert_first(float if type == "f" else Decimal)
+                s = r"(?:%s*\.\d+|nan|NAN|inf|INF)" % digit
+            conv[group] = convert_first(
+                ungroup(float if type == "f" else Decimal, grouping)
+            )
         elif type in ("e", "E"):
             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
             conv[group] = convert_first(float)
         elif type in ("g", "G"):
-            s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
+            s = digit + r"+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
             self._group_index += 2
-            conv[group] = convert_first(float)
+            conv[group] = convert_first(ungroup(float, grouping))
         elif type == "d":
             if format.get("width"):
                 width = r"{1,%s}" % int(format["width"])
