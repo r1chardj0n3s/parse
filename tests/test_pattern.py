@@ -61,6 +61,8 @@ def test_format_variety():
     _("^", {"align": "^"})
     _(".^", {"align": "^", "fill": "."})
     _("x=d", {"type": "d", "align": "=", "fill": "x"})
+    _("^^6d", {"type": "d", "width": "6", "align": "^", "fill": "^"})
+    _("<<", {"align": "<", "fill": "<"})
     _("d", {"type": "d"})
     _("ti", {"type": "ti"})
     _("spam", {"type": "spam"})

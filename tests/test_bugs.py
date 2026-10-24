@@ -141,3 +141,30 @@ def test_microsecond_precision_issue162():
     # more than 6 fractional digits should be truncated
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.1234567Z")
     assert r[0].microsecond == 123456
+
+
+def test_fill_character_round_trip():
+    # parse() should invert whatever format() produced for these specs
+    cases = [
+        ("*=6d", -42),  # regex-special fill with "=" alignment
+        ("|<6d", 42),  # "|" fill
+        ("^^6d", 42),  # fill that is itself an alignment character
+        ("<<6d", 42),
+        ("=6d", -42),  # "=" pads with spaces by default, not zeros
+        ("=+6d", 42),
+        ("=06d", -42),
+        ("=8.2f", -1.5),
+        ("*=+8.2f", 1.5),
+        ("*=10,d", -1234),
+    ]
+    for spec, value in cases:
+        text = format(value, spec)
+        r = parse.parse("{:%s}" % spec, text)
+        assert r is not None, (spec, text)
+        assert r[0] == value, (spec, text)
+
+
+def test_regex_special_fill_is_literal():
+    # a "." fill must only match dots, not any character
+    assert parse.parse("{:.=6d}", "-...42")[0] == -42
+    assert parse.parse("{:.=6d}", "-abc42") is None

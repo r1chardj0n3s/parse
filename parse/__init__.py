@@ -48,6 +48,20 @@ def with_pattern(pattern, regex_group_count=None):
     return decorator
 
 
+def escape_fill(fill):
+    return "\\" + fill if fill in r".\+?*[](){}^$|" else fill
+
+
+def strip_fill(convert, fill):
+    """Drop the "=" alignment fill that sits between the sign and the digits."""
+
+    def f(string, match):
+        sign = string[:1] if string[:1] in "+- " else ""
+        return convert(sign + string[len(sign) :].lstrip(fill), match)
+
+    return f
+
+
 class int_convert:
     """Convert a string to an integer.
 
@@ -361,13 +375,15 @@ ALLOWED_TYPES = set(list("nboxX%fFeEgGwWdDsSl") + ["t" + c for c in "ieahgcts"])
 def extract_format(format, extra_types):
     """Pull apart the format [[fill]align][sign][0][width][grouping][.precision][type]"""
     fill = align = None
-    if format[0] in "<>=^":
-        align = format[0]
-        format = format[1:]
-    elif len(format) > 1 and format[1] in "<>=^":
+    # like str.format(), look for a [fill]align pair first, so that the fill
+    # may itself be an alignment character, e.g. "^^6d"
+    if len(format) > 1 and format[1] in "<>=^":
         fill = format[0]
         align = format[1]
         format = format[2:]
+    elif format[0] in "<>=^":
+        align = format[0]
+        format = format[1:]
 
     if format.startswith(("+", "-", " ")):
         format = format[1:]
@@ -843,11 +859,14 @@ class Parser(object):
         if is_numeric:
             # prefix with something (align "=" trumps zero)
             if align == "=":
-                # special case - align "=" acts like the zero above but with
-                # configurable fill defaulting to "0"
+                # special case - align "=" puts the fill between the sign and
+                # the digits; like str.format() it defaults to spaces, or to
+                # zeros with the "0" flag
                 if not fill:
-                    fill = "0"
-                s = r"%s*" % fill + s
+                    fill = "0" if format["zero"] else " "
+                s = r"%s*" % escape_fill(fill) + s
+                if fill != "0" and group in conv:
+                    conv[group] = strip_fill(conv[group], fill)
 
             # allow numbers to be prefixed with a sign
             s = r"[-+ ]?" + s
@@ -869,8 +888,7 @@ class Parser(object):
             if not align:
                 align = ">"
 
-        if fill in r".\+?*[](){}^$":
-            fill = "\\" + fill
+        fill = escape_fill(fill)
 
         # align "=" has been handled
         if align == "<":
