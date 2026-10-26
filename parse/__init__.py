@@ -303,7 +303,7 @@ def strf_date_convert(x, _, type):
         # day-of-month) but doesn't represent a real date/time, such as
         # "2024-02-30". That's a failed match, not a reason to raise out of
         # parse()/search()/findall().
-        raise _NoMatchError(str(e)) from e
+        raise _NoMatchError(str(e))
 
     if is_date and is_time:
         return dt
