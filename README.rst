@@ -332,8 +332,7 @@ If you wish to have matched fields automatically converted to your own type you
 may pass an ``extra_types`` dictionary to ``parse()``, ``search()``,
 ``findall()``, ``compile()`` or ``Parser()``. Each key is a type name used
 after ``:`` in a format field; its value is a callable that converts the
-matched text. Pass it as ``extra_types={"TypeName": converter}`` or as the
-third positional argument to the parsing functions.
+matched text. Pass it by keyword, as ``extra_types={"TypeName": converter}``.
 
 The converter will be passed the field string matched. Whatever it returns
 will be substituted in the ``Result`` instance for that field.
