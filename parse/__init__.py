@@ -813,7 +813,10 @@ class Parser(object):
             conv[group] = partial(date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5)
             self._group_index += 8
         elif type == "tt":
-            s = r"%s?%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
+            # only the AM/PM and timezone parts are optional - the time itself
+            # is not, otherwise this type matches the empty string and yields a
+            # bogus time(0, 0)
+            s = r"%s%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
             conv[group] = partial(date_convert, hms=n + 1, am=n + 4, tz=n + 5)
             self._group_index += 5
