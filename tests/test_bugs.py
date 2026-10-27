@@ -1,5 +1,6 @@
 import pickle
 from datetime import datetime
+from datetime import time
 
 import parse
 
@@ -141,3 +142,19 @@ def test_microsecond_precision_issue162():
     # more than 6 fractional digits should be truncated
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.1234567Z")
     assert r[0].microsecond == 123456
+
+
+def test_time_type_requires_an_actual_time():
+    # the "tt" pattern marked the time itself as optional, so a field could
+    # match nothing at all and convert that into a bogus time(0, 0)
+    assert parse.parse("{:tt}", "") is None
+    assert parse.parse("Meet at {:tt}", "Meet at ") is None
+    assert parse.search("{:tt}", "there is no time here") is None
+
+    # the phantom empty match also showed up as an endless stream of results
+    phantom = [result for _, result in zip(range(5), parse.findall("{:tt}", "no time"))]
+    assert phantom == []
+
+    # the documented time forms still parse
+    assert parse.parse("{:tt}", "10:21:36 PM")[0] == time(22, 21, 36)
+    assert parse.parse("Meet at {:tt}", "Meet at 10:21")[0] == time(10, 21)
