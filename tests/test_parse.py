@@ -504,10 +504,32 @@ def test_flexible_dates_inferred_year_leap_day(monkeypatch):
     assert parse.parse("{:%m-%d}", "02-29")[0] == date(2024, 2, 29)
     assert parse.parse("{:%d %b}", "29 Feb")[0] == date(2024, 2, 29)
     assert parse.parse("{:%m-%d %H:%M}", "02-29 10:30")[0] == datetime(2024, 2, 29, 10, 30)
-    # Feb 29 does not exist in a non-leap current year.
+    # Feb 29 does not exist in a non-leap current year. This is a
+    # structurally-matching but calendar-invalid value, so parse() reports
+    # no match rather than raising.
     _freeze_year(monkeypatch, 2023)
-    with pytest.raises(ValueError):
-        parse.parse("{:%m-%d}", "02-29")
+    assert parse.parse("{:%m-%d}", "02-29") is None
+
+
+def test_calendar_invalid_date_returns_none():
+    # 2024-02-30 is structurally a valid "{:%Y-%m-%d}" match (digits in the
+    # right places) but doesn't exist on the calendar. parse() documents
+    # that it returns a Result or None, never raises just because of this.
+    assert parse.parse("{:%Y-%m-%d}", "2024-02-30") is None
+    assert parse.search("{:%Y-%m-%d}", "2024-02-30") is None
+    assert list(parse.findall("{:%Y-%m-%d}", "2024-02-30")) == []
+
+    # valid dates, including a leap day, still parse correctly
+    assert parse.parse("{:%Y-%m-%d}", "2024-02-29")[0] == date(2024, 2, 29)
+    assert parse.parse("{:%Y-%m-%d}", "2024-01-15")[0] == date(2024, 1, 15)
+
+
+def test_calendar_invalid_date_skipped_by_findall():
+    # a calendar-invalid occurrence shouldn't stop findall from finding a
+    # valid one later in the string
+    results = list(parse.findall("{:%Y-%m-%d}", "2024-02-30 then 2024-01-15"))
+    assert len(results) == 1
+    assert results[0][0] == date(2024, 1, 15)
 
 
 def test_flexible_dates_inferred_year_day_of_year(monkeypatch):
