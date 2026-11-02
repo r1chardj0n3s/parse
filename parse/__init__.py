@@ -123,6 +123,9 @@ class FixedTzOffset(tzinfo):
         self._offset = timedelta(minutes=offset)
         self._name = name
 
+    def __getinitargs__(self):
+        return self._offset.total_seconds() / 60, self._name
+
     def __repr__(self):
         return "<%s %s %s>" % (self.__class__.__name__, self._name, self._offset)
 

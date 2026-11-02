@@ -1,6 +1,10 @@
 import pickle
+import sys
+from copy import deepcopy
 from datetime import datetime
 from datetime import time
+
+import pytest
 
 import parse
 
@@ -78,6 +82,44 @@ def test_pickling_bug_110():
     p = parse.compile("{a:d}")
     # prior to the fix, this would raise an AttributeError
     pickle.dumps(p)
+
+
+@pytest.mark.parametrize("protocol", [None] + list(range(pickle.HIGHEST_PROTOCOL + 1)))
+@pytest.mark.parametrize(
+    "format, string",
+    [
+        ("{:ti}", "2026-11-02T10:30:00Z"),
+        ("{:ti}", "2026-11-02T10:30:00.501902+08:00"),
+        ("{:ti}", "2026-11-02T10:30:00-05:30"),
+        ("{:ti}", "2026-11-02T10:30:00+00:00"),
+        ("{:tt}", "10:30 +0800"),
+        ("{:tt}", "10:30:00.123456 -0530"),
+        ("{:ti}", "2026-11-02T10:30:00"),
+        ("{:tt}", "10:30"),
+        pytest.param(
+            "{:%Y-%m-%dT%H:%M:%S%z}",
+            "2026-11-02T10:30:00+08:00",
+            marks=pytest.mark.skipif(
+                sys.version_info[0] < 3, reason="Python 3+ required for timezone support"
+            ),
+        ),
+    ],
+)
+def test_copying_datetime_results(format, string, protocol):
+    result = parse.parse(format + " {label}", string + " sentinel")
+    assert result is not None
+    if protocol is None:
+        restored = deepcopy(result)
+    else:
+        restored = pickle.loads(pickle.dumps(result, protocol))
+    assert restored is not result
+    assert restored.fixed == result.fixed
+    assert restored.named == result.named
+    assert restored.spans == result.spans
+    assert type(restored[0]) is type(result[0])
+    assert type(restored[0].tzinfo) is type(result[0].tzinfo)
+    assert restored[0].utcoffset() == result[0].utcoffset()
+    assert restored[0].tzname() == result[0].tzname()
 
 
 def test_unused_centered_alignment_bug():
