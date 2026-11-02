@@ -282,6 +282,14 @@ def date_convert(
     return d
 
 
+class _NoMatchError(Exception):
+    """Raised internally when a type conversion rejects an otherwise
+    structurally-matching value (e.g. a calendar-invalid date like
+    2024-02-30). Callers of evaluate_result() catch this and treat it the
+    same as a failed match, rather than letting it escape as a ValueError.
+    """
+
+
 def strf_date_convert(x, _, type):
     is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
     is_time = any("%" + x in type for x in "HIpMSfz")
@@ -291,7 +299,14 @@ def strf_date_convert(x, _, type):
         # 1900, so that Feb 29 and %j day numbers resolve in the right year.
         x = "%s %d" % (x, datetime.today().year)
         type += " %Y"
-    dt = datetime.strptime(x, type)
+    try:
+        dt = datetime.strptime(x, type)
+    except ValueError as e:
+        # The input matched the structural pattern (e.g. two digits for
+        # day-of-month) but doesn't represent a real date/time, such as
+        # "2024-02-30". That's a failed match, not a reason to raise out of
+        # parse()/search()/findall().
+        raise _NoMatchError(str(e))
 
     if is_date and is_time:
         return dt
@@ -517,7 +532,10 @@ class Parser(object):
             return None
 
         if evaluate_result:
-            return self.evaluate_result(m)
+            try:
+                return self.evaluate_result(m)
+            except _NoMatchError:
+                return None
         else:
             return Match(self, m)
 
@@ -535,14 +553,21 @@ class Parser(object):
         """
         if endpos is None:
             endpos = len(string)
-        m = self._search_re.search(string, pos, endpos)
-        if m is None:
-            return None
+        while True:
+            m = self._search_re.search(string, pos, endpos)
+            if m is None:
+                return None
 
-        if evaluate_result:
-            return self.evaluate_result(m)
-        else:
-            return Match(self, m)
+            if not evaluate_result:
+                return Match(self, m)
+
+            try:
+                return self.evaluate_result(m)
+            except _NoMatchError:
+                # structurally matched but failed a type conversion
+                # (e.g. a calendar-invalid date); keep searching
+                pos = m.end()
+                continue
 
     def findall(
         self, string, pos=0, endpos=None, extra_types=None, evaluate_result=True
@@ -950,15 +975,21 @@ class ResultIterator(object):
         return self
 
     def __next__(self):
-        m = self.parser._search_re.search(self.string, self.pos, self.endpos)
-        if m is None:
-            raise StopIteration()
-        self.pos = m.end()
+        while True:
+            m = self.parser._search_re.search(self.string, self.pos, self.endpos)
+            if m is None:
+                raise StopIteration()
+            self.pos = m.end()
 
-        if self.evaluate_result:
-            return self.parser.evaluate_result(m)
-        else:
-            return Match(self.parser, m)
+            if self.evaluate_result:
+                try:
+                    return self.parser.evaluate_result(m)
+                except _NoMatchError:
+                    # structurally matched but failed a type conversion
+                    # (e.g. a calendar-invalid date); keep searching
+                    continue
+            else:
+                return Match(self.parser, m)
 
     # pre-py3k compat
     next = __next__
