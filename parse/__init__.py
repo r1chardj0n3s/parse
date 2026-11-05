@@ -78,6 +78,13 @@ class int_convert:
             sign = 1
             number_start = 0
 
+        # the d type's regex accepts a single leading space (the " " sign
+        # option), so skip any spaces before the number - otherwise base
+        # detection misses a 0b/0o/0x prefix and the value is silently
+        # misread as decimal, e.g. " 0x1f" would strip "x"/"f" and give 1
+        while number_start < len(string) and string[number_start] == " ":
+            number_start += 1
+
         base = self.base
         # If base wasn't specified, detect it automatically
         if base is None:

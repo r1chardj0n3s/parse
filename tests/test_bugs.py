@@ -200,3 +200,22 @@ def test_time_type_requires_an_actual_time():
     # the documented time forms still parse
     assert parse.parse("{:tt}", "10:21:36 PM")[0] == time(22, 21, 36)
     assert parse.parse("Meet at {:tt}", "Meet at 10:21")[0] == time(10, 21)
+
+
+def test_leading_space_with_base_prefix():
+    # the "d" type regex accepts a single leading space (the " " sign
+    # option), but int_convert() only looked for a 0b/0o/0x prefix right
+    # after an optional + or - sign, so a space-prefixed number lost its
+    # base and was silently misread as decimal, e.g. " 0x1f" -> 1
+    assert parse.parse("{:d}", " 0x1f")[0] == 0x1F
+    assert parse.parse("{:d}", " 0b101")[0] == 0b101
+    assert parse.parse("{:d}", " 0o17")[0] == 0o17
+    assert parse.parse("{: d}", " 0x1f")[0] == 0x1F
+
+    # same two-space shape as the passing "a {:d} b" / "a  12 b" case
+    assert parse.parse("a {:d} b", "a  0x1000 b")[0] == 4096
+
+    # decimal values with a leading space are unchanged
+    assert parse.parse("{:d}", " 12")[0] == 12
+    assert parse.parse("{:d}", "-12")[0] == -12
+    assert parse.parse("{:d}", "+12")[0] == 12
