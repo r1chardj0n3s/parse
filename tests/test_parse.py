@@ -488,6 +488,24 @@ def test_flexible_dates_year_current_year_inferred():
     assert r.named["dt"] == date(datetime.today().year, 1, 9)
 
 
+def test_weekday_only_format_is_not_a_date():
+    # A weekday name and a weekday number do not determine a date, so a format
+    # built only from them must not be reported as one.
+    for spec, text in [("%a", "Wed"), ("%A", "Wednesday"), ("%w", "3")]:
+        with pytest.raises(ValueError):
+            parse.parse("{:%s}" % spec, text)
+
+    for spec, text in [("%U", "27"), ("%W", "27")]:
+        with pytest.raises(ValueError):
+            parse.parse("{:%s}" % spec, text)
+
+    # a weekday that accompanies an actual date still works
+    assert parse.parse("{:%Y-%m-%d %a}", "1997-07-16 Wed")[0] == date(1997, 7, 16)
+    assert parse.parse("{:%d %a}", "16 Wed")[0] == date(
+        datetime.today().year, 1, 16
+    )
+
+
 def _freeze_year(monkeypatch, year):
     class FrozenDatetime(datetime):
         @classmethod
