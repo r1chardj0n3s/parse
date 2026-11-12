@@ -305,6 +305,7 @@ def strf_date_convert(x, _, type):
 
 # ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
 dt_format_to_regex = {
+    "%%": "%",  # a literal %, like strptime
     "%a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
     "%A": "(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)",
     "%w": "[0-6]",
