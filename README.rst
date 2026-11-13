@@ -462,6 +462,10 @@ To run the tests locally:
 Changelog
 ---------
 
+This section is no longer maintained. Review current release notes at
+
+https://github.com/r1chardj0n3s/parse/releases
+
 - 1.22.3 Preserve timezone offsets in strftime time-only results (thanks @xiehuanyi)
 - 1.22.2 Fix negative Decimals, parse nan/inf handling for float (thanks @Sreekant13)
 - 1.22.1 Parse zero-precision floats formatted without a decimal point (thanks @SAY-5)
