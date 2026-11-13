@@ -41,7 +41,7 @@ def test_numbered():
 
 def test_bird():
     # skip some trailing whitespace
-    _test_expression("{:>}", r" *(.+?)")
+    _test_expression("{:>}", r" *(?! )(.+?)")
 
 
 def test_format_variety():
