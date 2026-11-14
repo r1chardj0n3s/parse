@@ -305,6 +305,7 @@ def strf_date_convert(x, _, type):
 
 # ref: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
 dt_format_to_regex = {
+    "%%": "%",  # a literal %, like strptime
     "%a": "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)",
     "%A": "(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)",
     "%w": "[0-6]",
@@ -660,6 +661,23 @@ class Parser(object):
         self._name_to_group_map[field] = group
         return group
 
+    def _field_type(self, format):
+        """Return the type of a format specification for comparison purposes.
+
+        Repeated occurrences of a named field are only rejected when they
+        select a *different* value type.  Two specifications that differ only
+        in width, precision, alignment, sign or grouping select the same type
+        (and thus the same converter), so they are compatible.
+        """
+        if not format:
+            return ""
+        try:
+            return extract_format(format, self._extra_types)["type"] or ""
+        except (ValueError, IndexError):
+            # an unrecognised specification compares as itself, preserving the
+            # error raised when the field is first compiled
+            return format
+
     def _handle_field(self, field):
         # first: lose the braces
         field = field[1:-1]
@@ -679,7 +697,7 @@ class Parser(object):
         # letter" and digit args don't get attribute or element stuff.
         if name and name[0].isalpha():
             if name in self._name_to_group_map:
-                if self._name_types[name] != format:
+                if self._field_type(self._name_types[name]) != self._field_type(format):
                     raise RepeatedNameError(
                         'field type %r for field "%s" '
                         "does not match previous seen type %r"
