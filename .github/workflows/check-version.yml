@@ -1,0 +1,31 @@
+name: check-version
+
+on:
+  push:
+    tags: ["*"]
+
+permissions:
+  contents: read
+
+jobs:
+  tag-matches-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tag matches parse.__version__
+        shell: python
+        run: |
+          import ast, os, sys
+
+          tag = os.environ["GITHUB_REF_NAME"]
+          tree = ast.parse(open("parse/__init__.py").read())
+          found = [
+              n.value for n in tree.body
+              if isinstance(n, ast.Assign) and any(getattr(t, "id", None) == "__version__" for t in n.targets)
+          ]
+          if len(found) != 1 or not isinstance(found[0], ast.Constant) or not isinstance(found[0].value, str):
+              sys.exit("::error::parse/__init__.py has no single string __version__ to check")
+          declared = found[0].value
+          if tag != declared:
+              sys.exit("::error::tag %s but parse/__init__.py declares __version__ = %s" % (tag, declared))
+          print("tag %s matches __version__" % tag)
