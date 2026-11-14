@@ -878,13 +878,24 @@ class Parser(object):
         if fill in r".\+?*[](){}^$":
             fill = "\\" + fill
 
+        # an untyped field without a width matches the fill too, so the fill
+        # runs and the value can split the same padding many ways, and a string
+        # that doesn't match backtracks through all of them (cubic for "^").
+        # Keep fill off the ends of the value - the match that is found only
+        # has it there for a value that is a single fill character, or when a
+        # repeated name has to equal text that still carries its padding.
+        lead = trail = ""
+        if not type and not format["width"]:
+            lead = "(?!%s)" % fill
+            trail = "(?<!%s)" % fill
+
         # align "=" has been handled
         if align == "<":
-            s = "%s%s*" % (s, fill)
+            s = "%s%s%s*" % (s, trail, fill)
         elif align == ">":
-            s = "%s*%s" % (fill, s)
+            s = "%s*%s%s" % (fill, lead, s)
         elif align == "^":
-            s = "%s*%s%s*" % (fill, s, fill)
+            s = "%s*%s%s%s%s*" % (fill, lead, s, trail, fill)
 
         return s
 

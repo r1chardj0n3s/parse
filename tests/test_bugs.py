@@ -200,3 +200,17 @@ def test_time_type_requires_an_actual_time():
     # the documented time forms still parse
     assert parse.parse("{:tt}", "10:21:36 PM")[0] == time(22, 21, 36)
     assert parse.parse("Meet at {:tt}", "Meet at 10:21")[0] == time(10, 21)
+
+
+def test_aligned_field_does_not_backtrack_through_padding():
+    # the fill runs either side of an untyped aligned field could trade
+    # characters with the field, so a padded string that didn't match
+    # backtracked through every split of the padding (cubic for "^")
+    padding = " " * 10000
+    assert parse.parse("spam {:^} spam", "spam " + padding + "x") is None
+    assert parse.parse("with {:>} herring", "with " + padding + "x") is None
+    assert parse.parse("{:<} world", "hello" + padding + "x") is None
+
+    # the padding is still stripped when the string matches
+    string = "spam " + padding + "lovely" + padding + " spam"
+    assert parse.parse("spam {:^} spam", string)[0] == "lovely"
