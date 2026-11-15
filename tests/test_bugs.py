@@ -225,3 +225,13 @@ def test_signed_nan_and_inf_exponent_types():
                 assert result is not None, string
                 assert str(result[0]) == str(value)
     assert parse.parse("{:e}", "--inf") is None
+
+
+def test_n_type_rejects_non_ascii_digits():
+    # \d also matched digits outside 0-9, which int_convert then threw away,
+    # so "1,000" written with fullwidth zeros came back as 1
+    assert parse.parse("{:n}", u"1,\uff10\uff10\uff10") is None
+    assert parse.parse("{:n}", u"1\u0660\u0660") is None
+    assert parse.parse("{:n}", u"\uff11\uff10\uff10") is None
+    assert parse.search("total {:n} items", u"total 1,\uff10\uff10\uff10 items") is None
+    assert parse.parse("{:n}", "1,000")[0] == 1000
