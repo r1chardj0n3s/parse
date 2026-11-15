@@ -589,29 +589,31 @@ class Parser(object):
     def evaluate_result(self, m):
         """Generate a Result instance for the given regex match object"""
         # ok, figure the fixed fields we've pulled out and type convert them
+        conv = self._type_conversions
         fixed_fields = list(m.groups())
         for n in self._fixed_fields:
-            if n in self._type_conversions:
-                fixed_fields[n] = self._type_conversions[n](fixed_fields[n], m)
-        fixed_fields = tuple(fixed_fields[n] for n in self._fixed_fields)
+            if n in conv:
+                fixed_fields[n] = conv[n](fixed_fields[n], m)
+        fixed_fields = tuple([fixed_fields[n] for n in self._fixed_fields])
 
-        # grab the named fields, converting where requested
-        groupdict = m.groupdict()
+        # grab the named fields, converting where requested, and their spans
         named_fields = {}
-        name_map = {}
-        for k in self._named_fields:
-            korig = self._group_to_name_map[k]
-            name_map[korig] = k
-            if k in self._type_conversions:
-                value = self._type_conversions[k](groupdict[k], m)
-            else:
-                value = groupdict[k]
+        spans = {}
+        if self._named_fields:
+            groupdict = m.groupdict()
+            for k in self._named_fields:
+                korig = self._group_to_name_map[k]
+                if k in conv:
+                    value = conv[k](groupdict[k], m)
+                else:
+                    value = groupdict[k]
 
-            named_fields[korig] = value
+                named_fields[korig] = value
+                spans[korig] = m.span(k)
 
-        # now figure the match spans
-        spans = {n: m.span(name_map[n]) for n in named_fields}
-        spans.update((i, m.span(n + 1)) for i, n in enumerate(self._fixed_fields))
+        # now figure the spans of the fixed fields
+        for i, n in enumerate(self._fixed_fields):
+            spans[i] = m.span(n + 1)
 
         # and that's our result
         return Result(fixed_fields, self._expand_named_fields(named_fields), spans)
