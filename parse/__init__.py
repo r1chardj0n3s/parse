@@ -751,10 +751,10 @@ class Parser(object):
                 s = r"(?:\d*\.\d+|nan|NAN|inf|INF)"
             conv[group] = convert_first(float if type == "f" else Decimal)
         elif type in ("e", "E"):
-            s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
+            s = r"(?:\d*\.\d+[eE][-+]?\d+|nan|NAN|inf|INF)"
             conv[group] = convert_first(float)
         elif type in ("g", "G"):
-            s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
+            s = r"(?:\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|inf|INF)"
             self._group_index += 2
             conv[group] = convert_first(float)
         elif type == "d":

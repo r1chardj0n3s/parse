@@ -214,3 +214,14 @@ def test_aligned_field_does_not_backtrack_through_padding():
     # the padding is still stripped when the string matches
     string = "spam " + padding + "lovely" + padding + " spam"
     assert parse.parse("spam {:^} spam", string)[0] == "lovely"
+
+
+def test_signed_nan_and_inf_exponent_types():
+    for type in "eEgG":
+        for value in (float("nan"), float("inf"), float("-inf")):
+            for sign in "+- ":
+                string = format(value, sign + type)
+                result = parse.parse("{:" + type + "}", string)
+                assert result is not None, string
+                assert str(result[0]) == str(value)
+    assert parse.parse("{:e}", "--inf") is None
