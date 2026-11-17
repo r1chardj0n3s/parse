@@ -71,7 +71,7 @@ class int_convert:
         if string[0] == "-":
             sign = -1
             number_start = 1
-        elif string[0] == "+":
+        elif string[0] in "+ ":
             sign = 1
             number_start = 1
         else:
