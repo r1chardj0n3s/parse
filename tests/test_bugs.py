@@ -235,3 +235,14 @@ def test_n_type_rejects_non_ascii_digits():
     assert parse.parse("{:n}", u"\uff11\uff10\uff10") is None
     assert parse.search("total {:n} items", u"total 1,\uff10\uff10\uff10 items") is None
     assert parse.parse("{:n}", "1,000")[0] == 1000
+
+
+def test_d_type_space_sign_with_base_prefix():
+    # a leading space sign hid the 0b/0o/0x prefix from base detection, so
+    # " 0x1f" was read as decimal with the x dropped and came back as 1
+    for value in (5, 8, 31):
+        for type in "box":
+            string = format(value, " #" + type)
+            assert parse.parse("{:d}", string)[0] == value, string
+    assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
+    assert parse.parse("{:d}", " 12")[0] == 12
