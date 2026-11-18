@@ -832,7 +832,14 @@ class Parser(object):
             conv[group] = partial(date_convert, mm=n + 1, dd=n + 3, hms=n + 5)
             self._group_index += 5
         elif type == "l":
-            s = r"[A-Za-z]+"
+            # re.IGNORECASE folds non-ASCII letters such as the dotless i
+            # (U+0131) and the Kelvin sign (U+212A) into [A-Za-z], so turn it
+            # off for this class. Python 2 has no scoped flags, but it does
+            # not fold str patterns either
+            if sys.version_info >= (3, 6):
+                s = r"(?-i:[A-Za-z]+)"
+            else:
+                s = r"[A-Za-z]+"
         elif type:
             s = r"\%s+" % type
         elif format.get("precision"):

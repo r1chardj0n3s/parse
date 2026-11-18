@@ -246,3 +246,21 @@ def test_d_type_space_sign_with_base_prefix():
             assert parse.parse("{:d}", string)[0] == value, string
     assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
     assert parse.parse("{:d}", " 12")[0] == 12
+
+
+def test_l_type_rejects_non_ascii_letters():
+    # re.IGNORECASE case folding let [A-Za-z] match letters such as the
+    # dotless i and the Kelvin sign, so "admin" with a dotless i passed as
+    # ASCII letters
+    dotless_i = u"adm\N{LATIN SMALL LETTER DOTLESS I}n"
+    for string in (
+        dotless_i,
+        u"\N{KELVIN SIGN}ey",
+        u"\N{LATIN SMALL LETTER LONG S}uper",
+        u"\N{LATIN CAPITAL LETTER I WITH DOT ABOVE}d",
+    ):
+        assert parse.parse("{:l}", string) is None, string
+        assert parse.parse("{:l}", string, case_sensitive=True) is None, string
+    assert parse.search("user {:l}!", u"user " + dotless_i + u"!") is None
+    assert parse.parse("{:l}", "sPaM")[0] == "sPaM"
+    assert parse.parse("{:l}", "sPaM", case_sensitive=True)[0] == "sPaM"
