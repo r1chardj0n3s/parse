@@ -864,12 +864,6 @@ class Parser(object):
         if not fill:
             fill = " "
 
-        # Place into a group now - this captures the value we want to keep.
-        # Everything else from now is just padding to be stripped off
-        if wrap:
-            s = wrap % s
-            self._group_index += 1
-
         if format["width"]:
             # all we really care about is that if the format originally
             # specified a width then there will probably be padding - without
@@ -888,9 +882,36 @@ class Parser(object):
         # has it there for a value that is a single fill character, or when a
         # repeated name has to equal text that still carries its padding.
         lead = trail = ""
+        tail = "%s*" % fill
         if not type and not format["width"]:
             lead = "(?!%s)" % fill
             trail = "(?<!%s)" % fill
+        elif not type and align in ("<", ">", "^"):
+            # with a width the value may have to keep some of the padding, so
+            # it can't be kept off the fill as above. Drop only the splits
+            # that can't match when one tried before them didn't: past its
+            # minimum width the value doesn't end on fill (the trailing fill
+            # covers that), and after a leading fill run that gave characters
+            # back the value is exactly the minimum width with no trailing
+            # fill (a longer leading run already tried the rest).
+            exact = ".{%s}" % format["width"]
+            shortest = "(?:%s|%s(?<!%s))" % (exact, s, fill)
+            if align == "<":
+                s = shortest
+            elif align == ">":
+                s = "(?!%s)%s|%s" % (fill, s, exact)
+            else:
+                # an empty group marks the branch that may have trailing fill
+                marker = self._group_index + 2
+                self._group_index += 1
+                s = "(?!%s)()%s|%s" % (fill, shortest, exact)
+                tail = "(?(%d)%s*)" % (marker, fill)
+
+        # Place into a group now - this captures the value we want to keep.
+        # Everything else from now is just padding to be stripped off
+        if wrap:
+            s = wrap % s
+            self._group_index += 1
 
         # align "=" has been handled
         if align == "<":
@@ -898,7 +919,7 @@ class Parser(object):
         elif align == ">":
             s = "%s*%s%s" % (fill, lead, s)
         elif align == "^":
-            s = "%s*%s%s%s%s*" % (fill, lead, s, trail, fill)
+            s = "%s*%s%s%s%s" % (fill, lead, s, trail, tail)
 
         return s
 
