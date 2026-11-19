@@ -216,6 +216,24 @@ def test_aligned_field_does_not_backtrack_through_padding():
     assert parse.parse("spam {:^} spam", string)[0] == "lovely"
 
 
+def test_aligned_field_with_width_does_not_backtrack_through_padding():
+    # with a width the value can still take the padding, so the same splits
+    # were retried for every length of the leading fill (cubic for "^")
+    padding = " " * 10000
+    assert parse.parse("spam {:^10} spam", "spam " + padding + "x") is None
+    assert parse.parse("spam {:^5.9} spam", "spam " + padding + "x") is None
+    assert parse.parse("with {:>10} herring", "with " + padding + "x") is None
+    assert parse.parse("{:<10} world", "hello" + padding + "x") is None
+
+    # the value keeps the padding it needs to reach the width, as before
+    assert parse.parse("{:^10}", "    ab    ")[0] == "    ab    "
+    assert parse.parse("{:^10}", "     ab     ")[0] == "   ab     "
+    assert parse.parse("{:<4}|", "ab   |")[0] == "ab  "
+    string = "spam " + padding + "lovely" + padding + " spam"
+    assert parse.parse("spam {:^4} spam", string)[0] == "lovely"
+    assert parse.parse("{:>4}{:4}", "  look at that").fixed == ("look", "at that")
+
+
 def test_signed_nan_and_inf_exponent_types():
     for type in "eEgG":
         for value in (float("nan"), float("inf"), float("-inf")):
