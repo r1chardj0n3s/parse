@@ -524,6 +524,26 @@ def test_invalid_timezone_minutes(offset):
         parse.parse("{:tt}", "12:00 " + offset)
 
 
+@pytest.mark.parametrize(
+    "fmt,text",
+    [
+        ("{:tt}", "12:00 +24:00"),
+        ("{:tt}", "12:00 -2400"),
+        ("{:ti}", "2024-01-01T10:00+99:00"),
+        ("{:te}", "Mon, 01 Jan 2024 10:00:00 +4500"),
+        ("{:tg}", "01/01/2024 10:00 -30:00"),
+    ],
+)
+def test_invalid_timezone_hours(fmt, text):
+    with pytest.raises(ValueError, match="timezone hour"):
+        parse.parse(fmt, text)
+
+
+def test_max_timezone_hours():
+    r = parse.parse("{:ti}", "2024-01-01T10:00+23:59")
+    assert r[0].utcoffset() == timedelta(hours=23, minutes=59)
+
+
 def test_datetimes():
     def y(fmt, s, e, tz=None):
         p = parse.compile(fmt)
