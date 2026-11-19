@@ -848,6 +848,11 @@ class Parser(object):
         align = format["align"]
         fill = format["fill"]
 
+        # the fill is a literal character, escape it before it goes into any
+        # of the patterns below (align "=" uses it for numbers)
+        if fill and fill in r".\+?*[](){}^$|":
+            fill = "\\" + fill
+
         # handle some numeric-specific things like fill and sign
         if is_numeric:
             # prefix with something (align "=" trumps zero)
@@ -877,9 +882,6 @@ class Parser(object):
             # padding
             if not align:
                 align = ">"
-
-        if fill in r".\+?*[](){}^$":
-            fill = "\\" + fill
 
         # an untyped field without a width matches the fill too, so the fill
         # runs and the value can split the same padding many ways, and a string

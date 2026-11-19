@@ -246,3 +246,17 @@ def test_d_type_space_sign_with_base_prefix():
             assert parse.parse("{:d}", string)[0] == value, string
     assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
     assert parse.parse("{:d}", " 12")[0] == 12
+
+
+def test_align_equals_fill_is_escaped():
+    # the "=" alignment put the fill into the pattern unescaped, so a "." fill
+    # matched any text in front of the number: "anything5" parsed as 5 and
+    # "12-5" as 125
+    assert parse.parse("{:.=d}", "anything5") is None
+    assert parse.parse("{:.=d}", "12-5") is None
+    assert parse.parse("{:.=6d}", "-....5")[0] == -5
+    assert parse.parse("{:.=6d}", format(-5, ".=6d"))[0] == -5
+    assert parse.parse("{:*=6d}", format(12, "*=6d"))[0] == 12
+    assert parse.parse("{:+=6d}", format(12, "+=6d"))[0] == 12
+    assert parse.parse("{:|=6d}", format(-12, "|=6d"))[0] == -12
+    assert parse.parse("{:|<}", "ab|||")[0] == "ab"
