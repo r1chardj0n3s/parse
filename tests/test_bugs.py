@@ -246,3 +246,18 @@ def test_d_type_space_sign_with_base_prefix():
             assert parse.parse("{:d}", string)[0] == value, string
     assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
     assert parse.parse("{:d}", " 12")[0] == 12
+
+
+def test_d_type_single_sign():
+    # the d pattern carried its own sign on top of the shared numeric one, so
+    # two signs matched and int_convert only looked at the first: "+-5" and
+    # " -5" came back as 5
+    assert parse.parse("{:d}", "+-5") is None
+    assert parse.parse("{:d}", " -5") is None
+    assert parse.parse("{:d}", "--5") is None
+    assert parse.parse("{:=5d}", "000-5") is None
+    assert parse.parse("{:d}", "-5")[0] == -5
+    assert parse.parse("{:d}", " -0x1f") is None
+    assert parse.parse("{:d}", "-0x1f")[0] == -31
+    assert parse.parse("{:=5d}", "-0005")[0] == -5
+    assert parse.parse("{:>5d}", "   -5")[0] == -5
