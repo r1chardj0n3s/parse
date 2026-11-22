@@ -232,6 +232,15 @@ def test_spans():
     assert r.spans == {0: (6, 11), "name": (12, 15), 1: (16, 21), "spam": (22, 28)}
 
 
+@pytest.mark.parametrize("code", ["e", "E"])
+@pytest.mark.parametrize("value", [0.0, -0.0])
+def test_zero_precision_exponent_preserves_signed_zero(code, value):
+    rendered = format(value, ".0" + code)
+    result = parse.parse("{:.0" + code + "}", rendered)
+    assert result is not None, "formatted signed zero must parse"
+    assert result.fixed[0].hex() == value.hex()
+
+
 def test_numbers():
     # pull a numbers out of a string
     def y(fmt, s, e, str_equals=False):
@@ -322,6 +331,14 @@ def test_numbers():
     y("a {:E} b", "a 1.0E-10 b", 1.0e-10)
     y("a {:E} b", "a -1.0E10 b", -1.0e10)
     y("a {:E} b", "a INF b", float("inf"))
+
+    # precision 0 formats without a decimal point, so parse must accept it
+    y("a {:.0e} b", "a 1e+05 b", 1e5)
+    y("a {:.0e} b", "a -5e+00 b", -5.0)
+    y("a {:.0E} b", "a 1E+05 b", 1e5)
+    y("a {:.0e} b", "a inf b", float("inf"))
+    n("a {:.0e} b", "a 1.0e+05 b", None)
+    n("a {:e} b", "a 1e+05 b", None)
 
     y("a {:g} b", "a 1 b", 1)
     y("a {:g} b", "a 1e10 b", 1e10)
