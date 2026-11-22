@@ -1,0 +1,21 @@
+name: check-version
+
+on:
+  push:
+    tags: ["*"]
+
+permissions:
+  contents: read
+
+jobs:
+  tag-matches-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tag matches parse.__version__
+        run: |
+          python3 -c '
+          import os, sys, parse
+          tag, version = os.environ["GITHUB_REF_NAME"], parse.__version__
+          sys.exit(0 if tag == version else f"::error::tag {tag} but parse.__version__ is {version}")
+          '

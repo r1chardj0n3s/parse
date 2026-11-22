@@ -11,7 +11,7 @@ from decimal import Decimal
 from functools import partial
 
 
-__version__ = "1.22.2"
+__version__ = "1.22.4"
 __all__ = ["parse", "search", "findall", "with_pattern"]
 
 log = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ class int_convert:
         if string[0] == "-":
             sign = -1
             number_start = 1
-        elif string[0] == "+":
+        elif string[0] in "+ ":
             sign = 1
             number_start = 1
         else:
@@ -122,6 +122,9 @@ class FixedTzOffset(tzinfo):
     def __init__(self, offset, name):
         self._offset = timedelta(minutes=offset)
         self._name = name
+
+    def __getinitargs__(self):
+        return self._offset.total_seconds() / 60, self._name
 
     def __repr__(self):
         return "<%s %s %s>" % (self.__class__.__name__, self._name, self._offset)
@@ -227,7 +230,9 @@ def date_convert(
     if am is not None:
         am = groups[am]
         if am:
-            am = am.strip()
+            # matching is case-insensitive (re.IGNORECASE), so normalise the
+            # captured meridiem before the case-sensitive conversion below
+            am = am.strip().upper()
         if am == "AM" and H == 12:
             # correction for "12" hour functioning as "0" hour: 12:15 AM = 00:15 by 24 hr clock
             H -= 12
@@ -239,7 +244,7 @@ def date_convert(
 
     if tz is not None:
         tz = groups[tz]
-    if tz == "Z":
+    if tz and tz.strip().upper() == "Z":
         tz = FixedTzOffset(0, "UTC")
     elif tz:
         tz = tz.strip()
@@ -254,6 +259,10 @@ def date_convert(
                 tzh, tzm = tz[1], tz[2:4]
             else:
                 tzh, tzm = tz[1:3], tz[3:5]
+            if int(tzm) >= 60:
+                raise ValueError("timezone minute must be in 0..59")
+            if int(tzh) >= 24:
+                raise ValueError("timezone hour must be in 0..23")
             offset = int(tzm) + int(tzh) * 60
             if sign == "-":
                 offset = -offset
@@ -266,7 +275,9 @@ def date_convert(
         if m.isdigit():
             m = int(m)
         else:
-            m = MONTHS_MAP[m]
+            # matching is case-insensitive (re.IGNORECASE), so normalise the
+            # captured month name before the case-sensitive lookup below
+            m = MONTHS_MAP[m.capitalize()]
         d = int(d)
         d = datetime(y, m, d, H, M, S, u, tzinfo=tz)
 
@@ -277,16 +288,19 @@ def strf_date_convert(x, _, type):
     is_date = any("%" + x in type for x in "aAwdbBmyYjUW")
     is_time = any("%" + x in type for x in "HIpMSfz")
 
-    dt = datetime.strptime(x, type)
     if "%y" not in type and "%Y" not in type:  # year not specified
-        dt = dt.replace(year=datetime.today().year)
+        # Parse against the current year rather than strptime's default of
+        # 1900, so that Feb 29 and %j day numbers resolve in the right year.
+        x = "%s %d" % (x, datetime.today().year)
+        type += " %Y"
+    dt = datetime.strptime(x, type)
 
     if is_date and is_time:
         return dt
     elif is_date:
         return dt.date()
     elif is_time:
-        return dt.time()
+        return dt.timetz()
     else:
         raise ValueError("Datetime not a date nor a time?")
 
@@ -308,7 +322,8 @@ dt_format_to_regex = {
     "%M": "[0-9]{2}",
     "%S": "[0-9]{2}",
     "%f": "[0-9]{1,6}",
-    "%z": "[+|-][0-9]{2}(:?[0-9]{2})?(:?[0-9]{2})?",
+    # mirrors strptime: sign and minutes are required, "Z" is case-sensitive
+    "%z": "(?:[+-][0-9]{2}:?[0-9]{2}(?::?[0-9]{2})?|(?-i:Z))",
     # "%Z": punt
     "%j": "[0-9]{1,3}",
     "%U": "[0-9]{1,2}",
@@ -576,29 +591,31 @@ class Parser(object):
     def evaluate_result(self, m):
         """Generate a Result instance for the given regex match object"""
         # ok, figure the fixed fields we've pulled out and type convert them
+        conv = self._type_conversions
         fixed_fields = list(m.groups())
         for n in self._fixed_fields:
-            if n in self._type_conversions:
-                fixed_fields[n] = self._type_conversions[n](fixed_fields[n], m)
-        fixed_fields = tuple(fixed_fields[n] for n in self._fixed_fields)
+            if n in conv:
+                fixed_fields[n] = conv[n](fixed_fields[n], m)
+        fixed_fields = tuple([fixed_fields[n] for n in self._fixed_fields])
 
-        # grab the named fields, converting where requested
-        groupdict = m.groupdict()
+        # grab the named fields, converting where requested, and their spans
         named_fields = {}
-        name_map = {}
-        for k in self._named_fields:
-            korig = self._group_to_name_map[k]
-            name_map[korig] = k
-            if k in self._type_conversions:
-                value = self._type_conversions[k](groupdict[k], m)
-            else:
-                value = groupdict[k]
+        spans = {}
+        if self._named_fields:
+            groupdict = m.groupdict()
+            for k in self._named_fields:
+                korig = self._group_to_name_map[k]
+                if k in conv:
+                    value = conv[k](groupdict[k], m)
+                else:
+                    value = groupdict[k]
 
-            named_fields[korig] = value
+                named_fields[korig] = value
+                spans[korig] = m.span(k)
 
-        # now figure the match spans
-        spans = {n: m.span(name_map[n]) for n in named_fields}
-        spans.update((i, m.span(n + 1)) for i, n in enumerate(self._fixed_fields))
+        # now figure the spans of the fixed fields
+        for i, n in enumerate(self._fixed_fields):
+            spans[i] = m.span(n + 1)
 
         # and that's our result
         return Result(fixed_fields, self._expand_named_fields(named_fields), spans)
@@ -707,7 +724,8 @@ class Parser(object):
             self._group_index += regex_group_count
             conv[group] = convert_first(type_converter)
         elif type == "n":
-            s = r"\d{1,3}([,.]\d{3})*"
+            # [0-9], not \d: int_convert drops any digit outside 0-9
+            s = r"[0-9]{1,3}([,.][0-9]{3})*"
             self._group_index += 1
             conv[group] = int_convert(10)
         elif type == "b":
@@ -740,10 +758,10 @@ class Parser(object):
         elif type in ("e", "E"):
             # precision 0 formats without a decimal point (e.g. format(1e5, ".0e") == "1e+05")
             mantissa = r"\d+" if format.get("precision") == "0" else r"\d*\.\d+"
-            s = mantissa + r"[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
+            s = r"(?:" + mantissa + r"[eE][-+]?\d+|nan|NAN|inf|INF)"
             conv[group] = convert_first(float)
         elif type in ("g", "G"):
-            s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
+            s = r"(?:\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|inf|INF)"
             self._group_index += 2
             conv[group] = convert_first(float)
         elif type == "d":
@@ -760,6 +778,10 @@ class Parser(object):
         elif any(k in type for k in dt_format_to_regex):
             s = get_regex_for_datetime_format(type)
             conv[group] = partial(strf_date_convert, type=type)
+            # the generated pattern may contain capture groups of its own, so
+            # account for them - otherwise the fields after this one are read
+            # from the wrong match groups
+            self._group_index += re.compile(s).groups
         elif type == "ti":
             s = r"(\d{4}-\d\d-\d\d)((\s+|T)%s)?(Z|\s*[-+]\d\d:?\d\d)?" % TIME_PAT
             n = self._group_index
@@ -801,7 +823,10 @@ class Parser(object):
             conv[group] = partial(date_convert, d_m_y=(n + 4, n + 3, n + 8), hms=n + 5)
             self._group_index += 8
         elif type == "tt":
-            s = r"%s?%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
+            # only the AM/PM and timezone parts are optional - the time itself
+            # is not, otherwise this type matches the empty string and yields a
+            # bogus time(0, 0)
+            s = r"%s%s?%s?" % (TIME_PAT, AM_PAT, TZ_PAT)
             n = self._group_index
             conv[group] = partial(date_convert, hms=n + 1, am=n + 4, tz=n + 5)
             self._group_index += 5
@@ -860,13 +885,24 @@ class Parser(object):
         if fill in r".\+?*[](){}^$":
             fill = "\\" + fill
 
+        # an untyped field without a width matches the fill too, so the fill
+        # runs and the value can split the same padding many ways, and a string
+        # that doesn't match backtracks through all of them (cubic for "^").
+        # Keep fill off the ends of the value - the match that is found only
+        # has it there for a value that is a single fill character, or when a
+        # repeated name has to equal text that still carries its padding.
+        lead = trail = ""
+        if not type and not format["width"]:
+            lead = "(?!%s)" % fill
+            trail = "(?<!%s)" % fill
+
         # align "=" has been handled
         if align == "<":
-            s = "%s%s*" % (s, fill)
+            s = "%s%s%s*" % (s, trail, fill)
         elif align == ">":
-            s = "%s*%s" % (fill, s)
+            s = "%s*%s%s" % (fill, lead, s)
         elif align == "^":
-            s = "%s*%s%s*" % (fill, s, fill)
+            s = "%s*%s%s%s%s*" % (fill, lead, s, trail, fill)
 
         return s
 

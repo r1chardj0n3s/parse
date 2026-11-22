@@ -1,5 +1,10 @@
 import pickle
+import sys
+from copy import deepcopy
 from datetime import datetime
+from datetime import time
+
+import pytest
 
 import parse
 
@@ -79,6 +84,44 @@ def test_pickling_bug_110():
     pickle.dumps(p)
 
 
+@pytest.mark.parametrize("protocol", [None] + list(range(pickle.HIGHEST_PROTOCOL + 1)))
+@pytest.mark.parametrize(
+    "format, string",
+    [
+        ("{:ti}", "2026-11-02T10:30:00Z"),
+        ("{:ti}", "2026-11-02T10:30:00.501902+08:00"),
+        ("{:ti}", "2026-11-02T10:30:00-05:30"),
+        ("{:ti}", "2026-11-02T10:30:00+00:00"),
+        ("{:tt}", "10:30 +0800"),
+        ("{:tt}", "10:30:00.123456 -0530"),
+        ("{:ti}", "2026-11-02T10:30:00"),
+        ("{:tt}", "10:30"),
+        pytest.param(
+            "{:%Y-%m-%dT%H:%M:%S%z}",
+            "2026-11-02T10:30:00+08:00",
+            marks=pytest.mark.skipif(
+                sys.version_info[0] < 3, reason="Python 3+ required for timezone support"
+            ),
+        ),
+    ],
+)
+def test_copying_datetime_results(format, string, protocol):
+    result = parse.parse(format + " {label}", string + " sentinel")
+    assert result is not None
+    if protocol is None:
+        restored = deepcopy(result)
+    else:
+        restored = pickle.loads(pickle.dumps(result, protocol))
+    assert restored is not result
+    assert restored.fixed == result.fixed
+    assert restored.named == result.named
+    assert restored.spans == result.spans
+    assert type(restored[0]) is type(result[0])
+    assert type(restored[0].tzinfo) is type(result[0].tzinfo)
+    assert restored[0].utcoffset() == result[0].utcoffset()
+    assert restored[0].tzname() == result[0].tzname()
+
+
 def test_unused_centered_alignment_bug():
     r = parse.parse("{:^2S}", "foo")
     assert r[0] == "foo"
@@ -103,6 +146,28 @@ def test_match_trailing_newline():
     assert r[0] == "test\n"
 
 
+def test_case_insensitive_month_names():
+    # matching is case-insensitive by default, so a month name may arrive in
+    # any case and the conversion must not be case-sensitive
+    cases = [
+        ("{:tg}", "1/jul/2011", datetime(2011, 7, 1)),
+        ("{:tg}", "1/jULy/2011 13:05", datetime(2011, 7, 1, 13, 5)),
+        ("{:ta}", "JUL/16/2011", datetime(2011, 7, 16)),
+        ("{:te}", "Mon, 16 jul 1997 19:20 +0200", datetime(1997, 7, 16, 19, 20)),
+        ("{:th}", "16/JUL/1997:19:20 +0000", datetime(1997, 7, 16, 19, 20)),
+        ("{:tc}", "mon jul 16 19:20 1997", datetime(1997, 7, 16, 19, 20)),
+    ]
+    for format, string, expected in cases:
+        result = parse.parse(format, string)
+        assert result is not None, (format, string)
+        assert result[0].replace(tzinfo=None) == expected, (format, string)
+
+    # the ts type carries no year, so just check the month/day it resolved
+    result = parse.parse("{:ts}", "jul 16 19:20:20")
+    assert result is not None
+    assert (result[0].month, result[0].day) == (7, 16)
+
+
 def test_microsecond_precision_issue162():
     # fractional seconds that previously suffered floating-point rounding
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.501902Z")
@@ -119,3 +184,65 @@ def test_microsecond_precision_issue162():
     # more than 6 fractional digits should be truncated
     r = parse.parse("{:ti}", "2023-10-14T15:09:08.1234567Z")
     assert r[0].microsecond == 123456
+
+
+def test_time_type_requires_an_actual_time():
+    # the "tt" pattern marked the time itself as optional, so a field could
+    # match nothing at all and convert that into a bogus time(0, 0)
+    assert parse.parse("{:tt}", "") is None
+    assert parse.parse("Meet at {:tt}", "Meet at ") is None
+    assert parse.search("{:tt}", "there is no time here") is None
+
+    # the phantom empty match also showed up as an endless stream of results
+    phantom = [result for _, result in zip(range(5), parse.findall("{:tt}", "no time"))]
+    assert phantom == []
+
+    # the documented time forms still parse
+    assert parse.parse("{:tt}", "10:21:36 PM")[0] == time(22, 21, 36)
+    assert parse.parse("Meet at {:tt}", "Meet at 10:21")[0] == time(10, 21)
+
+
+def test_aligned_field_does_not_backtrack_through_padding():
+    # the fill runs either side of an untyped aligned field could trade
+    # characters with the field, so a padded string that didn't match
+    # backtracked through every split of the padding (cubic for "^")
+    padding = " " * 10000
+    assert parse.parse("spam {:^} spam", "spam " + padding + "x") is None
+    assert parse.parse("with {:>} herring", "with " + padding + "x") is None
+    assert parse.parse("{:<} world", "hello" + padding + "x") is None
+
+    # the padding is still stripped when the string matches
+    string = "spam " + padding + "lovely" + padding + " spam"
+    assert parse.parse("spam {:^} spam", string)[0] == "lovely"
+
+
+def test_signed_nan_and_inf_exponent_types():
+    for type in "eEgG":
+        for value in (float("nan"), float("inf"), float("-inf")):
+            for sign in "+- ":
+                string = format(value, sign + type)
+                result = parse.parse("{:" + type + "}", string)
+                assert result is not None, string
+                assert str(result[0]) == str(value)
+    assert parse.parse("{:e}", "--inf") is None
+
+
+def test_n_type_rejects_non_ascii_digits():
+    # \d also matched digits outside 0-9, which int_convert then threw away,
+    # so "1,000" written with fullwidth zeros came back as 1
+    assert parse.parse("{:n}", u"1,\uff10\uff10\uff10") is None
+    assert parse.parse("{:n}", u"1\u0660\u0660") is None
+    assert parse.parse("{:n}", u"\uff11\uff10\uff10") is None
+    assert parse.search("total {:n} items", u"total 1,\uff10\uff10\uff10 items") is None
+    assert parse.parse("{:n}", "1,000")[0] == 1000
+
+
+def test_d_type_space_sign_with_base_prefix():
+    # a leading space sign hid the 0b/0o/0x prefix from base detection, so
+    # " 0x1f" was read as decimal with the x dropped and came back as 1
+    for value in (5, 8, 31):
+        for type in "box":
+            string = format(value, " #" + type)
+            assert parse.parse("{:d}", string)[0] == value, string
+    assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
+    assert parse.parse("{:d}", " 12")[0] == 12
