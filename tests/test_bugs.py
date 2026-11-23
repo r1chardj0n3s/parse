@@ -246,3 +246,27 @@ def test_d_type_space_sign_with_base_prefix():
             assert parse.parse("{:d}", string)[0] == value, string
     assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
     assert parse.parse("{:d}", " 12")[0] == 12
+
+
+def test_digit_filled_numeric_field_does_not_backtrack_through_fill():
+    # a digit fill is matched by the numeric value as well as by the fill
+    # runs, so a run of that digit that didn't match backtracked through every
+    # split of it (cubic for "^")
+    zeros = "0" * 10000
+    assert parse.parse("{:=d}", zeros + "x") is None
+    assert parse.parse("{:0>d}", zeros + "x") is None
+    assert parse.parse("{:0<d}", zeros + "x") is None
+    assert parse.parse("{:0^d}", zeros + "x") is None
+    assert parse.parse("{:=f}", zeros + "x") is None
+    assert parse.search("{:=d}y", zeros + "x") is None
+
+    # zero-padded values still parse, and keep their spans
+    assert parse.parse("a {:=d} b", "a 000012 b")[0] == 12
+    assert parse.parse("{:=d}", "000")[0] == 0
+    assert parse.parse("{:0>d}", "+00")[0] == 0
+    assert parse.parse("{:0>d}", "00042").spans[0] == (3, 5)
+    assert parse.parse("{:0>f}", "000.5")[0] == 0.5
+    assert parse.parse("{:0^d}", "00042000")[0] == 42000
+    assert str(parse.parse("{:0<f}", "nan00")[0]) == "nan"
+    assert parse.parse("{:=d}{:d}", "0000").fixed == (0, 0)
+    assert parse.parse("{:=2d}{:d}", "+0000").spans == {0: (0, 4), 1: (4, 5)}
