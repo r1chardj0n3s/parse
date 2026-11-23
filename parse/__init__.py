@@ -851,6 +851,7 @@ class Parser(object):
         fill = format["fill"]
 
         # handle some numeric-specific things like fill and sign
+        tail = None
         if is_numeric:
             # prefix with something (align "=" trumps zero)
             if align == "=":
@@ -858,10 +859,45 @@ class Parser(object):
                 # configurable fill defaulting to "0"
                 if not fill:
                     fill = "0"
-                s = r"%s*" % fill + s
+
+            # a digit fill is matched by the value too, so the fill runs and
+            # the value can split a run of that digit many ways, and a string
+            # that doesn't match backtracks through all of them (cubic for
+            # "^"). A value that starts on two fill digits matches just the
+            # same when the fill run takes one of them, so the run only stops
+            # short of two fill digits for a value that is a single one (with
+            # the rest of the format taking what follows). Without a width the
+            # value also keeps every fill digit it ends on, so a trailing run
+            # only follows a value that ends on something else ("n" is left
+            # alone, its groups of three can't take another digit).
+            digit = fill and fill in "0123456789"
+            if digit:
+                stop = "(?!%s%s)" % (fill, fill)
+                single = re.match(r"(?:%s)\Z" % s, fill, self._re_flags)
+
+            if align == "=":
+                if digit:
+                    # "d" is an alternation, and the fill only ever went on
+                    # its first branch
+                    value, bar, rest = s.partition("|") if type == "d" else (s, "", "")
+                    if single:
+                        value = r"(?:(?=%s%s)%s|%s%s)" % (fill, fill, fill, stop, value)
+                    else:
+                        value = stop + value
+                    s = r"%s*%s%s%s" % (fill, value, bar, rest)
+                else:
+                    s = r"%s*" % fill + s
 
             # allow numbers to be prefixed with a sign
             s = r"[-+ ]?" + s
+
+            if digit and align in (">", "^"):
+                if single:
+                    s = r"(?:(?=%s%s)%s|%s(?:%s))" % (fill, fill, fill, stop, s)
+                else:
+                    s = r"%s(?:%s)" % (stop, s)
+            if digit and type != "n" and not format["width"]:
+                tail = r"(?:(?<=%s)|(?<!%s)%s*)" % (fill, fill, fill)
 
         if not fill:
             fill = " "
@@ -893,14 +929,16 @@ class Parser(object):
         if not type and not format["width"]:
             lead = "(?!%s)" % fill
             trail = "(?<!%s)" % fill
+        if tail is None:
+            tail = "%s*" % fill
 
         # align "=" has been handled
         if align == "<":
-            s = "%s%s%s*" % (s, trail, fill)
+            s = "%s%s%s" % (s, trail, tail)
         elif align == ">":
             s = "%s*%s%s" % (fill, lead, s)
         elif align == "^":
-            s = "%s*%s%s%s%s*" % (fill, lead, s, trail, fill)
+            s = "%s*%s%s%s%s" % (fill, lead, s, trail, tail)
 
         return s
 
