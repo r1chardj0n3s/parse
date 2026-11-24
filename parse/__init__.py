@@ -680,8 +680,8 @@ class Parser(object):
         # This *should* be more flexible, but parsing complicated structures
         # out of the string is hard (and not necessarily useful) ... and I'm
         # being lazy. So for now `identifier` is "anything starting with a
-        # letter" and digit args don't get attribute or element stuff.
-        if name and name[0].isalpha():
+        # letter or underscore" and digit args don't get attribute or element stuff.
+        if name and (name[0].isalpha() or name[0] == "_"):
             if name in self._name_to_group_map:
                 if self._name_types[name] != format:
                     raise RepeatedNameError(
