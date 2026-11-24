@@ -1,6 +1,7 @@
 import pickle
 import sys
 from copy import deepcopy
+from datetime import date
 from datetime import datetime
 from datetime import time
 
@@ -246,3 +247,22 @@ def test_d_type_space_sign_with_base_prefix():
             assert parse.parse("{:d}", string)[0] == value, string
     assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
     assert parse.parse("{:d}", " 12")[0] == 12
+
+
+def test_strftime_format_literals_are_escaped():
+    # the text between strftime directives was copied into the regex unescaped,
+    # so "." matched any character, "(" opened a group and the format stopped
+    # matching its own output, and "*" made re.compile raise "multiple repeat"
+    assert parse.parse("{:%Y.%m.%d}", "2026.11.24")[0] == date(2026, 11, 24)
+    assert parse.parse("{:%Y.%m.%d}", "2026-11-24") is None
+
+    r = parse.parse("{:%Y-%m-%d (%H:%M)}", "2026-11-24 (09:30)")
+    assert r[0] == datetime(2026, 11, 24, 9, 30)
+    assert parse.parse("{:%Y-%m-%d (%H:%M)}", "2026-11-24 09:30") is None
+
+    assert parse.parse("{:%Y-%m-%d*}", "2026-11-24*")[0] == date(2026, 11, 24)
+
+    # ordinary separators keep working, including through search()
+    r = parse.parse("{dt:%Y-%m-%d %H:%M:%S}", "2026-11-24 09:30:00")
+    assert r["dt"] == datetime(2026, 11, 24, 9, 30)
+    assert parse.search("{:%Y/%m/%d}", "date: 2026/11/24")[0] == date(2026, 11, 24)

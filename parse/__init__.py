@@ -344,8 +344,19 @@ def get_regex_for_datetime_format(format_):
     Returns:
         str: A regex pattern corresponding to the datetime format string.
     """
-    # Replace all format symbols with their regex patterns.
-    return dt_format_symbols_re.sub(lambda m: dt_format_to_regex[m.group(0)], format_)
+    # Replace all format symbols with their regex patterns, escaping the text
+    # between them: strftime copies literal characters through untouched, so
+    # "." must match a dot rather than any character, "(" must match a paren
+    # rather than open a group, and "*" must match an asterisk rather than
+    # make the pattern fail to compile.
+    parts = []
+    pos = 0
+    for m in dt_format_symbols_re.finditer(format_):
+        parts.append(re.escape(format_[pos : m.start()]))
+        parts.append(dt_format_to_regex[m.group(0)])
+        pos = m.end()
+    parts.append(re.escape(format_[pos:]))
+    return "".join(parts)
 
 
 class TooManyFields(ValueError):
