@@ -723,6 +723,8 @@ class Parser(object):
                 regex_group_count = 0
             self._group_index += regex_group_count
             conv[group] = convert_first(type_converter)
+        elif type == "s":
+            s = r".+?"
         elif type == "n":
             # [0-9], not \d: int_convert drops any digit outside 0-9
             s = r"[0-9]{1,3}([,.][0-9]{3})*"
