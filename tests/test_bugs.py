@@ -246,3 +246,9 @@ def test_d_type_space_sign_with_base_prefix():
             assert parse.parse("{:d}", string)[0] == value, string
     assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
     assert parse.parse("{:d}", " 12")[0] == 12
+
+
+def test_explicit_string_type():
+    result = parse.parse("test_{name:s}", "test_hello")
+    assert result is not None
+    assert result.named == {"name": "hello"}
