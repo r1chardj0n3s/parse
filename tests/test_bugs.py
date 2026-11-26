@@ -246,3 +246,36 @@ def test_d_type_space_sign_with_base_prefix():
             assert parse.parse("{:d}", string)[0] == value, string
     assert parse.parse("a {:d} b", "a  0x1F b")[0] == 0x1F
     assert parse.parse("{:d}", " 12")[0] == 12
+
+
+def test_extra_type_pattern_group_count_is_detected():
+    # with_pattern()'s regex_group_count is optional, so an undeclared group in
+    # the pattern left the fields after it pointing at the wrong regex group:
+    # the second field came back with the first field's value and span
+    @parse.with_pattern(r"((\d+))")
+    def undeclared(text):
+        return int(text)
+
+    r = parse.parse("{:Num} {:Num}", "42 43", {"Num": undeclared})
+    assert (r[0], r[1]) == (42, 43)
+    assert (r.spans[0], r.spans[1]) == ((0, 2), (3, 5))
+
+    # the field after the custom type need not be a custom type itself
+    r = parse.parse("{:Num} {:d}", "42 43", {"Num": undeclared})
+    assert (r[0], r[1]) == (42, 43)
+
+    # a pattern attached without the decorator carries no count at all
+    def no_attribute(text):
+        return int(text)
+
+    no_attribute.pattern = r"(\d+)"
+    r = parse.parse("{:Num} {:Num}", "42 43", {"Num": no_attribute})
+    assert (r[0], r[1]) == (42, 43)
+
+    # a declared count is still used as given
+    @parse.with_pattern(r"((\d+))", regex_group_count=2)
+    def declared(text):
+        return int(text)
+
+    r = parse.parse("{:Num} {:Num}", "42 43", {"Num": declared})
+    assert (r[0], r[1]) == (42, 43)

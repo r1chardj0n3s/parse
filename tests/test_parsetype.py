@@ -125,8 +125,9 @@ def test_with_pattern_and_wrong_regex_group_count_raises_error():
         return int(text)
 
     # -- CASE: Unnamed-params (affected)
+    # a count of None means it was not given, and is now read off the pattern;
+    # a count that is given and wrong still throws off the fields after it
     BAD_REGEX_GROUP_COUNTS_AND_ERRORS = [
-        (None, ValueError),
         (0, ValueError),
         (2, IndexError),
     ]

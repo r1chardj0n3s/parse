@@ -414,7 +414,7 @@ in the ``with_pattern()`` decorator:
     >>> parse('Answer: {:Number2} {:Number2}', 'Answer: 42 43', {"Number2": parse_number2})
     <Result (42, 43) {}>
 
-Otherwise, this may cause parsing problems with unnamed/fixed parameters.
+When the parameter is omitted the groups are counted from the ``pattern``.
 
 
 Potential Gotchas

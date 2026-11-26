@@ -718,9 +718,15 @@ class Parser(object):
         if type in self._extra_types:
             type_converter = self._extra_types[type]
             s = getattr(type_converter, "pattern", r".+?")
-            regex_group_count = getattr(type_converter, "regex_group_count", 0)
+            regex_group_count = getattr(type_converter, "regex_group_count", None)
             if regex_group_count is None:
-                regex_group_count = 0
+                # with_pattern()'s regex_group_count is optional, so count the
+                # groups ourselves when it is missing - an undercount leaves
+                # every later field reading some other field's group
+                try:
+                    regex_group_count = re.compile(s).groups
+                except re.error:
+                    regex_group_count = 0
             self._group_index += regex_group_count
             conv[group] = convert_first(type_converter)
         elif type == "n":
